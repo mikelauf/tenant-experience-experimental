@@ -1,0 +1,20 @@
+
+> pyramid@0.1.0 dev
+> next dev -p 3100
+
+▲ Next.js 16.3.6 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://192.168.1.215:3100
+✓ Ready in 347ms
+✓ Running next.config.ts took 79ms
+
+ GET /venues 200 in 614ms (next.js: 362ms, application-code: 252ms)
+ GET /venues 200 in 57ms (next.js: 2ms, application-code: 55ms)
+ GET /venues/bay-lounge 200 in 358ms (next.js: 13ms, generate-params: 278ms, application-code: 67ms)
+ GET /venues/redwood-park 200 in 57ms (next.js: 1.6ms, generate-params: 1.4ms, application-code: 54ms)
+ GET / 200 in 58ms (next.js: 15ms, application-code: 43ms)
+ GET /fitness 200 in 55ms (next.js: 10ms, application-code: 46ms)
+ GET /programming/art-after-hours 200 in 297ms (next.js: 260ms, application-code: 37ms)
+ GET /spaces 200 in 54ms (next.js: 16ms, application-code: 39ms)
+ GET /venues 200 in 77ms (next.js: 4ms, application-code: 73ms)
+[?25h

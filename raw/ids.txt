@@ -1,0 +1,13 @@
+cec8a277-37a7-49b1-ae1b-ca8f1e38dd02 building/pyramid-dusk 2400
+65f23462-ce58-456d-bd35-f80b70e27365 venues/bay-lounge 2000
+72eca26b-9d8b-40c6-8b80-bd396af0efe1 venues/bay-lounge-evening 1400
+0c3e5bfb-c977-47c9-9359-265289772dc2 venues/redwood-park 2000
+51823347-750e-4f6e-a7ac-637dc1987510 venues/montgomery-hall 2000
+ede6340a-ef7f-4932-920c-7a34cc08f73e spaces/boardroom 1800
+b01fb757-820d-4cbc-b485-c7a39a7b09fd spaces/huddle 1400
+27ffdca3-668a-487d-bea8-e36cf59a073e fitness/strength 1400
+0f8048c9-9aca-43d2-91db-b0cb522b95e0 fitness/ride 2000
+b12b3c53-0ca2-4de4-8ee4-d18fc3f9a972 fitness/recovery 1400
+fb1cfc15-ee97-48ae-be6d-c04c0c62b0b6 programming/cupping 1400
+c1edfadb-bafd-48e6-b557-23d4980e4a3d programming/talk 2000
+ffb08168-47af-4a7e-8f94-9eeb8479271e people/host 1200
