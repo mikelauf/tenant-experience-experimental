@@ -42,7 +42,7 @@ export const venues: Venue[] = [
     hero: img.bayDay,
     gallery: [img.bayDay, img.bayDusk, img.bayReception, img.bayCoit, img.bayRound, img.baySofas, img.bayBar, img.talk, img.clubBar],
     hostId: "ines",
-    plate: { w: 26, d: 14, windows: "wrap" },
+    plate: { w: 24.2, d: 13.05, windows: "wrap" },
   },
   {
     slug: "redwood-park",
@@ -71,7 +71,7 @@ export const venues: Venue[] = [
     hero: img.redwoodFountain,
     gallery: [img.redwoodFountain, img.redwoodKiosk, img.redwoodEvening, img.redwoodSky, img.redwoodPlaza, img.redwoodPath],
     hostId: "ines",
-    plate: { w: 28, d: 20, windows: "none", outdoor: true },
+    plate: { w: 52.3, d: 37.3, windows: "none", outdoor: true },
   },
   {
     slug: "montgomery-hall",
@@ -101,7 +101,7 @@ export const venues: Venue[] = [
     hero: img.montgomeryHall,
     gallery: [img.montgomeryHall, img.boardroomReal, img.colonnade, img.lobbyCoffee, img.lobbyLounge, img.lobbyDesk],
     hostId: "ines",
-    plate: { w: 30, d: 18, windows: "north" },
+    plate: { w: 25.5, d: 15.3, windows: "north" },
   },
 ];
 

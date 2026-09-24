@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, type HTMLMotionProps } from "motion/react";
+import { useShape } from "@/lib/shape";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -25,11 +26,11 @@ export function LineReveal({ lines, className, as = "h2", delay = 0 }: { lines: 
   return (
     <Tag className={className} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-10% 0px" }}>
       {lines.map((l, i) => (
-        <span key={i} className="block overflow-hidden pb-[0.08em] -mb-[0.08em]">
+        <span key={i} className="block overflow-hidden pt-[0.1em] -mt-[0.1em] pb-[0.22em] -mb-[0.22em]">
           <motion.span
             className="block"
             variants={{
-              hidden: { y: "105%" },
+              hidden: { y: "150%" },
               show: { y: 0, transition: { duration: 1, ease, delay: delay + i * 0.08 } },
             }}
           >
@@ -43,11 +44,12 @@ export function LineReveal({ lines, className, as = "h2", delay = 0 }: { lines: 
 
 /** Image wrapper that unmasks from the bottom with a slight settle-in scale. */
 export function ClipReveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
+  const r = useShape() === "flat" ? 0 : 22;
   return (
     <motion.div
       className={className}
-      initial={{ clipPath: "inset(14% 0% 0% 0% round 22px)", opacity: 0.4 }}
-      whileInView={{ clipPath: "inset(0% 0% 0% 0% round 22px)", opacity: 1 }}
+      initial={{ clipPath: `inset(14% 0% 0% 0% round ${r}px)`, opacity: 0.4 }}
+      whileInView={{ clipPath: `inset(0% 0% 0% 0% round ${r}px)`, opacity: 1 }}
       viewport={{ once: true, margin: "-10% 0px" }}
       transition={{ duration: 1.2, ease, delay }}
     >

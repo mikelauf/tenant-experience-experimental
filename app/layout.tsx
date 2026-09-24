@@ -4,6 +4,7 @@ import { MotionRoot } from "@/components/motion/MotionRoot";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { DemoDock } from "@/components/ui/DemoDock";
 import { Toast } from "@/components/ui/Toast";
+import { shapeBootScript } from "@/lib/shape";
 import "./globals.css";
 
 const instrument = Instrument_Sans({
@@ -25,7 +26,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={instrument.variable}>
+    // The boot script may set data-shape before React hydrates
+    <html lang="en" className={instrument.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: shapeBootScript }} />
+      </head>
       <body>
         <SmoothScroll />
         <a

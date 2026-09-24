@@ -12,16 +12,18 @@ export function Pyramid({
   className,
   poster,
   auto,
+  onInteract,
 }: {
   level: number | null;
   mood?: Mood;
   className?: string;
   poster: React.ReactNode;
   auto?: boolean;
+  onInteract?: () => void;
 }) {
   return (
     <Lazy3D className={className} poster={poster}>
-      {({ active, onReady }) => <PyramidCanvas level={level} mood={mood} active={active} onReady={onReady} auto={auto} />}
+      {({ active, onReady }) => <PyramidCanvas level={level} mood={mood} active={active} onReady={onReady} auto={auto} onInteract={onInteract} />}
     </Lazy3D>
   );
 }

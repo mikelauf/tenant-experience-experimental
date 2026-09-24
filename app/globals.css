@@ -158,7 +158,7 @@
   .t-mega {
     font-stretch: 82%;
     font-weight: 560;
-    font-size: clamp(3.25rem, 1.2rem + 8.4vw, 10rem);
+    font-size: clamp(3rem, 1.1rem + 7.6vw, 8.75rem);
     line-height: 0.86;
     letter-spacing: -0.045em;
   }
@@ -294,11 +294,30 @@
 ::view-transition-image-pair(.morph) {
   animation-name: via-blur;
 }
+/* Gallery progress bar; the card advances on its animationend */
+@keyframes progress-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
 @keyframes via-blur {
   35% {
     filter: blur(2px);
   }
 }
+/*
+ * Flat shape (Demo → Style): every corner goes square, including pills, media,
+ * cards and fields. `.keep-round` opts out where a circle does a job (spinners).
+ */
+:root[data-shape="flat"] *:not(.keep-round),
+:root[data-shape="flat"] *::before,
+:root[data-shape="flat"] *::after {
+  border-radius: 0 !important;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation-duration: 260ms;

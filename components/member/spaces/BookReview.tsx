@@ -164,7 +164,7 @@ export function BookReview({ slug }: { slug: string }) {
               >
                 {stage === "working" ? (
                   <>
-                    <span className="size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" /> {request ? "Sending…" : "Booking…"}
+                    <span className="size-4 keep-round animate-spin rounded-full border-2 border-paper/30 border-t-paper" /> {request ? "Sending…" : "Booking…"}
                   </>
                 ) : request ? (
                   "Send request"

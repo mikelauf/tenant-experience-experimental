@@ -102,7 +102,7 @@ export function SignIn() {
                 )}
                 {stage === "checking" && (
                   <>
-                    <span className="size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+                    <span className="size-4 keep-round animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
                     Checking with {currentMember.company}…
                   </>
                 )}

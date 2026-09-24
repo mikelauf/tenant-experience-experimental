@@ -48,7 +48,7 @@ function EventsRail({ title = "This week at the Pyramid" }: { title?: string }) 
           All events <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
-      <div className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto px-[var(--gutter)] lg:grid lg:grid-cols-4 lg:gap-[var(--col-gap)] lg:overflow-visible">
+      <div className="no-scrollbar mt-10 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-4 overflow-x-auto px-[var(--gutter)] lg:grid lg:grid-cols-4 lg:gap-[var(--col-gap)] lg:overflow-visible">
         {list.map((e) => (
           <EventCard key={e.slug} e={e} className="w-[72vw] shrink-0 snap-start sm:w-[44vw] lg:w-auto" />
         ))}
@@ -206,7 +206,7 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
             </span>
           </div>
         </div>
-        <ol className="no-scrollbar mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:grid lg:grid-cols-4 lg:gap-[var(--col-gap)] lg:overflow-visible">
+        <ol className="no-scrollbar mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:grid lg:grid-cols-4 lg:gap-[var(--col-gap)] lg:overflow-visible">
           {steps.map((x, i) => (
             <motion.li
               key={x.t}

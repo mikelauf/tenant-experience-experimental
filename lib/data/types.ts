@@ -42,7 +42,7 @@ export type Venue = {
   hero: Img;
   gallery: Img[];
   hostId: string;
-  /** Plate shape for the setup visualizer */
+  /** Plate for the setup visualizer, in meters; w × d should match `sqft` (1 m² ≈ 10.76 sq ft) */
   plate: { w: number; d: number; windows: "north" | "east" | "wrap" | "none"; outdoor?: boolean };
 };
 

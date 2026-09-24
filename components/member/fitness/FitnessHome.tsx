@@ -180,7 +180,7 @@ export function FitnessHome() {
             Five ways to move, every weekday.
           </h2>
         </div>
-        <div className="no-scrollbar mt-10 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:gap-5">
+        <div className="no-scrollbar mt-10 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:gap-5">
           {Object.values(classTemplates).map((t) => (
             <Link key={t.kind} href={`/fitness/schedule?kind=${t.kind}`} className="group w-[70vw] shrink-0 snap-start sm:w-[40vw] lg:w-[23vw]">
               <div className="media relative aspect-[3/4]">

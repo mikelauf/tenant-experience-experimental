@@ -96,10 +96,10 @@ export function VenueCollection() {
       </p>
 
       {/* Editorial mosaic on desktop, swipe rail on phones */}
-      <div className="no-scrollbar -mx-[var(--gutter)] mt-6 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[var(--gutter)] lg:mx-0 lg:grid lg:grid-cols-12 lg:gap-[var(--col-gap)] lg:overflow-visible lg:px-0">
+      <div className="no-scrollbar -mx-[var(--gutter)] mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] lg:mx-0 lg:grid lg:grid-cols-12 lg:gap-[var(--col-gap)] lg:overflow-visible lg:px-0">
         <VenueCard v={venues[0]} size="lg" dim={!match(venues[0])} priority className="w-[84vw] shrink-0 snap-start lg:col-span-7 lg:row-span-2 lg:w-auto" />
-        <VenueCard v={venues[1]} dim={!match(venues[1])} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
-        <VenueCard v={venues[2]} dim={!match(venues[2])} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
+        <VenueCard v={venues[1]} dim={!match(venues[1])} stagger={2300} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
+        <VenueCard v={venues[2]} dim={!match(venues[2])} stagger={4600} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
       </div>
     </section>
   );

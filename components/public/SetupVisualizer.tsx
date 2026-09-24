@@ -7,7 +7,7 @@ import { setupLabels } from "@/lib/data/rooms";
 import type { Setup, Venue } from "@/lib/data/types";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
-import { makeLayout } from "@/components/three/setup/layouts";
+import { barFront, barLength, makeLayout, stageSize } from "@/components/three/setup/layouts";
 
 const SetupCanvas = dynamic(() => import("@/components/three/setup/SetupCanvas"), { ssr: false });
 
@@ -36,8 +36,8 @@ function Plan({ plate, setup, capacity }: { plate: Venue["plate"]; setup: Setup;
         stroke="#cfccc4"
         strokeWidth={0.08}
       />
-      {L.stage && <rect x={-Math.min(plate.w * 0.25, 3.5)} y={-plate.d / 2 + 0.3} width={Math.min(plate.w * 0.5, 7)} height={1.3} fill="#d8d1c4" />}
-      {L.bar && <rect x={-plate.w / 2 + 0.35} y={-Math.min(plate.d * 0.275, 3)} width={0.7} height={Math.min(plate.d * 0.55, 6)} fill="#6f4a2f" />}
+      {L.stage && <rect x={-stageSize(plate.w) / 2} y={-plate.d / 2 + 0.3} width={stageSize(plate.w)} height={1.3} fill="#d8d1c4" />}
+      {L.bar && <rect x={barFront(plate.w) - 0.7} y={-barLength(plate.d) / 2} width={0.7} height={barLength(plate.d)} fill="#6f4a2f" />}
       {L.rounds.map(([x, z, s], i) => (
         <circle key={`r${i}`} cx={x} cy={z} r={0.62 * (s || 1)} fill="#6f4a2f" />
       ))}
@@ -47,11 +47,29 @@ function Plan({ plate, setup, capacity }: { plate: Venue["plate"]; setup: Setup;
       {L.highs.map(([x, z], i) => (
         <circle key={`h${i}`} cx={x} cy={z} r={0.3} fill="#6f4a2f" />
       ))}
-      {L.sofas.map(([x, z], i) => (
-        <rect key={`s${i}`} x={x - 0.95} y={z - 0.4} width={1.9} height={0.8} rx={0.2} fill="#d9cfbf" />
+      {L.sofas.map(([x, z, rot], i) => (
+        <rect
+          key={`s${i}`}
+          x={x - 0.95}
+          y={z - 0.4}
+          width={1.9}
+          height={0.8}
+          rx={0.2}
+          fill="#d9cfbf"
+          transform={`rotate(${(-rot * 180) / Math.PI} ${x} ${z})`}
+        />
       ))}
-      {L.chairs.map(([x, z], i) => (
-        <rect key={`c${i}`} x={x - 0.21} y={z - 0.2} width={0.42} height={0.4} rx={0.08} fill="#2a2d30" />
+      {L.chairs.map(([x, z, rot], i) => (
+        <rect
+          key={`c${i}`}
+          x={x - 0.21}
+          y={z - 0.2}
+          width={0.42}
+          height={0.4}
+          rx={0.08}
+          fill="#3b3f43"
+          transform={`rotate(${(-rot * 180) / Math.PI} ${x} ${z})`}
+        />
       ))}
       {L.people.map(([x, z], i) => (
         <circle key={`p${i}`} cx={x} cy={z} r={0.18} fill={i % 3 ? "#62666a" : "#9a3f25"} />

@@ -513,7 +513,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
           >
             {sending ? (
               <>
-                <span className="size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+                <span className="size-4 keep-round animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
                 Sending…
               </>
             ) : netError ? (

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { Persona } from "@/lib/data/types";
+import { setShape, useShape } from "@/lib/shape";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { Icon } from "./Icon";
 
@@ -18,6 +19,7 @@ const personas: { id: Persona; label: string; note: string }[] = [
 /** Reviewer controls. Not part of the product. */
 export function DemoDock() {
   const s = useDemo();
+  const shape = useShape();
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
   const path = usePathname();
@@ -75,6 +77,33 @@ export function DemoDock() {
                   {x.label}
                 </Link>
               ))}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between gap-3 px-1">
+              <span className="text-[0.9375rem] font-medium">Style</span>
+              <div role="radiogroup" aria-label="Corner style" className="grid grid-cols-2 gap-1 rounded-full bg-night-3 p-1 text-[0.8125rem]">
+                {(
+                  [
+                    { id: "rounded", label: "Rounded", glyph: "rounded-[5px]" },
+                    { id: "flat", label: "Flat", glyph: "" },
+                  ] as const
+                ).map((x) => (
+                  <button
+                    key={x.id}
+                    role="radio"
+                    aria-checked={shape === x.id}
+                    onClick={() => setShape(x.id)}
+                    className={cn(
+                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors",
+                      shape === x.id ? "bg-moon text-night" : "text-moon-2 hover:text-moon",
+                    )}
+                  >
+                    {/* keep-round so the swatch still shows the difference once flat is on */}
+                    <span aria-hidden className={cn("size-3 border-[1.5px] border-current", x.glyph && `keep-round ${x.glyph}`)} />
+                    {x.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {isPublic ? (

@@ -1,9 +1,9 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useInView, useReducedMotion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
 import Link from "next/link";
-import { ViewTransition, useState } from "react";
+import { ViewTransition, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { Venue } from "@/lib/data/types";
 import { maxCap } from "@/lib/data/venues";
@@ -36,9 +36,13 @@ export function HeartButton({ slug, name, className, tone = "glass" }: { slug: s
   );
 }
 
+/** How long each photo holds before the gallery advances. */
+const SLIDE_MS = 7000;
+
 /**
- * Airbnb-style card: hover (or swipe dots) cycles the gallery;
- * the lead image morphs into the detail hero on click.
+ * Airbnb-style card: the gallery autoplays while in view, each progress bar
+ * filling before the next photo. Hover only zooms the image; it never touches the timeline.
+ * The lead image morphs into the detail hero on click.
  */
 export function VenueCard({
   v,
@@ -46,23 +50,36 @@ export function VenueCard({
   dim,
   className,
   priority,
+  stagger = 0,
 }: {
   v: Venue;
   size?: "lg" | "md";
   dim?: boolean;
   className?: string;
   priority?: boolean;
+  /** ms to hold the first photo before this card's autoplay starts, so sibling cards don't flip in unison */
+  stagger?: number;
 }) {
   const [i, setI] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLElement>(null);
+  const inView = useInView(ref, { amount: 0.4 });
+  const reduced = useReducedMotion();
   const pics = v.gallery.slice(0, 4);
+  const autoplay = pics.length > 1 && !reduced;
+  const running = autoplay && inView && !dim;
+  const next = () => {
+    setStarted(true);
+    setI((k) => (k + 1) % pics.length);
+  };
 
   return (
     <motion.article
+      ref={ref}
       layout
       animate={{ opacity: dim ? 0.35 : 1, scale: dim ? 0.985 : 1 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className={cn("group relative flex flex-col", className)}
-      onMouseLeave={() => setI(0)}
     >
       <Link href={`/venues/${v.slug}`} className="relative block flex-1 outline-none" aria-label={`${v.name}, ${v.levelLabel}, up to ${maxCap(v)} guests`}>
         <div className={cn("media relative h-full", size === "lg" ? "min-h-[440px] lg:min-h-[640px]" : "min-h-[340px] lg:min-h-[300px]")}>
@@ -92,13 +109,6 @@ export function VenueCard({
           </ViewTransition>
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-          {/* hover zones: move across the image to flip through photos */}
-          <div className="absolute inset-0 hidden lg:flex" aria-hidden>
-            {pics.map((_, k) => (
-              <span key={k} className="h-full flex-1" onMouseEnter={() => setI(k)} />
-            ))}
-          </div>
-
           <div className="absolute inset-x-0 top-0 flex items-start justify-between p-4">
             <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-black/25 px-3 text-[0.8125rem] font-medium text-white backdrop-blur-md">
               <span className="tabular">{v.level === 0 ? "Street level" : `Level ${v.level}`}</span>
@@ -108,7 +118,29 @@ export function VenueCard({
           <div className="absolute inset-x-0 bottom-0 p-5 text-white lg:p-7">
             <div className="mb-4 flex gap-1.5" aria-hidden>
               {pics.map((_, k) => (
-                <span key={k} className={cn("h-[3px] rounded-full bg-white transition-all duration-500", k === i ? "w-6 opacity-100" : "w-3 opacity-40")} />
+                <span
+                  key={k}
+                  className={cn(
+                    "relative h-[3px] overflow-hidden rounded-full transition-[width,background-color] duration-700 ease-[var(--ease-out-expo)]",
+                    k === i ? "w-10 bg-white/35" : "w-3 bg-white/40",
+                  )}
+                >
+                  {k === i && (
+                    <span
+                      key={i}
+                      className="absolute inset-0 origin-left rounded-full bg-white"
+                      style={
+                        autoplay
+                          ? {
+                              animation: `progress-fill ${SLIDE_MS}ms linear ${started ? 0 : stagger}ms both`,
+                              animationPlayState: running ? "running" : "paused",
+                            }
+                          : undefined
+                      }
+                      onAnimationEnd={next}
+                    />
+                  )}
+                </span>
               ))}
             </div>
             <p className="text-[0.875rem] text-white/75">

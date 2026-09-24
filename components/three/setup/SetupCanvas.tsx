@@ -6,7 +6,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { Setup, Venue } from "@/lib/data/types";
-import { makeLayout, type P } from "./layouts";
+import { barFront, barLength, makeLayout, stageSize, type P } from "./layouts";
 
 type Plate = Venue["plate"];
 
@@ -15,7 +15,7 @@ const col = {
   floorOut: "#cfd3c6",
   wall: "#faf9f6",
   glass: "#bcd3dd",
-  chair: "#2a2d30",
+  chair: "#3b3f43",
   wood: "#6f4a2f",
   sofa: "#e7dfd1",
   stage: "#d8d1c4",
@@ -227,8 +227,11 @@ export default function SetupCanvas({
     [],
   );
 
+  // Fit the shadow camera to the plate so small rooms get crisp shadows and big ones aren't clipped
+  const reach = Math.max(plate.w, plate.d) * 0.62;
+
   return (
-    <Canvas shadows dpr={[1, 1.75]} frameloop={active ? "always" : "never"} gl={{ antialias: true, alpha: true }} onCreated={() => onReady?.()} aria-hidden>
+    <Canvas shadows dpr={[1, 2]} frameloop={active ? "always" : "never"} gl={{ antialias: true, alpha: true }} onCreated={() => onReady?.()} aria-hidden>
       <Fit plate={plate} />
       <hemisphereLight args={["#ffffff", "#d9d4ca", 1.3]} />
       <directionalLight
@@ -236,11 +239,12 @@ export default function SetupCanvas({
         intensity={1.9}
         color="#fff4e6"
         castShadow
-        shadow-mapSize={[1024, 1024]}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+        shadow-mapSize={[2048, 2048]}
+        shadow-camera-left={-reach}
+        shadow-camera-right={reach}
+        shadow-camera-top={reach}
+        shadow-camera-bottom={-reach}
+        shadow-bias={-0.0004}
       />
       <Room plate={plate} />
       <Pool items={layout.chairs} max={240} geometry={geo.chair} color={col.chair} />
@@ -249,8 +253,8 @@ export default function SetupCanvas({
       <Pool items={layout.highs} max={40} geometry={geo.high} color={col.wood} />
       <Pool items={layout.people} max={240} geometry={geo.person} color="#fff" palette={guestColors} />
       <Pool items={layout.sofas} max={40} geometry={geo.sofa} color={col.sofa} />
-      <Toggle on={layout.stage} x={0} z={-plate.d / 2 + 0.95} size={[Math.min(plate.w * 0.5, 7), 0.24, 1.3]} color={col.stage} />
-      <Toggle on={layout.bar} x={-plate.w / 2 + 0.7} z={0} size={[0.7, 1, Math.min(plate.d * 0.55, 6)]} color={col.wood} />
+      <Toggle on={layout.stage} x={0} z={-plate.d / 2 + 0.95} size={[stageSize(plate.w), 0.24, 1.3]} color={col.stage} />
+      <Toggle on={layout.bar} x={barFront(plate.w) - 0.35} z={0} size={[0.7, 1, barLength(plate.d)]} color={col.wood} />
       <ContactShadows position={[0, 0.005, 0]} opacity={0.3} scale={Math.max(plate.w, plate.d) * 1.4} blur={2} far={3} />
     </Canvas>
   );

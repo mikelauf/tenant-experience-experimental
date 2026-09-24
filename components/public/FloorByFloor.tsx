@@ -41,6 +41,7 @@ const stops: Stop[] = [
 /** Sticky 3D Pyramid; the marker rides up the tower as each stop scrolls into view. */
 export function FloorByFloor() {
   const [idx, setIdx] = useState(0);
+  const [dragged, setDragged] = useState(false);
   const refs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => {
@@ -67,9 +68,27 @@ export function FloorByFloor() {
             <Pyramid
               level={stop.level}
               mood="dusk"
+              onInteract={() => setDragged(true)}
               className="absolute inset-0"
-              poster={<Image src={images.aerialBay.src} alt="" fill sizes="60vw" className="object-cover opacity-80" style={{ objectPosition: images.aerialBay.pos }} />}
+              poster={
+                <Image
+                  src={images.aerialBay.src}
+                  alt=""
+                  fill
+                  sizes="60vw"
+                  className="object-cover opacity-80"
+                  style={{ objectPosition: images.aerialBay.pos }}
+                />
+              }
             />
+            <p
+              className={cn(
+                "t-meta pointer-events-none absolute bottom-4 left-4 rounded-full bg-black/40 px-3 py-1.5 backdrop-blur-md transition-opacity duration-700 lg:bottom-6 lg:left-6",
+                dragged && "opacity-0",
+              )}
+            >
+              Drag to look around
+            </p>
             {/* Elevator readout */}
             <div className="pointer-events-none absolute left-4 top-4 flex items-end gap-4 lg:left-6 lg:top-6">
               <div className="flex h-[76px] min-w-[92px] items-center justify-center rounded-2xl bg-black/40 px-4 backdrop-blur-md lg:h-[96px] lg:min-w-[116px]">
