@@ -4,9 +4,8 @@ import { motion, useReducedMotion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { person } from "@/lib/data/building";
-import { venues } from "@/lib/data/venues";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 
@@ -16,8 +15,8 @@ export function InquirySent() {
   const hydrated = useHydrated();
   const reduce = useReducedMotion();
   const inq = hydrated ? s.inquiries.find((i) => i.id === id) : undefined;
+  const { venues, lead: host } = useTenant();
   const v = venues.find((x) => x.slug === inq?.venue);
-  const host = person("ines");
 
   if (hydrated && !inq) {
     return (
@@ -49,7 +48,7 @@ export function InquirySent() {
             initial={reduce ? false : { scale: 0.6, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 300, damping: 18 }}
-            className="grid size-16 place-items-center rounded-full bg-redwood text-paper"
+            className="grid size-16 place-items-center rounded-full bg-accent text-paper"
           >
             <Icon name="check" size={30} strokeWidth={2} />
           </motion.span>

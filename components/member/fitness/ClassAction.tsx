@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { classSeats, reserveClass } from "@/lib/commit";
 import type { ClassSession } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { useNow } from "@/lib/useNow";
 import { Icon } from "@/components/ui/Icon";
 
@@ -14,7 +15,8 @@ export function useClassState(c: ClassSession): { state: ClassState; left: numbe
   const s = useDemo();
   const hydrated = useHydrated();
   const now = useNow(60000);
-  const { cap, taken, left, full, mine } = classSeats(s, c);
+  const tenant = useTenant();
+  const { cap, taken, left, full, mine } = classSeats(tenant, s, c);
   const base = { left, cap, taken, pos: mine?.waitlistPos, commitmentId: mine?.id };
   if (hydrated && new Date(c.startsAt).getTime() < now) return { state: "past", ...base };
   if (!hydrated || s.persona === "signed-out") return { state: "signin", ...base };
@@ -27,6 +29,7 @@ export function useClassState(c: ClassSession): { state: ClassState; left: numbe
 /** One button that always shows the next action that can actually work. */
 export function ClassAction({ c, size = "md", className, returnTo }: { c: ClassSession; size?: "md" | "lg"; className?: string; returnTo: string }) {
   const { state, pos } = useClassState(c);
+  const tenant = useTenant();
   const h = size === "lg" ? "h-13 px-6 text-base" : "h-10 px-4 text-[0.875rem]";
   const base = cn(
     "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full font-medium transition-[background-color,color,transform] duration-200 active:scale-[0.97]",
@@ -63,18 +66,18 @@ export function ClassAction({ c, size = "md", className, returnTo }: { c: ClassS
         Reserved
       </span>
     );
-  if (state === "waitlisted") return <span className={cn(base, "bg-redwood-soft text-redwood-deep")}>Waitlist #{pos}</span>;
+  if (state === "waitlisted") return <span className={cn(base, "bg-accent-soft text-accent-deep")}>Waitlist #{pos}</span>;
   return (
     <button
       onClick={(e) => {
         e.stopPropagation();
-        reserveClass(c, state === "waitlist");
+        reserveClass(tenant, c, state === "waitlist");
       }}
       className={cn(
         base,
         state === "waitlist"
           ? "bg-paper text-ink shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-ink)]"
-          : "bg-redwood text-paper hover:bg-redwood-deep",
+          : "bg-accent text-paper hover:bg-accent-deep",
       )}
     >
       {state === "waitlist" ? "Join waitlist" : "Reserve"}

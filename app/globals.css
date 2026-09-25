@@ -21,11 +21,11 @@
   --color-moon: #eceae4;
   --color-moon-2: #a0a3a4;
 
-  /* The one accent: redwood. Actions and live state only. */
-  --color-redwood: #9a3f25;
-  --color-redwood-deep: #7c3019;
-  --color-redwood-soft: #f2e2d9;
-  --color-redwood-glow: #d4653f;
+  /* The one accent (redwood at the Pyramid; each building sets its own on <html>). Actions and live state only. */
+  --color-accent: #9a3f25;
+  --color-accent-deep: #7c3019;
+  --color-accent-soft: #f2e2d9;
+  --color-accent-glow: #d4653f;
 
   /* Status (quiet) */
   --color-ok: #2f6b4f;
@@ -62,10 +62,10 @@
   }
   @keyframes live {
     0% {
-      box-shadow: 0 0 0 0 rgb(154 63 37 / 0.5);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 50%, transparent);
     }
     100% {
-      box-shadow: 0 0 0 8px rgb(154 63 37 / 0);
+      box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-accent) 0%, transparent);
     }
   }
   @keyframes heroZoom {
@@ -112,16 +112,16 @@
     overflow-x: clip;
   }
   ::selection {
-    background: var(--color-redwood);
+    background: var(--color-accent);
     color: var(--color-paper);
   }
   :focus-visible {
-    outline: 2px solid var(--color-redwood);
+    outline: 2px solid var(--color-accent);
     outline-offset: 3px;
     border-radius: 8px;
   }
   .theme-night :focus-visible {
-    outline-color: var(--color-redwood-glow);
+    outline-color: var(--color-accent-glow);
   }
   button {
     cursor: pointer;
@@ -266,7 +266,7 @@
     box-shadow: inset 0 0 0 2px var(--color-ink);
   }
   .field[aria-invalid="true"] {
-    box-shadow: inset 0 0 0 2px var(--color-redwood);
+    box-shadow: inset 0 0 0 2px var(--color-accent);
   }
 }
 
@@ -349,4 +349,55 @@ html.lenis body {
 }
 .lenis.lenis-smooth iframe {
   pointer-events: none;
+}
+
+/* Live Building time scrubber: a filled track up to the thumb */
+.scrub {
+  appearance: none;
+  height: 28px;
+  background: transparent;
+  cursor: pointer;
+}
+.scrub::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-accent-glow) var(--p), rgb(255 255 255 / 0.18) var(--p));
+}
+.scrub::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-accent-glow) var(--p), rgb(255 255 255 / 0.18) var(--p));
+}
+.scrub::-webkit-slider-thumb {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border-radius: 999px;
+  background: var(--color-moon);
+  box-shadow:
+    0 0 0 4px rgb(0 0 0 / 0.25),
+    0 4px 12px rgb(0 0 0 / 0.4);
+  transition: transform 0.2s var(--ease-spring);
+}
+.scrub::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-moon);
+  box-shadow:
+    0 0 0 4px rgb(0 0 0 / 0.25),
+    0 4px 12px rgb(0 0 0 / 0.4);
+}
+.scrub:active::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.scrub:focus-visible {
+  outline: none;
+}
+.scrub:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px var(--color-accent-glow),
+    0 4px 12px rgb(0 0 0 / 0.4);
 }

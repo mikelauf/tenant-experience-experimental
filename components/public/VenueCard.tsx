@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ViewTransition, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { Venue } from "@/lib/data/types";
-import { maxCap } from "@/lib/data/venues";
+import { maxCap } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { Icon } from "@/components/ui/Icon";
 
@@ -30,7 +30,7 @@ export function HeartButton({ slug, name, className, tone = "glass" }: { slug: s
       )}
     >
       <motion.span key={String(on)} initial={on ? { scale: 0.4 } : false} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 14 }}>
-        <Icon name={on ? "heart-fill" : "heart"} size={19} className={on ? "text-redwood-glow" : ""} />
+        <Icon name={on ? "heart-fill" : "heart"} size={19} className={on ? "text-accent-glow" : ""} />
       </motion.span>
     </button>
   );

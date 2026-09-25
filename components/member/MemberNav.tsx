@@ -5,21 +5,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo } from "react";
 import { cn } from "@/lib/cn";
-import { building } from "@/lib/data/building";
-import { currentMember, useDemo, useHydrated } from "@/lib/store";
+import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import { Mark } from "@/components/ui/Logo";
 import { useNavOver } from "@/components/ui/useNavOver";
 
 type Item = { href: string; label: string; icon: AnyIcon; on: boolean };
 
-const allNav: Item[] = [
-  { href: "/", label: "Home", icon: "home", on: true },
-  { href: "/spaces", label: "Spaces", icon: "spaces", on: building.services.spaces },
-  { href: "/fitness", label: "Fitness", icon: "fitness", on: building.services.fitness },
-  { href: "/programming", label: "Events", icon: "programming", on: building.services.programming },
-];
-export const memberNav = allNav.filter((i) => i.on);
+/** Primary sections, filtered to the services this building has */
+function useMemberNav(): Item[] {
+  const { building, fitness } = useTenant();
+  const on = building.services;
+  return [
+    { href: "/", label: "Home", icon: "home" as const, on: true },
+    { href: "/spaces", label: "Spaces", icon: "spaces" as const, on: on.spaces },
+    { href: "/fitness", label: "Fitness", icon: "fitness" as const, on: on.fitness && !!fitness },
+    { href: "/programming", label: "Events", icon: "programming" as const, on: on.programming },
+  ].filter((i) => i.on);
+}
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
 
@@ -45,7 +49,7 @@ function PlansBadge({ count, className }: { count: number; className?: string })
     <motion.span
       animate={controls}
       className={cn(
-        "grid h-[18px] min-w-[18px] place-items-center rounded-full bg-redwood px-1 text-[0.6875rem] font-semibold tabular-nums text-paper",
+        "grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent px-1 text-[0.6875rem] font-semibold tabular-nums text-paper",
         className,
       )}
     >
@@ -61,6 +65,8 @@ export function MemberTopNav() {
   const { over, scrolled } = useNavOver();
   const count = useUpcomingCount();
   const signedIn = hydrated && s.persona !== "signed-out";
+  const memberNav = useMemberNav();
+  const { building, member } = useTenant();
 
   return (
     <header
@@ -77,10 +83,10 @@ export function MemberTopNav() {
       )}
     >
       <div className="frame flex h-[var(--nav-h)] items-center justify-between gap-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label="Transamerica Pyramid, member home">
+        <Link href="/" className="flex items-center gap-2.5" aria-label={`${building.name}, member home`}>
           <Mark size={24} />
           <span className="flex flex-col leading-none">
-            <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] [font-stretch:88%]">Transamerica Pyramid</span>
+            <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] [font-stretch:88%]">{building.name}</span>
             <span className="mt-1 hidden text-[0.72rem] font-medium opacity-60 sm:block">Members · Experience by Playbook</span>
           </span>
         </Link>
@@ -136,8 +142,8 @@ export function MemberTopNav() {
                 over ? "bg-white/15 text-white backdrop-blur-md" : "bg-ink text-paper",
               )}
             >
-              {currentMember.first[0]}
-              {currentMember.last[0]}
+              {member.first[0]}
+              {member.last[0]}
             </Link>
           ) : (
             <Link
@@ -156,14 +162,14 @@ export function MemberTopNav() {
 export function MemberTabBar() {
   const path = usePathname();
   const count = useUpcomingCount();
-  const items: Item[] = [...memberNav, { href: "/plans", label: "Plans", icon: "plans", on: true }];
+  const items: Item[] = [...useMemberNav(), { href: "/plans", label: "Plans", icon: "plans", on: true }];
 
   return (
     <nav
       aria-label="Primary"
       className="fixed inset-x-0 bottom-0 z-50 border-t hairline bg-paper/88 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
     >
-      <ul className="grid h-[var(--tab-h)] grid-cols-5">
+      <ul className="grid h-[var(--tab-h)]" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
         {items.map((i) => {
           const on = isActive(path, i.href);
           return (

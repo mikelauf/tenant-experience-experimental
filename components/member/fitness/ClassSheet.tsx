@@ -1,9 +1,8 @@
 "use client";
 
-import { classTemplates } from "@/lib/data/fitness";
-import { person } from "@/lib/data/building";
 import type { ClassSession } from "@/lib/data/types";
 import { actions } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { addMin, fmtLongDay, fmtRange } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
@@ -22,8 +21,10 @@ export function Intensity({ n }: { n: 1 | 2 | 3 }) {
 }
 
 function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
-  const t = classTemplates[c.kind];
-  const coach = person(c.coachId);
+  const tenant = useTenant();
+  const t = tenant.template(c.kind);
+  const coach = tenant.person(c.coachId);
+  const fit = tenant.fitness!;
   const st = useClassState(c);
   const pct = Math.min(100, (st.taken / st.cap) * 100);
 
@@ -57,7 +58,7 @@ function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
           {st.left === 0 && c.waitlist > 0 && <span className="t-meta">{c.waitlist} on the waitlist</span>}
         </div>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-fog">
-          <div className={`h-full rounded-full transition-[width] duration-700 ${st.left === 0 ? "bg-redwood" : "bg-ink"}`} style={{ width: `${pct}%` }} />
+          <div className={`h-full rounded-full transition-[width] duration-700 ${st.left === 0 ? "bg-accent" : "bg-ink"}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
 
@@ -71,7 +72,9 @@ function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
         </div>
         <div>
           <dt className="t-meta">Where</dt>
-          <dd className="mt-1 font-medium">{t.studio} · L2</dd>
+          <dd className="mt-1 font-medium">
+            {t.studio} · L{fit.level}
+          </dd>
         </div>
         <div className="col-span-2">
           <dt className="t-meta">Bring</dt>
@@ -80,8 +83,8 @@ function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
       </dl>
 
       {st.state === "access" && (
-        <div className="mt-6 rounded-[var(--radius-card)] bg-redwood-soft p-4 text-redwood-deep">
-          <p className="font-medium">Classes are part of Pyramid Fitness</p>
+        <div className="mt-6 rounded-[var(--radius-card)] bg-accent-soft p-4 text-accent-deep">
+          <p className="font-medium">Classes are part of {fit.name}</p>
           <p className="t-small mt-1">Your building access covers rooms and events. Add a fitness membership to reserve classes, then come right back here.</p>
         </div>
       )}
@@ -93,7 +96,7 @@ function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
       {st.state === "reserved" && st.commitmentId && (
         <button
           onClick={() => actions.cancel(st.commitmentId!)}
-          className="mt-5 text-[0.9375rem] font-medium text-redwood underline decoration-redwood/30 underline-offset-4 hover:decoration-redwood"
+          className="mt-5 text-[0.9375rem] font-medium text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
         >
           Cancel my spot
         </button>
@@ -101,7 +104,7 @@ function Body({ c, resumed }: { c: ClassSession; resumed?: boolean }) {
       {st.state === "waitlisted" && st.commitmentId && (
         <button
           onClick={() => actions.cancel(st.commitmentId!)}
-          className="mt-5 text-[0.9375rem] font-medium text-redwood underline decoration-redwood/30 underline-offset-4 hover:decoration-redwood"
+          className="mt-5 text-[0.9375rem] font-medium text-accent underline decoration-accent/30 underline-offset-4 hover:decoration-accent"
         >
           Leave the waitlist
         </button>

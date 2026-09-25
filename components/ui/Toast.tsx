@@ -55,7 +55,7 @@ export function Toast() {
             transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
             className="theme-night pointer-events-auto flex w-full max-w-[440px] items-center gap-3 rounded-[20px] py-3 pl-3 pr-4 shadow-[var(--shadow-float)]"
           >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-redwood-glow/20 text-redwood-glow">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-accent-glow/20 text-accent-glow">
               <Icon name="check" size={20} strokeWidth={2} />
             </span>
             <span className="min-w-0 flex-1">

@@ -3,28 +3,25 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { events } from "@/lib/data/events";
-import { currentMember } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { dayDiff, fmtLongDay } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
 import Link from "next/link";
 import { LineReveal } from "@/components/motion/Reveal";
 import { EventCard } from "../EventCard";
 
-const filters = [
-  { id: "all", label: "Everything" },
-  { id: "week", label: "This week" },
-  { id: "Coffee", label: "Food & drink" },
-  { id: "Speaker series", label: "Talks" },
-  { id: "Music", label: "Music" },
-  { id: "Pyramid Arts", label: "Art" },
-  { id: "company", label: `For ${currentMember.company}` },
-] as const;
-
 export function Programming() {
+  const t = useTenant();
   const now = useNow(60000);
-  const all = useMemo(() => events().filter((e) => new Date(e.startsAt).getTime() > now), [now]);
-  const [f, setF] = useState<(typeof filters)[number]["id"]>("all");
+  const all = useMemo(() => t.events().filter((e) => new Date(e.startsAt).getTime() > now), [now, t]);
+  // Chips for the kinds of events this building actually runs, plus your company's own
+  const filters = [
+    { id: "all", label: "Everything" },
+    { id: "week", label: "This week" },
+    ...Object.entries(t.copy.kickers).map(([id, label]) => ({ id, label })),
+    ...(t.events().some((e) => e.access.type === "company") ? [{ id: "company", label: `For ${t.member.company}` }] : []),
+  ];
+  const [f, setF] = useState("all");
   const list = all.filter((e) =>
     f === "all" ? true : f === "week" ? dayDiff(e.startsAt) < 7 : f === "company" ? e.access.type === "company" : e.kicker === f,
   );
@@ -39,7 +36,7 @@ export function Programming() {
             <LineReveal as="h1" className="t-hero mt-2" lines={["Things worth leaving", "your desk for."]} />
           </div>
           <p className="t-body col-span-12 self-end text-stone lg:col-span-4">
-            Tastings, talks and evenings in the grove, for everyone who works at the Pyramid. Planning your own gathering? That&apos;s in{" "}
+            {t.copy.programmingLead}, for everyone who works at {t.copy.the}. Planning your own gathering? That&apos;s in{" "}
             <Link href="/spaces/plan-an-event" className="underline underline-offset-4">
               Spaces
             </Link>

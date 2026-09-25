@@ -1,71 +1,38 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { building } from "@/lib/data/building";
+import { useTenant } from "@/lib/tenants/client";
+import type { Pitch } from "@/lib/tenants/types";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { EventsArt, FitnessArt, SpacesArt } from "./ServiceIcons";
 
-type Tab = {
+type Tab = Pitch & {
   id: "spaces" | "fitness" | "events";
   label: string;
   art: React.ComponentType<{ size?: number }>;
-  title: string;
-  body: string;
-  points: string[];
   href: string;
-  cta: string;
-  img: { src: string; alt: string; pos?: string };
-  access: string;
 };
 
-const tabs: Tab[] = [
-  {
-    id: "spaces",
-    label: "Spaces",
-    art: SpacesArt,
-    title: "A room when you need one. A team when it's bigger.",
-    body: "Book one of four meeting rooms in seconds, or hand a reception, offsite or dinner to our events team.",
-    points: ["Four rooms for 4 to 40", "Instant booking for most", "Event planning with Inés"],
-    href: "/spaces",
-    cta: "Explore spaces",
-    img: images.boardroomReal,
-    access: "Included with your building access",
-  },
-  {
-    id: "fitness",
-    label: "Fitness",
-    art: FitnessArt,
-    title: "Two floors down from your desk.",
-    body: "Coached classes, a Ride studio you can book between meetings, and a recovery lounge with a sauna and cold plunge.",
-    points: ["Classes every weekday", "Ride studio & recovery bookings", "Personal training intros"],
-    href: "/fitness",
-    cta: "See Pyramid Fitness",
-    img: images.ride,
-    access: "Pyramid Fitness membership",
-  },
-  {
-    id: "events",
-    label: "Events",
-    art: EventsArt,
-    title: "Things worth leaving your desk for.",
-    body: "Tastings, talks and evenings in the grove, hosted by the building for everyone who works here.",
-    points: ["Something most weeks", "RSVP in one tap", "Some just for your company"],
-    href: "/programming",
-    cta: "See what's on",
-    img: images.cupping,
-    access: "Included with your building access",
-  },
-].filter((t) => (t.id === "events" ? building.services.programming : building.services[t.id as "spaces" | "fitness"])) as Tab[];
+/** One tab per service this building offers */
+function useTabs(): Tab[] {
+  const { building, copy, fitness } = useTenant();
+  const on = building.services;
+  const tabs: Tab[] = [];
+  if (on.spaces) tabs.push({ id: "spaces", label: "Spaces", art: SpacesArt, href: "/spaces", ...copy.pitches.spaces });
+  if (on.fitness && fitness) tabs.push({ id: "fitness", label: "Fitness", art: FitnessArt, href: "/fitness", ...fitness.pitch });
+  if (on.programming) tabs.push({ id: "events", label: "Events", art: EventsArt, href: "/programming", ...copy.pitches.events });
+  return tabs;
+}
 
 export function ServiceTabs({ className, heading = "What's here for you" }: { className?: string; heading?: string }) {
-  const [active, setActive] = useState<Tab["id"]>("spaces");
+  const tabs = useTabs();
+  const [active, setActive] = useState<Tab["id"]>(tabs[0].id);
   const reduce = useReducedMotion();
-  const t = tabs.find((x) => x.id === active)!;
+  const t = tabs.find((x) => x.id === active) ?? tabs[0];
 
   return (
     <section className={cn("frame", className)} aria-labelledby="svc-h">
@@ -127,7 +94,14 @@ export function ServiceTabs({ className, heading = "What's here for you" }: { cl
             className="grid lg:grid-cols-12"
           >
             <div className="relative aspect-[4/3] lg:col-span-7 lg:aspect-auto lg:min-h-[480px]">
-              <Image src={t.img.src} alt={t.img.alt} fill sizes="(min-width:1024px) 58vw, 100vw" className="object-cover" style={{ objectPosition: t.img.pos }} />
+              <Image
+                src={t.img.src}
+                alt={t.img.alt}
+                fill
+                sizes="(min-width:1024px) 58vw, 100vw"
+                className="object-cover"
+                style={{ objectPosition: t.img.pos }}
+              />
             </div>
             <div className="flex flex-col justify-between gap-10 p-6 sm:p-10 lg:col-span-5">
               <div>

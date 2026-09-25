@@ -1,7 +1,10 @@
 import { Suspense } from "react";
 import { MembershipFlow } from "@/components/member/Account";
+import { getTenant } from "@/lib/tenants/server";
 
-export const metadata = { title: "Pyramid Fitness membership" };
+export async function generateMetadata() {
+  return { title: `${(await getTenant()).fitness?.name ?? "Fitness"} membership` };
+}
 
 export default function MembershipPage() {
   return (

@@ -1,22 +1,20 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { building } from "@/lib/data/building";
-import { events } from "@/lib/data/events";
-import { classTemplates, sessionsFor } from "@/lib/data/fitness";
-import { busyFor, rooms } from "@/lib/data/rooms";
 import type { Commitment } from "@/lib/data/types";
-import { actions, currentMember, useDemo, useHydrated } from "@/lib/store";
-import { fmtTime, week } from "@/lib/time";
+import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
+
 import { useNow as useClock } from "@/lib/useNow";
 import { LineReveal, Reveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
+import { TowerHero } from "@/components/three/TowerHero";
+import { LiveBuilding } from "./live/LiveBuilding";
 import { CommitmentRow, CommitmentSheet, UpNext, isUpcoming, useNow } from "./Commitments";
 import { EventCard } from "./EventCard";
 import { ServiceTabs } from "./ServiceTabs";
@@ -28,21 +26,23 @@ function greeting(now: number) {
 
 const today = (now: number) => new Date(now).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-function EventsRail({ title = "This week at the Pyramid" }: { title?: string }) {
+function EventsRail({ title }: { title?: string }) {
+  const t = useTenant();
   const now = useClock(60000);
   const list = useMemo(
     () =>
-      events()
+      t
+        .events()
         .filter((e) => new Date(e.startsAt).getTime() > now)
         .slice(0, 4),
-    [now],
+    [now, t],
   );
-  if (!list.length) return null; // no invented programming
+  if (!t.building.services.programming || !list.length) return null; // no invented programming
   return (
     <section className="py-20 lg:py-28" aria-labelledby="ev-h">
       <div className="frame flex items-end justify-between gap-6">
         <h2 id="ev-h" className="t-h1">
-          {title}
+          {title ?? `This week at ${t.copy.the}`}
         </h2>
         <Link href="/programming" className="group hidden items-center gap-1.5 font-medium sm:flex">
           All events <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
@@ -60,27 +60,35 @@ function EventsRail({ title = "This week at the Pyramid" }: { title?: string }) 
 /* ---------------- Signed out ---------------- */
 
 function SignedOut() {
-  const access: { icon: AnyIcon; t: string; d: string; tag: string }[] = [
+  const { building, copy, fitness } = useTenant();
+  const access: { icon: AnyIcon; t: string; d: string; tag: string; member?: boolean }[] = [
     { icon: "access", t: "Your building access", d: "Meeting rooms, building events and the concierge. Sign in with your work email.", tag: "Included" },
-    { icon: "fitness", t: "Pyramid Fitness", d: "Classes, the Ride studio and the recovery lounge. A separate monthly membership.", tag: "Membership" },
+    ...(fitness
+      ? [
+          {
+            icon: "fitness" as const,
+            t: fitness.name,
+            d: "Classes, studio bookings and recovery. A separate monthly membership.",
+            tag: "Membership",
+            member: true,
+          },
+        ]
+      : []),
     { icon: "people", t: "The events team", d: "Receptions, offsites and dinners, planned with you. Start with a short inquiry.", tag: "On request" },
   ];
+  const hero = copy.memberHero;
   return (
     <>
       <section data-nav-over className="theme-night relative flex min-h-[92svh] flex-col justify-end overflow-hidden">
-        <Image
-          src={images.bayDusk.src}
-          alt={images.bayDusk.alt}
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          style={{ objectPosition: "50% 55%" }}
-        />
+        {building.heroTower ? (
+          <TowerHero className="absolute inset-0" />
+        ) : (
+          <Image src={hero.img.src} alt={hero.img.alt} fill priority sizes="100vw" className="object-cover" style={{ objectPosition: hero.img.pos }} />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-night/10" />
         <div className="frame relative pb-12 pt-40 lg:pb-16">
           <p className="t-lead text-moon/80 animate-rise">{building.name} · Members</p>
-          <LineReveal as="h1" className="t-mega mt-4 max-w-[12ch]" lines={["Everything the", "Pyramid has,", "in one place."]} />
+          <LineReveal as="h1" className="t-mega mt-4 max-w-[12ch]" lines={hero.lines} />
           <Reveal delay={0.35} className="mt-8 flex flex-wrap items-center gap-3">
             <ButtonLink href="/sign-in?returnTo=%2F" variant="light" size="lg" icon="arrow-right">
               Sign in with your work email
@@ -96,6 +104,14 @@ function SignedOut() {
         <ServiceTabs heading="What's here for you" />
       </div>
 
+      <div className="pt-24 lg:pt-32">
+        <LiveBuilding
+          personal={false}
+          title={`${copy.The}, live.`}
+          lead="See what's happening on every floor right now. Sign in and your own plans show up here too."
+        />
+      </div>
+
       <section className="frame pt-24 lg:pt-32" aria-labelledby="acc-h">
         <div className="grid-12 gap-y-8">
           <div className="col-span-12 lg:col-span-4">
@@ -104,7 +120,7 @@ function SignedOut() {
             </h2>
             <p className="t-lead mt-4 text-stone">Working here gets you in the door. A couple of things are memberships, and we&apos;ll always say which.</p>
           </div>
-          <ul className="col-span-12 grid gap-3 sm:grid-cols-3 lg:col-span-8">
+          <ul className={cn("col-span-12 grid gap-3 lg:col-span-8", access.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
             {access.map((a, i) => (
               <Reveal key={a.t} delay={i * 0.06}>
                 <li className="card flex h-full flex-col p-6">
@@ -113,7 +129,7 @@ function SignedOut() {
                       <Icon name={a.icon} size={22} />
                     </span>
                     <span
-                      className={cn("rounded-full px-2.5 py-1 text-[0.75rem] font-medium", i === 1 ? "bg-redwood-soft text-redwood-deep" : "bg-fog text-ink-2")}
+                      className={cn("rounded-full px-2.5 py-1 text-[0.75rem] font-medium", a.member ? "bg-accent-soft text-accent-deep" : "bg-fog text-ink-2")}
                     >
                       {a.tag}
                     </span>
@@ -136,42 +152,35 @@ function SignedOut() {
 
 function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
   const s = useDemo();
+  const { copy, fitness, member, building } = useTenant();
   const now = useNow();
   const reduce = useReducedMotion();
   const upcoming = s.commitments.filter((c) => isUpcoming(c, now)).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const has = (k: Commitment["kind"]) => s.commitments.some((c) => c.kind === k && c.status !== "cancelled");
 
-  const steps = [
-    {
-      done: has("room"),
-      t: "Book a room",
-      d: "Four rooms, instant for most. Try Clay for a quiet one-on-one.",
-      href: "/spaces",
-      img: images.huddle.src,
-      cta: "Find a room",
-    },
-    {
-      done: has("event"),
-      t: "Say yes to something",
-      d: "The Pyramid at 54 is a great first one.",
-      href: "/programming",
-      img: images.historyGallery.src,
-      cta: "See events",
-    },
-    {
-      done: has("class") || s.fitnessMember,
-      t: "Try Pyramid Fitness",
-      d: s.fitnessMember ? "You're a member. Book your first class." : "Classes need a membership. See what's included first.",
-      href: "/fitness",
-      img: images.strength.src,
-      cta: "Take a look",
-    },
+  const fw = copy.firstWeek;
+  const steps: { done: boolean; t: string; d: string; href?: string; img: string; cta: string; dismiss?: string }[] = [
+    ...(building.services.spaces ? [{ done: has("room"), t: "Book a room", d: fw.room.d, href: "/spaces", img: fw.room.img.src, cta: "Find a room" }] : []),
+    ...(building.services.programming
+      ? [{ done: has("event"), t: "Say yes to something", d: fw.event.d, href: "/programming", img: fw.event.img.src, cta: "See events" }]
+      : []),
+    ...(fitness
+      ? [
+          {
+            done: has("class") || s.fitnessMember,
+            t: `Try ${fitness.name}`,
+            d: s.fitnessMember ? "You're a member. Book your first class." : "Classes need a membership. See what's included first.",
+            href: "/fitness",
+            img: fitness.templates.strength.image.src,
+            cta: "Take a look",
+          },
+        ]
+      : []),
     {
       done: s.dismissed.includes("concierge"),
       t: "Meet the concierge",
-      d: "L1, by the Montgomery doors. They can do almost anything.",
-      href: "#",
-      img: images.lobbyDesk.src,
+      d: `${copy.concierge}. They can do almost anything.`,
+      img: fw.concierge.img.src,
       cta: "Got it",
       dismiss: "concierge",
     },
@@ -182,9 +191,10 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
     <>
       <section className="frame pb-4 pt-[calc(var(--nav-h)+48px)] lg:pt-[calc(var(--nav-h)+72px)]">
         <p className="t-lead text-stone">{today(now)}</p>
-        <LineReveal as="h1" className="t-hero mt-3" lines={[`Welcome to the Pyramid,`, `${currentMember.first}.`]} />
+        <LineReveal as="h1" className="t-hero mt-3" lines={[`Welcome to ${copy.the},`, `${member.first}.`]} />
         <p className="t-lead mt-5 max-w-[48ch] text-stone">
-          You&apos;re set up with {currentMember.company} on {currentMember.floor}. Here are four good first steps; do them in any order.
+          You&apos;re set up with {member.company} on {member.floor}. Here are {["", "one", "two", "three", "four"][steps.length]} good first steps; do them in
+          any order.
         </p>
       </section>
 
@@ -199,14 +209,17 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
             </span>
             <span className="h-1.5 w-28 overflow-hidden rounded-full bg-fog">
               <motion.span
-                className="block h-full rounded-full bg-redwood"
+                className="block h-full rounded-full bg-accent"
                 animate={{ width: `${(doneCount / steps.length) * 100}%` }}
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               />
             </span>
           </div>
         </div>
-        <ol className="no-scrollbar mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:grid lg:grid-cols-4 lg:gap-[var(--col-gap)] lg:overflow-visible">
+        <ol
+          className="no-scrollbar mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:grid lg:gap-[var(--col-gap)] lg:overflow-visible"
+          style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
+        >
           {steps.map((x, i) => (
             <motion.li
               key={x.t}
@@ -239,7 +252,7 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
                         {x.cta}
                       </button>
                     ) : (
-                      <Link href={x.href} className="group/l mt-5 inline-flex items-center gap-1.5 self-start text-[0.9375rem] font-medium">
+                      <Link href={x.href!} className="group/l mt-5 inline-flex items-center gap-1.5 self-start text-[0.9375rem] font-medium">
                         {x.cta}
                         <Icon name="arrow-right" size={17} className="transition-transform group-hover/l:translate-x-0.5" />
                       </Link>
@@ -265,6 +278,12 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
       )}
 
       <div className="pt-24 lg:pt-32">
+        <LiveBuilding
+          title={`Your building, floor by floor.`}
+          lead={`Everything at ${copy.the} lives on a floor. Tap one to see what's there right now, or scrub ahead to tonight.`}
+        />
+      </div>
+      <div className="pt-24 lg:pt-32">
         <ServiceTabs heading="Everything that's here" />
       </div>
       <EventsRail />
@@ -274,81 +293,14 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
 
 /* ---------------- Returning member ---------------- */
 
-function RightNow() {
-  const now = useNow();
-  const minutes = new Date(now).getHours() * 60 + new Date(now).getMinutes();
-  const freeRooms = rooms.filter((r) => r.approval === "instant" && !busyFor(r.slug, 0).some(([a, b]) => minutes >= a && minutes < b)).slice(0, 2);
-  const nextClass = week()
-    .slice(0, 2)
-    .flatMap(sessionsFor)
-    .find((c) => new Date(c.startsAt).getTime() > now && c.taken < classTemplates[c.kind].capacity);
-
-  const tiles: { href: string; icon: AnyIcon; k: string; t: string; d: string }[] = [
-    ...freeRooms.map((r) => ({
-      href: `/spaces/${r.slug}`,
-      icon: "spaces" as const,
-      k: "Free now",
-      t: `${r.name} · up to ${r.capacity}`,
-      d: `Level ${r.level}. Book it for the next hour.`,
-    })),
-    ...(nextClass
-      ? [
-          {
-            href: `/fitness/schedule?class=${encodeURIComponent(nextClass.id)}`,
-            icon: "fitness" as const,
-            k: "Spots open",
-            t: `${classTemplates[nextClass.kind].name} · ${fmtTime(nextClass.startsAt)}`,
-            d: `${classTemplates[nextClass.kind].capacity - nextClass.taken} spots left on L2.`,
-          },
-        ]
-      : []),
-  ];
-  if (!tiles.length) return null;
-
-  return (
-    <section className="frame pt-16 lg:pt-20" aria-labelledby="now-h">
-      <h2 id="now-h" className="t-h3">
-        Right now in the building
-      </h2>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        {tiles.map((x) => (
-          <Link key={x.href} href={x.href} className="card group flex items-start gap-4 p-5 transition-shadow hover:shadow-[var(--shadow-soft)]">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-fog">
-              <Icon name={x.icon} size={21} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-ok">
-                <span className="size-1.5 rounded-full bg-ok" />
-                {x.k}
-              </span>
-              <span className="mt-1 block font-medium">{x.t}</span>
-              <span className="t-small block text-stone">{x.d}</span>
-            </span>
-            <Icon
-              name="arrow-up-right"
-              size={18}
-              className="shrink-0 text-stone-2 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-            />
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
   const s = useDemo();
+  const { copy, member, fitness } = useTenant();
   const now = useNow();
   const upcoming = s.commitments.filter((c) => isUpcoming(c, now)).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const [next, ...later] = upcoming;
 
-  const usuals: { id: string; label: string; icon: AnyIcon; href: string }[] = [
-    { id: "ride", label: "Ride", icon: "bike", href: "/fitness/schedule?kind=ride" },
-    { id: "strength", label: "Strength 45", icon: "fitness", href: "/fitness/schedule?kind=strength" },
-    { id: "washington", label: "Washington boardroom", icon: "spaces", href: "/spaces/washington" },
-    { id: "clay", label: "Clay room", icon: "spaces", href: "/spaces/clay" },
-  ];
-  const again = usuals.filter((x) => s.history.includes(x.id));
+  const again = copy.usuals.filter((x) => s.history.includes(x.id));
 
   return (
     <>
@@ -357,12 +309,12 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
           <div>
             <p className="t-lead text-stone">{today(now)}</p>
             <h1 className="t-hero mt-2">
-              {greeting(now)}, {currentMember.first}.
+              {greeting(now)}, {member.first}.
             </h1>
           </div>
           <p className="t-small flex items-center gap-2 text-stone">
             <Icon name="sun" size={18} />
-            Fog clearing by noon · 64°F
+            {copy.weather}
           </p>
         </div>
       </section>
@@ -381,9 +333,15 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <ButtonLink href="/fitness/schedule" icon="arrow-right">
-                  Class schedule
-                </ButtonLink>
+                {fitness ? (
+                  <ButtonLink href="/fitness/schedule" icon="arrow-right">
+                    Class schedule
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href="/spaces" icon="arrow-right">
+                    Find a room
+                  </ButtonLink>
+                )}
                 <ButtonLink href="/programming" variant="outline">
                   Events
                 </ButtonLink>
@@ -428,7 +386,12 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
         </section>
       )}
 
-      <RightNow />
+      <div className="pt-16 lg:pt-20">
+        <LiveBuilding
+          title="Right now in the building"
+          lead="Every floor, live. Your plans are pinned where they happen. Scrub the day to see what opens up."
+        />
+      </div>
       <EventsRail title="Happening this week" />
       <ServiceTabs heading="Explore the building" className="pb-8" />
     </>

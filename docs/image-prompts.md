@@ -51,3 +51,18 @@ These fill gaps the prototype currently covers by reusing images (noted in brack
 | `programming/mixer` | 3:2 | An after-work company social in a warm lounge: small groups laughing around high-top tables with glasses of wine and small plates, and a city view going blue outside. Candid. *(Company-only event; currently reuses the reception)* |
 | `programming/grove-music` | 3:2 | A jazz trio (upright bass, guitar and a singer) playing under string lights in a redwood grove at dusk, with office workers on picnic blankets and folding chairs, glasses in hand. *(Evening in the grove; currently reuses the park)* |
 | `people/concierge` | 4:5 | Portrait of a friendly concierge in his 50s, a Black man in a navy suit with a small rust pin, standing behind a walnut desk in a travertine lobby and looking warmly at the camera. *(Onboarding "meet the concierge")* |
+
+## The Meridian (fictional second building), ready when you have credits (8)
+
+The Meridian is a 1931 setback tower in Chicago's Loop with a lit lantern crown. Its accent is lake blue (`#2C4F8C`), and its materials are limestone, walnut, brass and terrazzo. Until these exist, its interiors reuse neutral Pyramid photos and its heroes render the 3D tower. Save these under `public/images/meridian/` and register them in `lib/tenants/meridian/images.ts`.
+
+| Suggested file | --ar | Prompt |
+|---|---|---|
+| `meridian/tower-dusk` | 21:9 | A 1930s Art Deco limestone skyscraper in Chicago's Loop at blue hour, stepping back in three setbacks to a glowing blue-lit lantern crown and a slender mooring mast. The Chicago River below reflects the lights, warm office windows glow, and the sky is deep blue. Cinematic and wide, shot from across the river. *(Public and member hero)* |
+| `meridian/lantern-room` | 3:2 | The top-floor lounge of an Art Deco tower: a walnut cocktail bar with brass rails, deep green velvet armchairs and a terrazzo floor with an inlaid compass. Windows on all sides show Lake Michigan and the Chicago skyline at dusk. Warm lamplight, no people. *(Lantern Room hero)* |
+| `meridian/lantern-reception` | 4:5 | An evening reception in the same crown lounge: about forty guests in dark suits and cocktail dresses with glasses in hand, a bartender at the walnut bar, and city lights through the tall windows. Candid, from behind a guest's shoulder. *(Lantern Room gallery)* |
+| `meridian/great-hall` | 16:9 | A double-height Art Deco lobby hall with coffered walnut ceilings, fluted limestone columns, pale terrazzo floors and a brass clock over the concierge desk. Morning light through tall windows at both ends, a few people crossing. *(Great Hall hero)* |
+| `meridian/great-hall-gala` | 3:2 | The same deco hall set for an evening gala: round tables with white linen and candles, a small stage, and warm uplighting on the columns. Guests are arriving. *(Great Hall gallery)* |
+| `meridian/wacker-room` | 4:3 | A small corner meeting room high over the Chicago River: a round walnut table for five, a wall display and a steel-framed window onto the river and bridges in daylight. *(Wacker room)* |
+| `meridian/plaza` | 3:2 | A granite plaza at the foot of a limestone tower with round honey-locust trees, benches, and office workers at lunch in early autumn sun. *(Plaza and architecture walk)* |
+| `people/rosa` | 4:5 | Environmental portrait of a Scandinavian-American events lead in her 40s with short silver-blonde hair, a navy blazer and a small blue enamel pin, smiling in a deco lounge with walnut and brass softly blurred behind her. *(Host; currently initials)* |

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import { busyFor } from "@/lib/data/rooms";
+import { busyFor } from "@/lib/data/shared";
 
 const OPEN = 8 * 60;
 const CLOSE = 19 * 60;
@@ -35,7 +35,7 @@ export function AvailabilityBar({
         ))}
         {selection && (
           <span
-            className="absolute inset-y-0 rounded-full bg-redwood transition-[left,width] duration-300"
+            className="absolute inset-y-0 rounded-full bg-accent transition-[left,width] duration-300"
             style={{ left: `${pct(selection[0])}%`, width: `${pct(selection[1]) - pct(selection[0])}%` }}
           />
         )}
@@ -66,7 +66,7 @@ export function Legend({ className }: { className?: string }) {
         <span className="h-2 w-4 rounded-full bg-stone-2/70" /> Booked
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="h-2 w-4 rounded-full bg-redwood" /> Yours
+        <span className="h-2 w-4 rounded-full bg-accent" /> Yours
       </span>
     </div>
   );

@@ -1,13 +1,13 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import { motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { person } from "@/lib/data/building";
-import { eventTypes, maxCap, venues } from "@/lib/data/venues";
-import { actions, currentMember, useDemo, useHydrated } from "@/lib/store";
+import { eventTypes, maxCap } from "@/lib/data/shared";
+import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
+import { Avatar } from "@/components/ui/Avatar";
 import { at, addMin } from "@/lib/time";
 import { LineReveal, Reveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
@@ -23,7 +23,7 @@ const support: { icon: AnyIcon; t: string; d: string }[] = [
 export function PlanEvent() {
   const s = useDemo();
   const hydrated = useHydrated();
-  const host = person("ines");
+  const { lead: host, venues, copy, member: currentMember } = useTenant();
   const [v, setV] = useState({ venue: "unsure", date: "", guests: "", type: "", note: "" });
   const [err, setErr] = useState("");
   const [sent, setSent] = useState(false);
@@ -48,7 +48,7 @@ export function PlanEvent() {
         place: venueName,
         status: "pending",
         detail: [v.guests && `${v.guests} guests`, v.date ? "Preferred date" : "Date flexible", v.note].filter(Boolean).join(" · "),
-        image: venues.find((x) => x.slug === v.venue)?.hero ?? images.bayReception,
+        image: venues.find((x) => x.slug === v.venue)?.hero ?? copy.spaces.planImg,
       },
       { title: "Inquiry saved to your plans", body: "Simulated. Nothing was sent to the team.", href: "/plans" },
     );
@@ -59,8 +59,8 @@ export function PlanEvent() {
     <div className="pb-tab lg:pb-28">
       <section data-nav-over className="theme-night relative flex min-h-[80svh] flex-col justify-end overflow-hidden">
         <Image
-          src={images.skyLounge.src}
-          alt={images.skyLounge.alt}
+          src={copy.spaces.planHero.src}
+          alt={copy.spaces.planHero.alt}
           fill
           priority
           sizes="100vw"
@@ -122,11 +122,9 @@ export function PlanEvent() {
             ))}
           </ul>
           <div className="mt-8 flex items-center gap-4">
-            <span className="relative size-14 overflow-hidden rounded-full">
-              <Image src={host.image!.src} alt="" fill sizes="56px" className="object-cover" style={{ objectPosition: "50% 25%" }} />
-            </span>
+            <Avatar p={host} size={56} />
             <p className="t-small text-stone">
-              <span className="font-medium text-ink">{host.name}</span> leads events at the Pyramid. Members get the same team and partners as outside
+              <span className="font-medium text-ink">{host.name}</span> leads events at {copy.the}. Members get the same team and partners as outside
               organizers, with building rates (sample).
             </p>
           </div>
@@ -231,14 +229,14 @@ export function PlanEvent() {
                   />
                 </label>
                 {err && (
-                  <p id="plan-err" role="alert" className="t-small mt-2 flex items-center gap-1.5 text-redwood">
+                  <p id="plan-err" role="alert" className="t-small mt-2 flex items-center gap-1.5 text-accent">
                     <Icon name="alert" size={16} />
                     {err}
                   </p>
                 )}
                 <button
                   type="submit"
-                  className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-redwood font-medium text-paper transition-colors hover:bg-redwood-deep"
+                  className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent font-medium text-paper transition-colors hover:bg-accent-deep"
                 >
                   Send to the events team <Icon name="arrow-right" size={18} />
                 </button>

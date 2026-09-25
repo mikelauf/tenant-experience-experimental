@@ -1,13 +1,11 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { people } from "@/lib/data/building";
-import { classTemplates, membership, resources, sessionsFor } from "@/lib/data/fitness";
 import type { ClassSession, Resource } from "@/lib/data/types";
 import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { at, addMin, fmtDay, fmtTime, week } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
 import { LineReveal, Reveal } from "@/components/motion/Reveal";
@@ -21,6 +19,7 @@ import { ResourceSheet } from "./ResourceSheet";
 
 function AccessCard() {
   const s = useDemo();
+  const { membership } = useTenant().fitness!;
   const hydrated = useHydrated();
   if (!hydrated) return <div className="h-[260px] rounded-[var(--radius-media)] bg-paper/60" />;
   const member = s.persona !== "signed-out" && s.fitnessMember;
@@ -43,7 +42,7 @@ function AccessCard() {
       <ul className="mt-5 grid gap-2.5 sm:grid-cols-2">
         {membership.perks.map((p) => (
           <li key={p} className="t-small flex items-center gap-2.5">
-            <Icon name="check" size={15} strokeWidth={2} className={member ? "text-ok" : "text-redwood-glow"} />
+            <Icon name="check" size={15} strokeWidth={2} className={member ? "text-ok" : "text-accent-glow"} />
             {p}
           </li>
         ))}
@@ -75,6 +74,10 @@ function AccessCard() {
 
 export function FitnessHome() {
   const s = useDemo();
+  const tenant = useTenant();
+  const fit = tenant.fitness!;
+  const { templates: classTemplates, resources } = fit;
+  const { sessionsFor } = tenant;
   const hydrated = useHydrated();
   const [open, setOpen] = useState<ClassSession | null>(null);
   const [res, setRes] = useState<Resource | null>(null);
@@ -86,9 +89,10 @@ export function FitnessHome() {
       .flatMap(sessionsFor)
       .filter((c) => new Date(c.startsAt).getTime() > now)
       .slice(0, 4);
-  }, [now]);
+  }, [now, sessionsFor]);
 
-  const coaches = people.filter((p) => ["dev", "mae", "sol"].includes(p.id));
+  // Everyone who coaches a class here
+  const coaches = tenant.people.filter((p) => Object.values(fit.weekly).some((day) => day.some(([, , coach]) => coach === p.id)));
   const trainingRequested = hydrated && s.commitments.some((c) => c.kind === "training" && c.status !== "cancelled");
 
   const requestIntro = (id: string) => {
@@ -102,7 +106,7 @@ export function FitnessHome() {
         title: `Intro session with ${coach.name.split(" ")[0]}`,
         startsAt: start,
         endsAt: addMin(start, 30),
-        place: "Strength floor · L2",
+        place: `${classTemplates.strength.studio} · L${fit.level}`,
         status: "pending",
         detail: "Your coach will confirm a time that works",
       },
@@ -115,11 +119,22 @@ export function FitnessHome() {
     <div className="pb-tab lg:pb-28">
       {/* Hero */}
       <section data-nav-over className="theme-night relative flex min-h-[88svh] flex-col justify-end overflow-hidden">
-        <Image src={images.gym.src} alt={images.gym.alt} fill priority quality={90} sizes="100vw" className="object-cover" style={{ objectPosition: images.gym.pos }} />
+        <Image
+          src={fit.hero.src}
+          alt={fit.hero.alt}
+          fill
+          priority
+          quality={90}
+          sizes="100vw"
+          className="object-cover"
+          style={{ objectPosition: fit.hero.pos }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-night via-night/35 to-night/20" />
         <div className="frame relative grid-12 gap-y-8 pb-12 pt-40 lg:pb-16">
           <div className="col-span-12 lg:col-span-9">
-            <p className="t-lead text-moon/80 animate-rise">Pyramid Fitness · Level 2</p>
+            <p className="t-lead text-moon/80 animate-rise">
+              {fit.name} · Level {fit.level}
+            </p>
             <LineReveal as="h1" className="t-mega mt-4" lines={["Two floors down", "from your desk."]} />
           </div>
           <Reveal delay={0.3} className="col-span-12 flex flex-wrap items-end gap-3 lg:col-span-3 lg:justify-end">

@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { cn } from "@/lib/cn";
 import { dayKey } from "@/lib/time";
 
-/** Airbnb-style day picker. `marks` shows a dot (e.g. has classes); `mine` a redwood dot (you're booked). */
+/** Airbnb-style day picker. `marks` shows a dot (e.g. has classes); `mine` an accent dot (you're booked). */
 export function DateStrip({
   days,
   value,
@@ -54,7 +54,7 @@ export function DateStrip({
             <span className="t-num relative text-[1.375rem] font-medium leading-none">{d.getDate()}</span>
             <span className="relative mt-1 flex h-1.5 gap-1">
               {has && <span className={cn("size-1.5 rounded-full", on ? "bg-paper/50" : "bg-stone-2")} />}
-              {mine?.(d) && <span className="size-1.5 rounded-full bg-redwood-glow" />}
+              {mine?.(d) && <span className="size-1.5 rounded-full bg-accent-glow" />}
             </span>
           </button>
         );

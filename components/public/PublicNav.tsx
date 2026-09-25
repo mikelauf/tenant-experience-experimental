@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn } from "@/lib/cn";
-import { venues } from "@/lib/data/venues";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { Icon } from "@/components/ui/Icon";
 import { Mark } from "@/components/ui/Logo";
 import { useNavOver } from "@/components/ui/useNavOver";
@@ -17,6 +17,7 @@ export function PublicNav() {
   const s = useDemo();
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
+  const { building, venues } = useTenant();
   const shortlist = hydrated ? s.shortlist.length : 0;
   const light = over && !open;
 
@@ -40,7 +41,7 @@ export function PublicNav() {
         <Link href="/venues" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
           <Mark size={24} />
           <span className="flex flex-col leading-none">
-            <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] [font-stretch:88%]">Transamerica Pyramid</span>
+            <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] [font-stretch:88%]">{building.name}</span>
             <span className="mt-1 text-[0.72rem] font-medium opacity-60">Venues & events</span>
           </span>
         </Link>

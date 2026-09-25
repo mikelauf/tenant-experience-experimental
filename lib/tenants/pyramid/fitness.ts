@@ -1,8 +1,8 @@
-import { at, dayKey, week } from "../time";
 import { images } from "./images";
-import type { ClassKind, ClassSession, ClassTemplate, Resource } from "./types";
+import type { ClassKind, ClassTemplate, Resource } from "@/lib/data/types";
+import type { FitnessBundle } from "../types";
 
-export const classTemplates: Record<ClassKind, ClassTemplate> = {
+const templates: Record<ClassKind, ClassTemplate> = {
   strength: {
     kind: "strength",
     name: "Strength 45",
@@ -60,8 +60,7 @@ export const classTemplates: Record<ClassKind, ClassTemplate> = {
   },
 };
 
-type Slot = [ClassKind, number, string]; // kind, minutes from midnight, coach
-const weekly: Record<number, Slot[]> = {
+const weekly: FitnessBundle["weekly"] = {
   1: [
     ["strength", 420, "dev"],
     ["ride", 720, "mae"],
@@ -89,26 +88,7 @@ const weekly: Record<number, Slot[]> = {
   // Weekends: open gym only
 };
 
-const hash = (s: string) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
-
-export function sessionsFor(day: Date): ClassSession[] {
-  const slots = weekly[day.getDay()] ?? [];
-  const offset = Math.round((day.getTime() - week()[0].getTime()) / 86400000);
-  return slots.map(([kind, min, coachId]) => {
-    const id = `${dayKey(day)}-${kind}-${min}`;
-    const cap = classTemplates[kind].capacity;
-    const h = hash(id);
-    // Noon Ride is always popular; it's the demo's "full" class.
-    const full = kind === "ride" && min === 720;
-    const taken = full ? cap : Math.min(cap - 1, Math.floor(cap * 0.35) + (h % Math.ceil(cap * 0.6)));
-    return { id, kind, coachId, startsAt: at(offset, min), taken, waitlist: full ? 2 + (h % 3) : 0 };
-  });
-}
-
-export const allSessions = () => week().flatMap(sessionsFor);
-export const sessionById = (id: string) => allSessions().find((s) => s.id === id);
-
-export const resources: Resource[] = [
+const resources: Resource[] = [
   {
     slug: "ride-studio",
     name: "Ride studio, open bikes",
@@ -139,15 +119,29 @@ export const resources: Resource[] = [
   },
 ];
 
-export const resource = (slug: string) => resources.find((r) => r.slug === slug);
-
-/** Minutes from midnight for bookable resource slots */
-export const resourceSlots = (r: Resource) =>
-  Array.from({ length: r.kind === "ride" ? 8 : 12 }, (_, i) => 7 * 60 + i * (r.kind === "ride" ? 90 : 60)).filter((m) => m < 19 * 60);
-
-export const membership = {
+const membership = {
   name: "Pyramid Fitness",
   price: "$65/month",
   note: "Sample pricing. Billed through your company or card.",
   perks: ["Unlimited classes", "Open gym 6am–9pm", "Ride studio & recovery lounge bookings", "Towel service and lockers"],
+};
+
+export const fitness: FitnessBundle = {
+  name: "Pyramid Fitness",
+  level: 2,
+  templates,
+  weekly,
+  // Noon Ride is always popular; it's the demo's "full" class.
+  full: ["ride", 720],
+  resources,
+  membership,
+  hero: images.gym,
+  pitch: {
+    title: "Two floors down from your desk.",
+    body: "Coached classes, a Ride studio you can book between meetings, and a recovery lounge with a sauna and cold plunge.",
+    points: ["Classes every weekday", "Ride studio & recovery bookings", "Personal training intros"],
+    img: images.ride,
+    cta: "See Pyramid Fitness",
+    access: "Pyramid Fitness membership",
+  },
 };

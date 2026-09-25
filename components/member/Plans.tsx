@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { Commitment } from "@/lib/data/types";
+import { useTenant } from "@/lib/tenants/client";
 import { useDemo, useHydrated } from "@/lib/store";
 import { fmtLongDay, fmtMonth } from "@/lib/time";
 import { ButtonLink } from "@/components/ui/Button";
@@ -29,6 +30,7 @@ function group(list: Commitment[]): Group[] {
 
 export function Plans() {
   const s = useDemo();
+  const t = useTenant();
   const hydrated = useHydrated();
   const now = useNow();
   const [tab, setTab] = useState<"upcoming" | "past">("upcoming");
@@ -125,21 +127,23 @@ export function Plans() {
               {tab === "upcoming" && (
                 <div className="grid gap-3 lg:col-span-5">
                   {[
-                    { href: "/spaces", icon: "spaces" as const, t: "Book a room", d: "Four rooms, most instant" },
-                    { href: "/fitness/schedule", icon: "fitness" as const, t: "Find a class", d: "Every weekday on L2" },
-                    { href: "/programming", icon: "programming" as const, t: "See events", d: "Hosted by the building" },
-                  ].map((x) => (
-                    <Link key={x.href} href={x.href} className="card group flex items-center gap-4 p-5 hover:shadow-[var(--shadow-soft)]">
-                      <span className="grid size-11 place-items-center rounded-2xl bg-fog">
-                        <Icon name={x.icon} size={21} />
-                      </span>
-                      <span className="flex-1">
-                        <span className="block font-medium">{x.t}</span>
-                        <span className="t-small block text-stone">{x.d}</span>
-                      </span>
-                      <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
-                    </Link>
-                  ))}
+                    t.building.services.spaces && { href: "/spaces", icon: "spaces" as const, t: "Book a room", d: `${t.rooms.length} rooms, most instant` },
+                    t.fitness && { href: "/fitness/schedule", icon: "fitness" as const, t: "Find a class", d: `Every weekday on L${t.fitness.level}` },
+                    t.building.services.programming && { href: "/programming", icon: "programming" as const, t: "See events", d: "Hosted by the building" },
+                  ]
+                    .filter((x) => !!x)
+                    .map((x) => (
+                      <Link key={x.href} href={x.href} className="card group flex items-center gap-4 p-5 hover:shadow-[var(--shadow-soft)]">
+                        <span className="grid size-11 place-items-center rounded-2xl bg-fog">
+                          <Icon name={x.icon} size={21} />
+                        </span>
+                        <span className="flex-1">
+                          <span className="block font-medium">{x.t}</span>
+                          <span className="t-small block text-stone">{x.d}</span>
+                        </span>
+                        <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    ))}
                 </div>
               )}
             </div>

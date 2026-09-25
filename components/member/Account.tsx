@@ -5,9 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { building } from "@/lib/data/building";
-import { membership } from "@/lib/data/fitness";
-import { actions, currentMember, useDemo, useHydrated } from "@/lib/store";
+import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
@@ -27,20 +26,24 @@ function SignedOutNote({ returnTo }: { returnTo: string }) {
 export function Account() {
   const s = useDemo();
   const hydrated = useHydrated();
-  const [prefs, setPrefs] = useState({ reminders: true, events: true, digest: false });
+  const { member: currentMember, fitness, building, copy } = useTenant();
   if (!hydrated) return <div className="min-h-[80svh]" />;
   if (s.persona === "signed-out") return <SignedOutNote returnTo="/account" />;
 
   const access: { icon: AnyIcon; t: string; d: string; on: boolean; href?: string; cta?: string }[] = [
     { icon: "access", t: "Building access", d: `${currentMember.company} · ${currentMember.floor}. Rooms, events and the concierge.`, on: true },
-    {
-      icon: "fitness",
-      t: membership.name,
-      d: s.fitnessMember ? `${membership.price} · renews on the 1st (sample)` : "Classes, the Ride studio and the recovery lounge.",
-      on: s.fitnessMember,
-      href: "/account/membership",
-      cta: s.fitnessMember ? "Manage" : "Start membership",
-    },
+    ...(fitness
+      ? [
+          {
+            icon: "fitness" as const,
+            t: fitness.membership.name,
+            d: s.fitnessMember ? `${fitness.membership.price} · renews on the 1st (sample)` : "Classes, studio bookings and recovery.",
+            on: s.fitnessMember,
+            href: "/account/membership",
+            cta: s.fitnessMember ? "Manage" : "Start membership",
+          },
+        ]
+      : []),
     { icon: "star", t: "VIP list", d: "Invitations to chef's tables and previews. Ask the concierge.", on: false },
   ];
 
@@ -123,8 +126,8 @@ export function Account() {
                       <span className="block font-medium">{t}</span>
                       <span className="t-small block text-stone">{d}</span>
                     </span>
-                    <input type="checkbox" className="peer sr-only" checked={prefs[k]} onChange={(e) => setPrefs((p) => ({ ...p, [k]: e.target.checked }))} />
-                    <span className="relative h-7 w-12 shrink-0 rounded-full bg-line-2 transition-colors peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-redwood after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-paper after:shadow after:transition-transform after:duration-300 peer-checked:after:translate-x-5" />
+                    <input type="checkbox" className="peer sr-only" checked={s.notify[k]} onChange={(e) => actions.setNotify(k, e.target.checked)} />
+                    <span className="relative h-7 w-12 shrink-0 rounded-full bg-line-2 transition-colors peer-checked:bg-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-accent after:absolute after:left-1 after:top-1 after:size-5 after:rounded-full after:bg-paper after:shadow after:transition-transform after:duration-300 peer-checked:after:translate-x-5" />
                   </label>
                 </li>
               ))}
@@ -133,7 +136,8 @@ export function Account() {
 
           <section className="rounded-[var(--radius-card)] bg-fog/70 p-5">
             <p className="t-small text-stone">
-              Need help with access or billing? The concierge is on L1, {building.concierge.hours.toLowerCase()}, or at {building.concierge.phone}.
+              Need help with access or billing? The concierge is on {copy.concierge}, {building.concierge.hours.toLowerCase()}, or at {building.concierge.phone}
+              .
             </p>
           </section>
         </div>
@@ -151,6 +155,8 @@ export function MembershipFlow() {
   const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/fitness";
   const [stage, setStage] = useState<"idle" | "working" | "done">("idle");
   const [billing, setBilling] = useState<"company" | "card">("company");
+  const { member: currentMember, fitness } = useTenant();
+  const membership = fitness!.membership;
 
   if (!hydrated) return <div className="min-h-[80svh]" />;
   if (s.persona === "signed-out") return <SignedOutNote returnTo={`/account/membership?returnTo=${encodeURIComponent(returnTo)}`} />;
@@ -170,7 +176,9 @@ export function MembershipFlow() {
       <div className="grid-12 mt-6 gap-y-10">
         <div className="col-span-12 lg:col-span-5">
           <h1 className="t-hero">{s.fitnessMember && stage !== "done" ? "Your membership" : membership.name}</h1>
-          <p className="t-lead mt-4 text-stone">{s.fitnessMember ? "Active. Everything on L2 is open to you." : `${membership.price}. Cancel any time.`}</p>
+          <p className="t-lead mt-4 text-stone">
+            {s.fitnessMember ? `Active. Everything on L${fitness!.level} is open to you.` : `${membership.price}. Cancel any time.`}
+          </p>
           <ul className="mt-8 space-y-3">
             {membership.perks.map((p) => (
               <li key={p} className="flex items-center gap-3">
@@ -209,7 +217,7 @@ export function MembershipFlow() {
                   >
                     Open billing portal
                   </Button>
-                  <Button variant="ghost" className="text-redwood" onClick={() => actions.setFitness(false)}>
+                  <Button variant="ghost" className="text-accent" onClick={() => actions.setFitness(false)}>
                     End membership
                   </Button>
                 </div>

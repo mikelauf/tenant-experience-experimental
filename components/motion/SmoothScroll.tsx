@@ -10,12 +10,6 @@ declare global {
   }
 }
 
-/** Smooth scroll to a y position, through Lenis when it's running. */
-export function scrollToY(y: number) {
-  if (window.__lenis) window.__lenis.scrollTo(y, { duration: 1.4 });
-  else window.scrollTo({ top: y, behavior: "smooth" });
-}
-
 export function SmoothScroll() {
   const path = usePathname();
 

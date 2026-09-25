@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { ViewTransition, useMemo } from "react";
 import { rsvpEvent } from "@/lib/commit";
-import { person } from "@/lib/data/building";
-import { eventBySlug, events } from "@/lib/data/events";
 import { actions, findActive, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { addMin, fmtLongDay, fmtRange } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
@@ -13,20 +12,22 @@ import { Pill } from "@/components/ui/Pill";
 import { EventCard, accessLabel, canAttend } from "../EventCard";
 
 export function EventDetail({ slug }: { slug: string }) {
-  const e = useMemo(() => eventBySlug(slug)!, [slug]);
+  const t = useTenant();
+  const e = useMemo(() => t.eventBySlug(slug)!, [slug, t]);
   const s = useDemo();
   const hydrated = useHydrated();
   const mine = hydrated ? findActive(s, "event", e.slug) : undefined;
   const going = e.going + (mine?.status === "confirmed" ? 1 : 0);
   const full = e.going >= e.capacity;
-  const host = person(e.hostId);
+  const host = t.person(e.hostId);
   const tag = accessLabel(e);
   const others = useMemo(
     () =>
-      events()
+      t
+        .events()
         .filter((x) => x.slug !== slug)
         .slice(0, 3),
-    [slug],
+    [slug, t],
   );
 
   const action = (() => {
@@ -41,16 +42,16 @@ export function EventDetail({ slug }: { slug: string }) {
     if (mine)
       return (
         <div className="space-y-2">
-          <span className={`${cls} ${mine.status === "waitlist" ? "bg-redwood-soft text-redwood-deep" : "bg-ok-soft text-ok"}`}>
+          <span className={`${cls} ${mine.status === "waitlist" ? "bg-accent-soft text-accent-deep" : "bg-ok-soft text-ok"}`}>
             <Icon name="check" size={18} strokeWidth={2.2} />
             {mine.status === "waitlist" ? `On the waitlist · #${mine.waitlistPos}` : "You're going"}
           </span>
-          <button onClick={() => actions.cancel(mine.id)} className="h-11 w-full rounded-full text-[0.9375rem] font-medium text-redwood hover:bg-redwood-soft">
+          <button onClick={() => actions.cancel(mine.id)} className="h-11 w-full rounded-full text-[0.9375rem] font-medium text-accent hover:bg-accent-soft">
             {mine.status === "waitlist" ? "Leave waitlist" : "Can't make it? Cancel RSVP"}
           </button>
         </div>
       );
-    if (!canAttend(e))
+    if (!canAttend(e, t.member))
       return (
         <div className="rounded-[var(--radius-card)] bg-fog p-4">
           <p className="flex items-center gap-2 font-medium">
@@ -73,7 +74,7 @@ export function EventDetail({ slug }: { slug: string }) {
     return (
       <button
         onClick={() => rsvpEvent(e, full)}
-        className={`${cls} ${full ? "bg-paper shadow-[inset_0_0_0_1px_var(--color-ink)] hover:bg-ink/5" : "bg-redwood text-paper hover:bg-redwood-deep"}`}
+        className={`${cls} ${full ? "bg-paper shadow-[inset_0_0_0_1px_var(--color-ink)] hover:bg-ink/5" : "bg-accent text-paper hover:bg-accent-deep"}`}
       >
         {full ? "Join the waitlist" : "RSVP"}
       </button>
@@ -115,7 +116,16 @@ export function EventDetail({ slug }: { slug: string }) {
           <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-media)] sm:aspect-[16/11] lg:order-2 lg:col-span-6 lg:aspect-auto lg:min-h-[72svh]">
             <ViewTransition name={`event-${e.slug}`} share="morph" default="none">
               <div className="absolute inset-0">
-                <Image src={e.image.src} alt={e.image.alt} fill priority quality={90} sizes="(min-width:1024px) 50vw, 100vw" className="object-cover" style={{ objectPosition: e.image.pos }} />
+                <Image
+                  src={e.image.src}
+                  alt={e.image.alt}
+                  fill
+                  priority
+                  quality={90}
+                  sizes="(min-width:1024px) 50vw, 100vw"
+                  className="object-cover"
+                  style={{ objectPosition: e.image.pos }}
+                />
               </div>
             </ViewTransition>
           </div>
@@ -151,7 +161,7 @@ export function EventDetail({ slug }: { slug: string }) {
             </div>
             <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-fog">
               <div
-                className={`h-full rounded-full transition-[width] duration-700 ${full ? "bg-redwood" : "bg-ink"}`}
+                className={`h-full rounded-full transition-[width] duration-700 ${full ? "bg-accent" : "bg-ink"}`}
                 style={{ width: `${Math.min(100, (going / e.capacity) * 100)}%` }}
               />
             </div>
@@ -168,7 +178,7 @@ export function EventDetail({ slug }: { slug: string }) {
                 <Icon name="pin" size={18} className="text-stone" />
                 <dd>
                   {e.place}
-                  {e.level ? ` · Level ${e.level}` : " · Street level"}
+                  {e.level ? ` · Level ${e.level}` : ` · ${t.levels.find((l) => l.n === 0)?.label ?? "Street"} level`}
                 </dd>
               </div>
             </dl>
@@ -179,7 +189,7 @@ export function EventDetail({ slug }: { slug: string }) {
 
       {others.length > 0 && (
         <section className="frame mt-24 border-t hairline pt-12">
-          <h2 className="t-h2">More at the Pyramid</h2>
+          <h2 className="t-h2">More at {t.copy.the}</h2>
           <div className="mt-8 grid gap-6 sm:grid-cols-3">
             {others.map((o) => (
               <EventCard key={o.slug} e={o} className="[&_.media]:aspect-[4/3]" />

@@ -5,6 +5,9 @@ import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { DemoDock } from "@/components/ui/DemoDock";
 import { Toast } from "@/components/ui/Toast";
 import { shapeBootScript } from "@/lib/shape";
+import { themeVars } from "@/lib/tenants";
+import { TenantProvider } from "@/lib/tenants/client";
+import { getTenant } from "@/lib/tenants/server";
 import "./globals.css";
 
 const instrument = Instrument_Sans({
@@ -14,20 +17,25 @@ const instrument = Instrument_Sans({
   display: "swap",
 });
 
-export const metadata: Metadata = {
-  title: { default: "Transamerica Pyramid", template: "%s · Transamerica Pyramid" },
-  description: "Book rooms, classes and events at the Transamerica Pyramid, or plan your next gathering in the Bay Lounge. A Playbook prototype.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTenant();
+  const name = t.building.name;
+  return {
+    title: { default: name, template: `%s · ${name}` },
+    description: `Book rooms${t.fitness ? ", classes" : ""} and events at ${name}, or plan your next gathering in ${t.venues[0].name}. A Playbook prototype.`,
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: "#f2f0eb",
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const t = await getTenant();
   return (
-    // The boot script may set data-shape before React hydrates
-    <html lang="en" className={instrument.variable} suppressHydrationWarning>
+    // The boot script may set data-shape before React hydrates. The building's accent rides on <html> so it paints first time.
+    <html lang="en" className={instrument.variable} data-building={t.id} style={themeVars(t)} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: shapeBootScript }} />
       </head>
@@ -39,11 +47,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         >
           Skip to content
         </a>
-        <MotionRoot>
-          {children}
-          <Toast />
-          <DemoDock />
-        </MotionRoot>
+        <TenantProvider id={t.id}>
+          <MotionRoot>
+            {children}
+            <Toast />
+            <DemoDock />
+          </MotionRoot>
+        </TenantProvider>
       </body>
     </html>
   );

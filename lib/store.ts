@@ -3,8 +3,8 @@
 import { useSyncExternalStore } from "react";
 import { at, addMin } from "./time";
 import type { Commitment, Inquiry, Persona } from "./data/types";
-import { classTemplates, sessionsFor } from "./data/fitness";
-import { images } from "./data/images";
+import { tenantById, type Tenant } from "./tenants";
+import { activeTenantId } from "./tenants/client";
 import { week } from "./time";
 
 export type DemoState = {
@@ -16,83 +16,94 @@ export type DemoState = {
   /** Services a returning member has used, for "book again" */
   history: string[];
   dismissed: string[];
+  /** Account notification preferences */
+  notify: { reminders: boolean; events: boolean; digest: boolean };
   /** Flash message after an action */
   toast?: { id: string; title: string; body?: string; href?: string };
 };
 
-const KEY = "pyramid-demo-v1";
+/** Each building keeps its own demo state, like separate accounts at separate properties. */
+const key = () => `pyramid-demo-v1:${activeTenantId()}`;
 
-const member = { first: "Jordan", last: "Ellis", email: "jordan.ellis@northline.example", company: "Northline Capital", floor: "Level 31" };
-export const currentMember = member;
-
-function returningSeed(): Commitment[] {
+/** A returning member's calendar, built from whatever this building offers. */
+function returningSeed(t: Tenant): Commitment[] {
   const days = week();
-  // First Ride or Strength session tomorrow-ish that isn't full
-  const tmr = sessionsFor(days[1]).find((s) => s.taken < classTemplates[s.kind].capacity) ?? sessionsFor(days[3])[0];
+  const now = new Date().toISOString();
   const out: Commitment[] = [];
-  if (tmr) {
-    const t = classTemplates[tmr.kind];
-    out.push({
-      id: `c-${tmr.id}`,
-      kind: "class",
-      refId: tmr.id,
-      title: t.name,
-      startsAt: tmr.startsAt,
-      endsAt: addMin(tmr.startsAt, t.durationMin),
-      place: `${t.studio} · L2`,
-      status: "confirmed",
-      image: t.image,
-      createdAt: new Date().toISOString(),
-    });
+  if (t.fitness) {
+    // First class tomorrow-ish that isn't full
+    const tmr = t.sessionsFor(days[1]).find((s) => s.taken < t.template(s.kind).capacity) ?? t.sessionsFor(days[3])[0];
+    if (tmr) {
+      const c = t.template(tmr.kind);
+      out.push({
+        id: `c-${tmr.id}`,
+        kind: "class",
+        refId: tmr.id,
+        title: c.name,
+        startsAt: tmr.startsAt,
+        endsAt: addMin(tmr.startsAt, c.durationMin),
+        place: `${c.studio} · L${t.fitness.level}`,
+        status: "confirmed",
+        image: c.image,
+        createdAt: now,
+      });
+    }
   }
+  // Their usual room, later this week
+  const r = t.room(t.copy.seed.room) ?? t.rooms[0];
   out.push({
-    id: "r-seed-washington",
+    id: `r-seed-${r.slug}`,
     kind: "room",
-    refId: "washington",
-    title: "Washington boardroom",
+    refId: r.slug,
+    title: `${r.name} boardroom`,
     startsAt: at(4, 10 * 60),
     endsAt: at(4, 11 * 60 + 30),
-    place: "Level 6",
+    place: `Level ${r.level}`,
     status: "confirmed",
-    detail: "Boardroom · 10 people · Quarterly review",
-    image: images.boardroomReal,
-    createdAt: new Date().toISOString(),
+    detail: `Boardroom · ${Math.min(r.capacity, 10)} people · Quarterly review`,
+    image: r.image,
+    createdAt: now,
   });
-  out.push({
-    id: "e-seed-talk",
-    kind: "event",
-    refId: "the-pyramid-at-54",
-    title: "The Pyramid at 54",
-    startsAt: at(6, 17 * 60 + 30),
-    endsAt: at(6, 18 * 60 + 45),
-    place: "Bay Lounge · L27",
-    status: "confirmed",
-    image: images.historyGallery,
-    createdAt: new Date().toISOString(),
-  });
+  // An event they've said yes to
+  const e = t.eventBySlug(t.copy.seed.event);
+  if (e)
+    out.push({
+      id: `e-seed-${e.slug}`,
+      kind: "event",
+      refId: e.slug,
+      title: e.name,
+      startsAt: e.startsAt,
+      endsAt: addMin(e.startsAt, e.durationMin),
+      place: `${e.place}${e.level ? ` · L${e.level}` : ""}`,
+      status: "confirmed",
+      image: e.image,
+      createdAt: now,
+    });
   return out;
 }
 
-export function seed(persona: Persona): DemoState {
+export function seed(persona: Persona, t: Tenant = tenantById(activeTenantId())): DemoState {
+  const returning = persona === "returning";
   return {
     persona,
-    fitnessMember: persona === "returning",
-    commitments: persona === "returning" ? returningSeed() : [],
+    fitnessMember: returning && !!t.fitness,
+    commitments: returning ? returningSeed(t) : [],
     shortlist: [],
     inquiries: [],
-    history: persona === "returning" ? ["ride", "washington", "strength"] : [],
+    history: returning ? t.copy.usuals.slice(0, 3).map((u) => u.id) : [],
     dismissed: [],
+    notify: { reminders: true, events: true, digest: false },
   };
 }
 
 let state: DemoState | null = null;
 const listeners = new Set<() => void>();
-const serverState = seed("signed-out");
+const serverState = seed("signed-out", tenantById(undefined));
 
 function load(): DemoState {
   if (state) return state;
   try {
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(key());
     if (raw) state = { ...seed("signed-out"), ...JSON.parse(raw), toast: undefined };
   } catch {}
   state ??= seed("signed-out");
@@ -103,7 +114,7 @@ function save() {
   try {
     const { toast: _t, ...rest } = state!;
     void _t;
-    localStorage.setItem(KEY, JSON.stringify(rest));
+    localStorage.setItem(key(), JSON.stringify(rest));
   } catch {}
 }
 
@@ -116,7 +127,7 @@ export function setState(fn: (s: DemoState) => DemoState) {
 function subscribe(l: () => void) {
   listeners.add(l);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
+    if (e.key === key()) {
       state = null;
       l();
     }
@@ -161,7 +172,7 @@ export const actions = {
   },
   reset() {
     try {
-      localStorage.removeItem(KEY);
+      localStorage.removeItem(key());
     } catch {}
     state = seed("signed-out");
     listeners.forEach((l) => l());
@@ -196,8 +207,11 @@ export const actions = {
     setState((s) => ({ ...s, inquiries: [...s.inquiries, { ...i, id, createdAt: new Date().toISOString() }] }));
     return id;
   },
-  dismiss(key: string) {
-    setState((s) => ({ ...s, dismissed: [...s.dismissed, key] }));
+  dismiss(k: string) {
+    setState((s) => ({ ...s, dismissed: [...s.dismissed, k] }));
+  },
+  setNotify(k: keyof DemoState["notify"], on: boolean) {
+    setState((s) => ({ ...s, notify: { ...s.notify, [k]: on } }));
   },
 };
 

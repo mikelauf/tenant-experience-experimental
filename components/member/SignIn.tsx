@@ -1,10 +1,10 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { actions, currentMember } from "@/lib/store";
+import { actions } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { Mark } from "@/components/ui/Logo";
@@ -23,6 +23,8 @@ export function SignIn() {
   const raw = params.get("returnTo") ?? "/";
   // Only allow same-site paths
   const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  const { member: currentMember, copy, fitness } = useTenant();
+  const img = copy.signInImg;
   const [email, setEmail] = useState(currentMember.email);
   const [stage, setStage] = useState<"idle" | "checking" | "done">("idle");
   const [error, setError] = useState("");
@@ -46,14 +48,14 @@ export function SignIn() {
   return (
     <div className="frame grid min-h-[100svh] gap-8 pb-tab pt-[calc(var(--nav-h)+16px)] lg:grid-cols-12 lg:pb-24">
       <div className="media relative hidden lg:col-span-6 lg:block">
-        <Image src={images.lobbyCoffee.src} alt={images.lobbyCoffee.alt} fill sizes="50vw" className="object-cover" style={{ objectPosition: images.lobbyCoffee.pos }} priority />
+        <Image src={img.src} alt={img.alt} fill sizes="50vw" className="object-cover" style={{ objectPosition: img.pos }} priority />
         <div className="absolute inset-0 bg-gradient-to-t from-night/70 to-transparent" />
         <p className="t-h2 absolute bottom-8 left-8 max-w-[16ch] text-white">Your building, one sign-in away.</p>
       </div>
 
       <div className="flex flex-col justify-center lg:col-span-5 lg:col-start-8">
         <Mark size={36} />
-        <h1 className="t-h1 mt-8">Sign in to the Pyramid</h1>
+        <h1 className="t-h1 mt-8">Sign in to {copy.the}</h1>
         <p className="t-lead mt-4 text-stone">Use your work email. We&apos;ll confirm it with your company&apos;s sign-in.</p>
         {resume && (
           <p className="t-small mt-6 flex items-center gap-2 rounded-2xl bg-fog px-4 py-3">
@@ -77,7 +79,7 @@ export function SignIn() {
             aria-describedby={error ? "email-err" : undefined}
           />
           {error && (
-            <p id="email-err" className="t-small mt-2 text-redwood">
+            <p id="email-err" className="t-small mt-2 text-accent">
               {error}
             </p>
           )}
@@ -119,7 +121,8 @@ export function SignIn() {
         <div className="mt-10 space-y-3 border-t hairline pt-6">
           <p className="t-small flex gap-2.5 text-stone">
             <Icon name="info" size={17} className="mt-0.5 shrink-0" />
-            Signing in confirms you work in the building. Some services, like Pyramid Fitness, are separate memberships.
+            Signing in confirms you work in the building.{" "}
+            {fitness ? `Some services, like ${fitness.name}, are separate memberships.` : "Some services may need your company's approval."}
           </p>
           <p className="t-meta">
             Prototype: no real authentication. Any email signs you in as {currentMember.first} {currentMember.last}, a new member.

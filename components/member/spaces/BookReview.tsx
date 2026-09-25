@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { bookRoom } from "@/lib/commit";
-import { room, setupLabels } from "@/lib/data/rooms";
+import { setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
-import { currentMember, useDemo, useHydrated } from "@/lib/store";
+import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { dayKey, fmtLongDay, fmtTime, week } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
@@ -17,6 +18,7 @@ import { isBusy } from "./Availability";
 
 /** Airbnb "Review and continue", then an in-place confirmation. */
 export function BookReview({ slug }: { slug: string }) {
+  const { room, member: currentMember } = useTenant();
   const r = room(slug)!;
   const params = useSearchParams();
   const s = useDemo();
@@ -110,7 +112,7 @@ export function BookReview({ slug }: { slug: string }) {
             </p>
           )}
           {invalid && (
-            <p role="alert" className="t-small mt-6 flex gap-2.5 rounded-2xl bg-redwood-soft p-4 text-redwood-deep">
+            <p role="alert" className="t-small mt-6 flex gap-2.5 rounded-2xl bg-accent-soft p-4 text-accent-deep">
               <Icon name="alert" size={18} className="shrink-0" />
               That time isn&apos;t available anymore. Go back and choose another.
             </p>
@@ -160,7 +162,7 @@ export function BookReview({ slug }: { slug: string }) {
               <button
                 onClick={confirm}
                 disabled={invalid || stage === "working"}
-                className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-redwood font-medium text-paper transition-colors hover:bg-redwood-deep disabled:opacity-60"
+                className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-accent font-medium text-paper transition-colors hover:bg-accent-deep disabled:opacity-60"
               >
                 {stage === "working" ? (
                   <>

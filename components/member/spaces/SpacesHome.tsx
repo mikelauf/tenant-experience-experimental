@@ -1,10 +1,9 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import Link from "next/link";
 import { ViewTransition, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { roomTags, rooms } from "@/lib/data/rooms";
+import { useTenant } from "@/lib/tenants/client";
 import type { RoomTag } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
 import { dayKey, week } from "@/lib/time";
@@ -22,7 +21,11 @@ export function SpacesHome() {
   const s = useDemo();
   const hydrated = useHydrated();
   const offset = days.findIndex((d) => dayKey(d) === day);
+  const { rooms, roomTags, copy, lead } = useTenant();
   const list = rooms.filter((r) => !tag || r.tags.includes(tag));
+  const caps = rooms.map((r) => r.capacity);
+  const levels = [...new Set(rooms.map((r) => r.level))].sort((a, b) => a - b);
+  const count = ["", "One room", "Two rooms", "Three rooms", "Four rooms", "Five rooms", "Six rooms"][rooms.length] ?? `${rooms.length} rooms`;
 
   const mineFor = (slug: string): [number, number] | null => {
     if (!hydrated) return null;
@@ -46,17 +49,17 @@ export function SpacesHome() {
           {
             href: "#rooms",
             k: "Book a room",
-            t: "Four rooms for 4 to 40, on Levels 5 and 6.",
+            t: `${count} for ${Math.min(...caps)} to ${Math.max(...caps)}, on ${levels.length > 1 ? "Levels" : "Level"} ${levels.join(" and ")}.`,
             d: "Most book instantly. Pick a time, confirm, done.",
-            img: images.boardroomReal,
+            img: copy.spaces.roomsImg,
             span: "lg:col-span-7",
           },
           {
             href: "/spaces/plan-an-event",
             k: "Plan an event",
             t: "Receptions, offsites and dinners, planned with you.",
-            d: "Tell Inés's team what you have in mind.",
-            img: images.bayDusk,
+            d: `Tell ${lead.name.split(" ")[0]}'s team what you have in mind.`,
+            img: copy.spaces.planImg,
             span: "lg:col-span-5",
           },
         ].map((x, i) => (

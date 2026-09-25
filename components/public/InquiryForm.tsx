@@ -1,14 +1,13 @@
 "use client";
 
-import { images } from "@/lib/data/images";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { person } from "@/lib/data/building";
-import { budgets, eventTypes, maxCap, venues } from "@/lib/data/venues";
+import { budgets, eventTypes, maxCap } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { Icon } from "@/components/ui/Icon";
 
 type Values = {
@@ -82,7 +81,7 @@ function Field({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="t-small flex items-start gap-1.5 overflow-hidden pt-2 text-redwood"
+            className="t-small flex items-start gap-1.5 overflow-hidden pt-2 text-accent"
           >
             <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
             {error}
@@ -120,6 +119,8 @@ function Chips({ name, options, value, onChange }: { name: string; options: stri
 }
 
 export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string } }) {
+  const tenant = useTenant();
+  const { venues } = tenant;
   const router = useRouter();
   const s = useDemo();
   const hydrated = useHydrated();
@@ -194,7 +195,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const id = (k: string) => `${uid}-${k}`;
   const invalid = (k: keyof Values) => (errors[k] ? { "aria-invalid": true as const, "aria-describedby": `${id(k)}-error` } : {});
   const errorList = Object.entries(errors) as [keyof Values, string][];
-  const host = person("ines");
+  const { lead: host, building, copy } = tenant;
 
   return (
     <div className="grid-12 gap-y-10">
@@ -212,18 +213,22 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                 transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
               >
                 <Image
-                  src={chosen?.hero.src ?? images.aerialGolden.src}
+                  src={chosen?.hero.src ?? building.hero.src}
                   alt=""
                   fill
                   sizes="(min-width:1024px) 40vw, 100vw"
                   className="object-cover"
-                  style={{ objectPosition: chosen?.hero.pos ?? images.aerialGolden.pos }}
+                  style={{ objectPosition: chosen?.hero.pos ?? building.hero.pos }}
                 />
               </motion.div>
             </AnimatePresence>
             <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 p-6">
-              <p className="t-meta">{chosen ? `${chosen.levelLabel} · up to ${maxCap(chosen)} guests` : "Any of our three venues"}</p>
+              <p className="t-meta">
+                {chosen
+                  ? `${chosen.levelLabel} · up to ${maxCap(chosen)} guests`
+                  : `Any of our ${["", "", "two", "three", "four", "five"][venues.length] ?? venues.length} venues`}
+              </p>
               <p className="t-h2 mt-1">{chosen ? chosen.name : venue === "unsure" ? "We'll suggest the right room" : "Choose a venue"}</p>
             </div>
           </div>
@@ -271,7 +276,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="mb-10 rounded-[var(--radius-card)] bg-redwood-soft p-5 text-redwood-deep outline-none focus-visible:outline-2"
+              className="mb-10 rounded-[var(--radius-card)] bg-accent-soft p-5 text-accent-deep outline-none focus-visible:outline-2"
             >
               <p className="font-medium">A few things need a look. Everything you entered is still here.</p>
               <ul className="t-small mt-2 space-y-1">
@@ -354,7 +359,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                     on
                       ? "shadow-[inset_0_0_0_2px_var(--color-ink)]"
                       : errors.venue
-                        ? "shadow-[inset_0_0_0_1.5px_var(--color-redwood)]"
+                        ? "shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
                         : "shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-stone-2)]",
                   )}
                 >
@@ -369,7 +374,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                     <span className="block font-medium">{o.name}</span>
                     <span className="t-meta block">{o.meta}</span>
                   </span>
-                  {saved && <Icon name="heart-fill" size={16} className="text-redwood" />}
+                  {saved && <Icon name="heart-fill" size={16} className="text-accent" />}
                   <span
                     className={cn(
                       "grid size-5 shrink-0 place-items-center rounded-full border transition-colors",
@@ -389,7 +394,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="t-small flex items-center gap-1.5 pt-3 text-redwood"
+                className="t-small flex items-center gap-1.5 pt-3 text-accent"
               >
                 <Icon name="alert" size={16} />
                 {errors.venue}
@@ -456,7 +461,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
         </fieldset>
 
         <div className="mt-12 space-y-4 border-t hairline pt-8">
-          <label className={cn("flex cursor-pointer items-start gap-3 rounded-2xl p-3 -m-3", errors.privacy && "bg-redwood-soft/60")}>
+          <label className={cn("flex cursor-pointer items-start gap-3 rounded-2xl p-3 -m-3", errors.privacy && "bg-accent-soft/60")}>
             <input
               id={id("privacy")}
               type="checkbox"
@@ -466,12 +471,12 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
               {...invalid("privacy")}
             />
             <span className="t-small">
-              I understand the Pyramid events team will use these details to reply to my inquiry, as described in the privacy notice.{" "}
+              I understand the {copy.the.replace(/^the /, "")} events team will use these details to reply to my inquiry, as described in the privacy notice.{" "}
               <span className="text-stone">(Required)</span>
             </span>
           </label>
           {errors.privacy && (
-            <p id={`${id("privacy")}-error`} className="t-small flex items-center gap-1.5 text-redwood">
+            <p id={`${id("privacy")}-error`} className="t-small flex items-center gap-1.5 text-accent">
               <Icon name="alert" size={16} />
               {errors.privacy}
             </p>
@@ -509,7 +514,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
           <button
             type="submit"
             disabled={sending}
-            className="flex h-14 items-center justify-center gap-2 rounded-full bg-redwood px-8 font-medium text-paper transition-colors hover:bg-redwood-deep disabled:opacity-70"
+            className="flex h-14 items-center justify-center gap-2 rounded-full bg-accent px-8 font-medium text-paper transition-colors hover:bg-accent-deep disabled:opacity-70"
           >
             {sending ? (
               <>

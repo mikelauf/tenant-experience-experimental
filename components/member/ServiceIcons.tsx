@@ -39,8 +39,8 @@ export function FitnessArt({ size = 48 }: { size?: number }) {
           <stop offset="1" stopColor="#0f1113" />
         </radialGradient>
         <linearGradient id="fa-band" x1="0" x2="1">
-          <stop offset="0" stopColor="#b44d2d" />
-          <stop offset="1" stopColor="#7c3019" />
+          <stop offset="0" style={{ stopColor: "var(--color-accent)" }} />
+          <stop offset="1" style={{ stopColor: "var(--color-accent-deep)" }} />
         </linearGradient>
       </defs>
       <ellipse cx="32" cy="55" rx="16" ry="4.5" fill="#111315" opacity="0.1" />
@@ -73,7 +73,14 @@ export function EventsArt({ size = 48 }: { size?: number }) {
       <ellipse cx="30" cy="28.6" rx="11" ry="2.8" fill="#5a3522" />
       <ellipse cx="27" cy="28.2" rx="4" ry="0.9" fill="#b0714a" opacity="0.7" />
       {/* steam */}
-      <path d="M25 22c-2-3 2-4 0-8M31 21c-2-3 2-4 0-8M37 22c-2-3 2-4 0-8" fill="none" stroke="#9a3f25" strokeWidth="1.8" strokeLinecap="round" opacity="0.55" />
+      <path
+        d="M25 22c-2-3 2-4 0-8M31 21c-2-3 2-4 0-8M37 22c-2-3 2-4 0-8"
+        fill="none"
+        style={{ stroke: "var(--color-accent)" }}
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        opacity="0.55"
+      />
     </svg>
   );
 }

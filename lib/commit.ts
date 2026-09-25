@@ -1,21 +1,21 @@
 "use client";
 
 import { addMin, fmtDay, fmtTime } from "./time";
-import { classTemplates } from "./data/fitness";
-import { person } from "./data/building";
 import type { BuildingEvent, ClassSession, Commitment, Resource, Room } from "./data/types";
 import { actions, type DemoState } from "./store";
+import type { Tenant } from "./tenants";
 
 /** Seats taken including this person's own booking */
-export function classSeats(s: DemoState, c: ClassSession) {
+export function classSeats(t: Tenant, s: DemoState, c: ClassSession) {
   const mine = s.commitments.find((x) => x.kind === "class" && x.refId === c.id && x.status !== "cancelled");
-  const cap = classTemplates[c.kind].capacity;
+  const cap = t.template(c.kind).capacity;
   const taken = c.taken + (mine?.status === "confirmed" ? 1 : 0);
   return { cap, taken, left: Math.max(0, cap - taken), full: c.taken >= cap, mine };
 }
 
-export function reserveClass(c: ClassSession, waitlist: boolean) {
-  const t = classTemplates[c.kind];
+export function reserveClass(tenant: Tenant, c: ClassSession, waitlist: boolean) {
+  const t = tenant.template(c.kind);
+  const lvl = `L${tenant.fitness?.level}`;
   actions.add(
     {
       kind: "class",
@@ -23,19 +23,22 @@ export function reserveClass(c: ClassSession, waitlist: boolean) {
       title: t.name,
       startsAt: c.startsAt,
       endsAt: addMin(c.startsAt, t.durationMin),
-      place: `${t.studio} · L2`,
+      place: `${t.studio} · ${lvl}`,
       status: waitlist ? "waitlist" : "confirmed",
       waitlistPos: waitlist ? c.waitlist + 1 : undefined,
-      detail: `With ${person(c.coachId).name.split(" ")[0]}`,
+      detail: `With ${tenant.person(c.coachId).name.split(" ")[0]}`,
       image: t.image,
     },
     {
       title: waitlist ? `You're #${c.waitlist + 1} on the waitlist` : `${t.name} is booked`,
-      body: `${fmtDay(c.startsAt)} at ${fmtTime(c.startsAt)} · We'll ${waitlist ? "tell you if a spot opens" : "see you on L2"}`,
+      body: `${fmtDay(c.startsAt)} at ${fmtTime(c.startsAt)} · We'll ${waitlist ? "tell you if a spot opens" : `see you on ${lvl}`}`,
       href: "/plans",
     },
   );
 }
+
+/** Where you'd land on a full event's waitlist: a few people are always ahead, more for popular events */
+export const eventWaitlistPos = (e: BuildingEvent) => 1 + (Math.max(0, e.going - e.capacity) || Math.ceil(e.capacity / 12));
 
 export function rsvpEvent(e: BuildingEvent, waitlist: boolean) {
   actions.add(
@@ -47,7 +50,7 @@ export function rsvpEvent(e: BuildingEvent, waitlist: boolean) {
       endsAt: addMin(e.startsAt, e.durationMin),
       place: `${e.place}${e.level ? ` · L${e.level}` : ""}`,
       status: waitlist ? "waitlist" : "confirmed",
-      waitlistPos: waitlist ? 3 : undefined,
+      waitlistPos: waitlist ? eventWaitlistPos(e) : undefined,
       image: e.image,
     },
     {
@@ -80,7 +83,7 @@ export function bookRoom(r: Room, startsAt: string, minutes: number, detail: str
   );
 }
 
-export function bookResource(res: Resource, startsAt: string, unit: string) {
+export function bookResource(t: Tenant, res: Resource, startsAt: string, unit: string) {
   actions.add(
     {
       kind: "resource",
@@ -88,7 +91,7 @@ export function bookResource(res: Resource, startsAt: string, unit: string) {
       title: res.name,
       startsAt,
       endsAt: addMin(startsAt, res.slotMin),
-      place: `${unit} · L2`,
+      place: `${unit} · L${t.fitness?.level}`,
       status: "confirmed",
       image: res.image,
     },

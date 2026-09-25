@@ -1,6 +1,6 @@
-import { at } from "../time";
+import { at } from "@/lib/time";
 import { images } from "./images";
-import type { BuildingEvent } from "./types";
+import type { BuildingEvent } from "@/lib/data/types";
 
 /** Built lazily so dates are relative to "now" in the browser. */
 export const events = (): BuildingEvent[] => [
@@ -116,5 +116,3 @@ export const events = (): BuildingEvent[] => [
     tone: "day",
   },
 ];
-
-export const eventBySlug = (slug: string) => events().find((e) => e.slug === slug);

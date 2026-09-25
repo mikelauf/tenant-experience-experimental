@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { room, roomCapacity, roomHours, rooms, setupLabels } from "@/lib/data/rooms";
+import { roomCapacity, roomHours, setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { dayKey, fmtTime, week } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
@@ -18,6 +19,7 @@ import { AvailabilityBar, CLOSE, isBusy } from "./Availability";
 const durations = [30, 60, 90, 120];
 
 export function RoomDetail({ slug }: { slug: string }) {
+  const { room, rooms } = useTenant();
   const r = room(slug)!;
   const router = useRouter();
   const params = useSearchParams();
@@ -203,7 +205,7 @@ export function RoomDetail({ slug }: { slug: string }) {
                   </label>
                 </div>
                 {people > cap && (
-                  <p className="t-small mt-2 text-redwood">
+                  <p className="t-small mt-2 text-accent">
                     {setupLabels[setup]} fits {cap}. Try another setup or a larger room.
                   </p>
                 )}
@@ -214,7 +216,7 @@ export function RoomDetail({ slug }: { slug: string }) {
                   <input className="field py-3" placeholder="e.g. Quarterly review" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </label>
                 {start != null && isBusy(r.slug, offset, start, start + dur) && (
-                  <p className="t-small mt-3 text-redwood">That runs into another booking. Try a shorter time or a different start.</p>
+                  <p className="t-small mt-3 text-accent">That runs into another booking. Try a shorter time or a different start.</p>
                 )}
               </>
             )}
@@ -230,7 +232,7 @@ export function RoomDetail({ slug }: { slug: string }) {
               <button
                 disabled={!valid}
                 onClick={() => router.push(next)}
-                className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-redwood py-3.5 font-medium text-paper transition-colors hover:bg-redwood-deep disabled:bg-fog disabled:text-stone-2"
+                className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep disabled:bg-fog disabled:text-stone-2"
               >
                 {start == null ? "Pick a start time" : `Review · ${fmtTime(start)}–${fmtTime(start + dur)}`}
                 {valid && <Icon name="arrow-right" size={18} />}
@@ -245,9 +247,11 @@ export function RoomDetail({ slug }: { slug: string }) {
         <div className="flex items-center justify-between gap-4 pl-[52px]">
           <div className="min-w-0">
             <p className="truncate font-medium">{start != null ? `${fmtTime(start)}–${fmtTime(start + dur)}` : r.name}</p>
-            <p className="t-meta">Up to {r.capacity} · Level {r.level}</p>
+            <p className="t-meta">
+              Up to {r.capacity} · Level {r.level}
+            </p>
           </div>
-          <a href="#book" className="flex h-11 shrink-0 items-center rounded-full bg-redwood px-5 font-medium text-paper">
+          <a href="#book" className="flex h-11 shrink-0 items-center rounded-full bg-accent px-5 font-medium text-paper">
             {start != null ? "Review" : "Book a time"}
           </a>
         </div>

@@ -1,10 +1,14 @@
 import { PublicNav } from "@/components/public/PublicNav";
 import { Footer } from "@/components/ui/Footer";
+import { getTenant } from "@/lib/tenants/server";
 
-export const metadata = {
-  title: { default: "Venues & events", template: "%s · Transamerica Pyramid venues" },
-  description: "Host your reception, offsite or dinner at the Transamerica Pyramid: Bay Lounge on L27, Redwood Park and Montgomery Hall.",
-};
+export async function generateMetadata() {
+  const t = await getTenant();
+  return {
+    title: { default: "Venues & events", template: `%s · ${t.building.name} venues` },
+    description: t.copy.public.description,
+  };
+}
 
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -4,10 +4,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { person } from "@/lib/data/building";
-import { classTemplates, sessionsFor } from "@/lib/data/fitness";
 import type { ClassKind, ClassSession } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { dayKey, week } from "@/lib/time";
 import { Icon } from "@/components/ui/Icon";
 import { DateStrip } from "../DateStrip";
@@ -24,7 +23,8 @@ const kinds: { id: ClassKind | "all"; label: string }[] = [
 ];
 
 function Row({ c, onOpen, i }: { c: ClassSession; onOpen: () => void; i: number }) {
-  const t = classTemplates[c.kind];
+  const tenant = useTenant();
+  const t = tenant.template(c.kind);
   const st = useClassState(c);
   const d = new Date(c.startsAt);
   const [hm, ap] = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).split(" ");
@@ -59,13 +59,13 @@ function Row({ c, onOpen, i }: { c: ClassSession; onOpen: () => void; i: number 
             <Intensity n={t.intensity} />
           </div>
           <p className="t-small mt-1 text-stone">
-            {person(c.coachId).name.split(" ")[0]} · {t.studio} · {t.durationMin} min
+            {tenant.person(c.coachId).name.split(" ")[0]} · {t.studio} · {t.durationMin} min
           </p>
           <div className="mt-3 flex items-center gap-3">
             <span className="h-1 w-24 overflow-hidden rounded-full bg-fog">
-              <span className={cn("block h-full rounded-full", st.left === 0 ? "bg-redwood" : "bg-ink/70")} style={{ width: `${pct}%` }} />
+              <span className={cn("block h-full rounded-full", st.left === 0 ? "bg-accent" : "bg-ink/70")} style={{ width: `${pct}%` }} />
             </span>
-            <span className={cn("t-meta tabular", st.left === 0 && "text-redwood")}>
+            <span className={cn("t-meta tabular", st.left === 0 && "text-accent")}>
               {st.left === 0 ? `Full · ${c.waitlist} waiting` : st.left <= 3 ? `${st.left} left` : `${st.left} spots`}
             </span>
           </div>
@@ -83,9 +83,10 @@ export function Schedule() {
   const params = useSearchParams();
   const s = useDemo();
   const hydrated = useHydrated();
+  const { sessionsFor, fitness } = useTenant();
   const days = useMemo(() => week(), []);
   const deepClass = params.get("class");
-  const deepSession = useMemo(() => (deepClass ? days.flatMap(sessionsFor).find((x) => x.id === deepClass) : undefined), [deepClass, days]);
+  const deepSession = useMemo(() => (deepClass ? days.flatMap(sessionsFor).find((x) => x.id === deepClass) : undefined), [deepClass, days, sessionsFor]);
   const [day, setDay] = useState(() => (deepSession ? dayKey(deepSession.startsAt) : dayKey(days[0])));
   const [kind, setKind] = useState<ClassKind | "all">((params.get("kind") as ClassKind) ?? "all");
   const [openId, setOpenId] = useState<string | null>(deepClass);
@@ -108,7 +109,9 @@ export function Schedule() {
   return (
     <div className="pb-tab lg:pb-28">
       <div className="frame pt-[calc(var(--nav-h)+32px)] lg:pt-[calc(var(--nav-h)+56px)]">
-        <p className="t-lead text-stone">Pyramid Fitness · L2</p>
+        <p className="t-lead text-stone">
+          {fitness!.name} · L{fitness!.level}
+        </p>
         <h1 className="t-hero mt-2">Class schedule</h1>
       </div>
 
@@ -205,12 +208,12 @@ export function Schedule() {
               </ul>
             </div>
             {hydrated && s.persona !== "signed-out" && !s.fitnessMember && (
-              <div className="rounded-[var(--radius-card)] bg-redwood-soft p-5 text-redwood-deep">
+              <div className="rounded-[var(--radius-card)] bg-accent-soft p-5 text-accent-deep">
                 <p className="font-medium">You can look, but not book yet</p>
-                <p className="t-small mt-1">Classes need a Pyramid Fitness membership. It takes a minute.</p>
+                <p className="t-small mt-1">Classes need a {fitness!.name} membership. It takes a minute.</p>
                 <a
                   href="/account/membership?returnTo=%2Ffitness%2Fschedule"
-                  className="mt-4 inline-flex h-10 items-center rounded-full bg-redwood px-4 text-[0.875rem] font-medium text-paper"
+                  className="mt-4 inline-flex h-10 items-center rounded-full bg-accent px-4 text-[0.875rem] font-medium text-paper"
                 >
                   Get fitness access
                 </a>

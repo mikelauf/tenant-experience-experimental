@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { bookResource } from "@/lib/commit";
-import { resourceSlots } from "@/lib/data/fitness";
+import { resourceSlots } from "@/lib/data/shared";
 import type { Resource } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
+import { useTenant } from "@/lib/tenants/client";
 import { dayKey, fmtTime, week } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
 import Image from "@/components/ui/SmoothImage";
@@ -17,6 +18,7 @@ import { DateStrip } from "../DateStrip";
 /** Slot picker for a bookable studio resource (bike, recovery suite). */
 export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () => void }) {
   const s = useDemo();
+  const tenant = useTenant();
   const hydrated = useHydrated();
   const days = useMemo(() => week(), []);
   const [day, setDay] = useState(dayKey(days[0]));
@@ -27,7 +29,7 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
   const d = days.find((x) => dayKey(x) === day)!;
   const offset = days.indexOf(d);
   const now = useNow();
-  const slots = r ? resourceSlots(r) : [];
+  const slots = r ? resourceSlots(r.kind) : [];
   const iso = (m: number) => {
     const x = new Date(d);
     x.setMinutes(m);
@@ -74,10 +76,10 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
             disabled={slot == null}
             onClick={() => {
               if (slot == null) return;
-              bookResource(r, iso(slot), r.units[unit]);
+              bookResource(tenant, r, iso(slot), r.units[unit]);
               setDone(true);
             }}
-            className="flex h-13 w-full items-center justify-center rounded-full bg-redwood py-3.5 font-medium text-paper transition-colors hover:bg-redwood-deep disabled:bg-fog disabled:text-stone-2"
+            className="flex h-13 w-full items-center justify-center rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep disabled:bg-fog disabled:text-stone-2"
           >
             {slot == null ? "Choose a time" : `Book ${fmtTime(iso(slot))} · ${r.slotMin} min`}
           </button>

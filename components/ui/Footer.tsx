@@ -1,23 +1,28 @@
 import Link from "next/link";
-import { building } from "@/lib/data/building";
+import { getTenant } from "@/lib/tenants/server";
 import { Mark, PoweredBy } from "./Logo";
 
-export function Footer({ variant }: { variant: "member" | "public" }) {
+export async function Footer({ variant }: { variant: "member" | "public" }) {
+  const t = await getTenant();
+  const { building, copy } = t;
+  const on = building.services;
   const links =
     variant === "member"
       ? [
-          { href: "/spaces", label: "Meeting rooms" },
-          { href: "/spaces/plan-an-event", label: "Plan an event" },
-          { href: "/fitness", label: "Pyramid Fitness" },
-          { href: "/programming", label: "Events" },
+          ...(on.spaces
+            ? [
+                { href: "/spaces", label: "Meeting rooms" },
+                { href: "/spaces/plan-an-event", label: "Plan an event" },
+              ]
+            : []),
+          ...(t.fitness ? [{ href: "/fitness", label: t.fitness.name }] : []),
+          ...(on.programming ? [{ href: "/programming", label: "Events" }] : []),
           { href: "/plans", label: "Your plans" },
           { href: "/venues", label: "Public venues site" },
         ]
       : [
           { href: "/venues#collection", label: "All venues" },
-          { href: "/venues/bay-lounge", label: "Bay Lounge" },
-          { href: "/venues/redwood-park", label: "Redwood Park" },
-          { href: "/venues/montgomery-hall", label: "Montgomery Hall" },
+          ...t.venues.map((v) => ({ href: `/venues/${v.slug}`, label: v.name })),
           { href: "/venues/inquire", label: "Start an inquiry" },
           { href: "/", label: "Work here? Member site" },
         ];
@@ -28,7 +33,9 @@ export function Footer({ variant }: { variant: "member" | "public" }) {
         <div className="col-span-12 lg:col-span-5">
           <Mark size={40} className="text-moon" />
           <p className="t-h2 mt-8 max-w-[18ch]">
-            {variant === "member" ? "The concierge desk is on L1, and always happy to help." : "Tell us about your event. We'll take it from there."}
+            {variant === "member"
+              ? `The concierge desk is on ${copy.concierge}, and always happy to help.`
+              : "Tell us about your event. We'll take it from there."}
           </p>
         </div>
         <div className="col-span-6 lg:col-span-3 lg:col-start-7">
@@ -54,7 +61,7 @@ export function Footer({ variant }: { variant: "member" | "public" }) {
       </div>
       <div className="frame overflow-hidden pb-[0.12em] text-[clamp(3.5rem,14.5vw,15rem)]">
         <p aria-hidden className="t-mega select-none whitespace-nowrap text-[length:inherit] leading-[0.9] text-night-3">
-          The Pyramid
+          {copy.The}
         </p>
       </div>
       <div className="frame flex flex-col gap-3 border-t hairline py-6 sm:flex-row sm:items-center sm:justify-between">

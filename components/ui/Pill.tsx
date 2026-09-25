@@ -7,7 +7,7 @@ const tones: Record<Tone, string> = {
   neutral: "bg-fog text-ink-2",
   ok: "bg-ok-soft text-ok",
   hold: "bg-hold-soft text-hold",
-  accent: "bg-redwood-soft text-redwood-deep",
+  accent: "bg-accent-soft text-accent-deep",
   night: "bg-night-3 text-moon",
   glass: "bg-black/30 text-white backdrop-blur-md",
 };

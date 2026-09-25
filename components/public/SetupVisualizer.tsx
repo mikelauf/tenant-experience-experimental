@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { setupLabels } from "@/lib/data/rooms";
+import { setupLabels } from "@/lib/data/shared";
 import type { Setup, Venue } from "@/lib/data/types";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
@@ -72,7 +72,7 @@ function Plan({ plate, setup, capacity }: { plate: Venue["plate"]; setup: Setup;
         />
       ))}
       {L.people.map(([x, z], i) => (
-        <circle key={`p${i}`} cx={x} cy={z} r={0.18} fill={i % 3 ? "#62666a" : "#9a3f25"} />
+        <circle key={`p${i}`} cx={x} cy={z} r={0.18} fill={i % 3 ? "#62666a" : "var(--color-accent)"} />
       ))}
     </svg>
   );

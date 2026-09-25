@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { person } from "@/lib/data/building";
-import { maxCap, venue, venues } from "@/lib/data/venues";
+import { maxCap } from "@/lib/data/shared";
+import { getTenant } from "@/lib/tenants/server";
 import { Reveal } from "@/components/motion/Reveal";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
@@ -11,27 +11,18 @@ import { Mosaic } from "@/components/public/Mosaic";
 import { SetupVisualizer } from "@/components/public/SetupVisualizer";
 import { HeartButton } from "@/components/public/VenueCard";
 
-export function generateStaticParams() {
-  return venues.map((v) => ({ slug: v.slug }));
-}
-
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
-  const v = venue((await params).slug);
+  const v = (await getTenant()).venue((await params).slug);
   return { title: v?.name ?? "Venue", description: v?.summary };
 }
 
 export default async function VenuePage({ params }: PageProps<"/venues/[slug]">) {
-  const v = venue((await params).slug);
+  const t = await getTenant();
+  const v = t.venue((await params).slug);
   if (!v) notFound();
-  const host = person(v.hostId);
-  const others = venues.filter((x) => x.slug !== v.slug);
-
-  const policies = [
-    { icon: "clock" as const, t: "Evening events end by 11pm", d: "Load-in from 2pm on event days; load-out by midnight." },
-    { icon: "glass" as const, t: "Approved caterers", d: "Choose from four partner caterers, or bring your own with a kitchen fee." },
-    { icon: "shield" as const, t: "Holds and deposits", d: "We hold a date for 7 days while you decide. A deposit confirms it." },
-    { icon: "calendar" as const, t: "Changes and cancellation", d: "Full refund up to 60 days out; 50% up to 30 days." },
-  ];
+  const host = t.person(v.hostId);
+  const others = t.venues.filter((x) => x.slug !== v.slug);
+  const policies = t.copy.policies;
 
   return (
     <div className="pb-24 pt-[calc(var(--nav-h)+16px)] lg:pb-0">
@@ -111,7 +102,13 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
             className="mt-20 grid gap-8 rounded-[var(--radius-media)] bg-paper p-6 shadow-[var(--shadow-ring)] sm:grid-cols-[180px_1fr] sm:p-8"
             aria-labelledby="host"
           >
-            {host.image && <Photo img={host.image} className="media aspect-[4/5] w-full sm:w-[180px]" sizes="180px" />}
+            {host.image ? (
+              <Photo img={host.image} className="media aspect-[4/5] w-full sm:w-[180px]" sizes="180px" />
+            ) : (
+              <span className="media grid aspect-[4/5] w-full place-items-center !bg-accent-deep text-[3rem] font-semibold text-accent-soft sm:w-[180px]">
+                {host.initials}
+              </span>
+            )}
             <div>
               <p className="t-meta">Your host for {v.name}</p>
               <h2 id="host" className="t-h2 mt-2">
@@ -123,7 +120,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
                 href={`/venues/inquire?venue=${v.slug}`}
                 className="group mt-6 inline-flex items-center gap-2 border-b border-ink/25 pb-0.5 font-medium hover:border-ink"
               >
-                Ask Inés a question
+                Ask {host.name.split(" ")[0]} a question
                 <Icon name="arrow-right" size={17} className="transition-transform group-hover:translate-x-0.5" />
               </Link>
             </div>
@@ -154,7 +151,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
       </div>
 
       <section className="frame mt-28 border-t hairline pb-24 pt-14 lg:pb-32">
-        <h2 className="t-h2">Also at the Pyramid</h2>
+        <h2 className="t-h2">Also at {t.copy.the}</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {others.map((o) => (
             <Link

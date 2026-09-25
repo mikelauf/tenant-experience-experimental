@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import type { Venue } from "@/lib/data/types";
-import { maxCap } from "@/lib/data/venues";
+import { maxCap } from "@/lib/data/shared";
 import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { HeartButton } from "./VenueCard";
@@ -57,7 +57,7 @@ export function InquireCard({ v }: { v: Venue }) {
             </span>
           </div>
         </div>
-        <p className={cn("t-small mt-3 transition-colors", over ? "text-redwood" : "text-stone")} aria-live="polite">
+        <p className={cn("t-small mt-3 transition-colors", over ? "text-accent" : "text-stone")} aria-live="polite">
           {over
             ? `That's over ${v.name}'s ${cap}-guest capacity. We'll suggest another space, or a combination.`
             : `Fits comfortably. ${v.name} holds up to ${cap}.`}
@@ -65,7 +65,7 @@ export function InquireCard({ v }: { v: Venue }) {
 
         <Link
           href={href(v, guests, date)}
-          className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-redwood py-3.5 font-medium text-paper transition-colors hover:bg-redwood-deep"
+          className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep"
         >
           Continue inquiry
           <Icon name="arrow-right" size={18} />
@@ -79,7 +79,7 @@ export function InquireCard({ v }: { v: Venue }) {
             <p className="truncate font-medium">{v.name}</p>
             <p className="t-meta">Up to {cap} guests</p>
           </div>
-          <Link href={href(v, 0, "")} className="flex h-12 shrink-0 items-center rounded-full bg-redwood px-6 font-medium text-paper">
+          <Link href={href(v, 0, "")} className="flex h-12 shrink-0 items-center rounded-full bg-accent px-6 font-medium text-paper">
             Inquire
           </Link>
         </div>

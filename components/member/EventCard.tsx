@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ViewTransition } from "react";
 import { cn } from "@/lib/cn";
 import type { BuildingEvent } from "@/lib/data/types";
-import { currentMember, findActive, useDemo, useHydrated } from "@/lib/store";
+import { findActive, useDemo, useHydrated } from "@/lib/store";
+import type { Member } from "@/lib/tenants/types";
 import { fmtDay, fmtTime } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
@@ -16,9 +17,9 @@ export function accessLabel(e: BuildingEvent) {
   return null;
 }
 
-export function canAttend(e: BuildingEvent) {
+export function canAttend(e: BuildingEvent, member: Member) {
   if (e.access.type === "vip") return false;
-  if (e.access.type === "company") return e.access.company === currentMember.company;
+  if (e.access.type === "company") return e.access.company === member.company;
   return true;
 }
 
@@ -48,7 +49,7 @@ export function EventCard({ e, className, size = "md" }: { e: BuildingEvent; cla
         <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/10" />
         {/* date tile */}
         <div className="absolute left-3 top-3 flex h-[60px] w-[54px] flex-col items-center justify-center rounded-2xl bg-paper/95 text-ink shadow-[var(--shadow-soft)] backdrop-blur">
-          <span className="text-[0.6875rem] font-semibold text-redwood">{d.toLocaleDateString("en-US", { month: "short" })}</span>
+          <span className="text-[0.6875rem] font-semibold text-accent">{d.toLocaleDateString("en-US", { month: "short" })}</span>
           <span className="t-num text-[1.5rem] font-medium leading-none">{d.getDate()}</span>
         </div>
         <div className="absolute right-3 top-3 flex flex-col items-end gap-1.5">

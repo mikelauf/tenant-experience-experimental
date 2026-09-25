@@ -13,24 +13,25 @@ import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { StatusPill } from "@/components/ui/Pill";
 import { Sheet } from "@/components/ui/Sheet";
+import { useTenant } from "@/lib/tenants/client";
 
 export { useNow } from "@/lib/useNow";
 
 export const isUpcoming = (c: Commitment, now = Date.now()) => c.status !== "cancelled" && new Date(c.endsAt).getTime() > now;
 
-function downloadIcs(c: Commitment) {
+function downloadIcs(c: Commitment, where: string) {
   const f = (iso: string) => iso.replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Pyramid prototype//EN",
+    "PRODID:-//Playbook prototype//EN",
     "BEGIN:VEVENT",
-    `UID:${c.id}@pyramid.example`,
+    `UID:${c.id}@playbook.example`,
     `DTSTAMP:${f(new Date().toISOString())}`,
     `DTSTART:${f(c.startsAt)}`,
     `DTEND:${f(c.endsAt)}`,
     `SUMMARY:${c.title}`,
-    `LOCATION:${c.place}, 600 Montgomery St, San Francisco`,
+    `LOCATION:${c.place}, ${where}`,
     "END:VEVENT",
     "END:VCALENDAR",
   ].join("\r\n");
@@ -62,6 +63,7 @@ export function CommitmentSheet({ c, onClose }: { c: Commitment | null; onClose:
 
 /** Keyed by commitment, so the confirm step resets whenever a different one opens. */
 function SheetBody({ c, onClose }: { c: Commitment; onClose: () => void }) {
+  const tenant = useTenant();
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState(false);
   return (
@@ -92,12 +94,12 @@ function SheetBody({ c, onClose }: { c: Commitment; onClose: () => void }) {
       {c.status === "pending" && (
         <p className="t-small mt-4 rounded-2xl bg-hold-soft p-4 text-hold">
           {c.kind === "inquiry"
-            ? "Inés's team will reply within one business day (sample timing)."
+            ? `${tenant.lead.name.split(" ")[0]}'s team will reply within one business day (sample timing).`
             : "Our events team approves requests for this room, usually within a few hours (sample behavior)."}
         </p>
       )}
       {c.status === "waitlist" && (
-        <p className="t-small mt-4 rounded-2xl bg-redwood-soft p-4 text-redwood-deep">
+        <p className="t-small mt-4 rounded-2xl bg-accent-soft p-4 text-accent-deep">
           You&apos;re #{c.waitlistPos} in line. If a spot opens, we&apos;ll book you automatically and send a note.
         </p>
       )}
@@ -140,7 +142,12 @@ function SheetBody({ c, onClose }: { c: Commitment; onClose: () => void }) {
           </motion.div>
         ) : (
           <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-6 grid grid-cols-2 gap-2">
-            <Button variant="outline" iconLeft="calendar" onClick={() => downloadIcs(c)} disabled={c.status === "cancelled"}>
+            <Button
+              variant="outline"
+              iconLeft="calendar"
+              onClick={() => downloadIcs(c, `${tenant.building.address}, ${tenant.building.city}`)}
+              disabled={c.status === "cancelled"}
+            >
               Add to calendar
             </Button>
             <Link
@@ -153,7 +160,7 @@ function SheetBody({ c, onClose }: { c: Commitment; onClose: () => void }) {
             {c.status !== "cancelled" && (
               <button
                 onClick={() => setConfirming(true)}
-                className="col-span-2 mt-2 h-11 rounded-full text-[0.9375rem] font-medium text-redwood hover:bg-redwood-soft"
+                className="col-span-2 mt-2 h-11 rounded-full text-[0.9375rem] font-medium text-accent hover:bg-accent-soft"
               >
                 {cancelVerb(c)}
               </button>
@@ -209,7 +216,7 @@ export function UpNext({ c, now, onOpen }: { c: Commitment; now: number; onOpen:
       <div className="relative order-2 flex flex-col justify-between gap-8 p-6 sm:order-1 sm:p-8">
         <div>
           <div className="flex items-center gap-2">
-            <span className="size-2 rounded-full bg-redwood-glow animate-live" />
+            <span className="size-2 rounded-full bg-accent-glow animate-live" />
             <span className="t-meta">Up next · {kindLabel[c.kind]}</span>
           </div>
           <h3 className="t-h1 mt-4">{c.title}</h3>

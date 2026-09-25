@@ -1,14 +1,5 @@
 import { images } from "./images";
-import type { Room, RoomTag, Setup } from "./types";
-
-export const setupLabels: Record<Setup, string> = {
-  reception: "Reception",
-  theater: "Theater",
-  banquet: "Banquet",
-  boardroom: "Boardroom",
-  classroom: "Classroom",
-  lounge: "Lounge",
-};
+import type { Room, RoomTag } from "@/lib/data/types";
 
 export const roomTags: { id: RoomTag; label: string }[] = [
   { id: "small", label: "Up to 6" },
@@ -96,25 +87,3 @@ export const rooms: Room[] = [
     plate: { w: 16, d: 11, windows: "north" },
   },
 ];
-
-export const room = (slug: string) => rooms.find((r) => r.slug === slug);
-
-/** Rough seat count for a setup in a member room. */
-export const roomCapacity = (r: Room, s: Setup) => {
-  const f: Record<Setup, number> = { boardroom: 1, theater: 1, classroom: 0.6, reception: 1.4, banquet: 0.8, lounge: 0.8 };
-  return s === "boardroom" && r.capacity > 14 ? 24 : Math.round(r.capacity * f[s]);
-};
-
-/** Bookable member hours, 8am–7pm, in 30 minute steps */
-export const roomHours = Array.from({ length: 23 }, (_, i) => 8 * 60 + i * 30);
-
-/** Deterministic "busy" blocks so the time grid looks real. */
-export function busyFor(slug: string, day: number): [number, number][] {
-  const seed = [...slug].reduce((a, c) => a + c.charCodeAt(0), 0) + day * 7;
-  const blocks: [number, number][] = [];
-  const starts = [9 * 60, 10.5 * 60, 13 * 60, 14.5 * 60, 16 * 60];
-  starts.forEach((s, i) => {
-    if ((seed + i * 3) % 3 === 0) blocks.push([s, s + ((seed + i) % 2 ? 60 : 90)]);
-  });
-  return blocks;
-}

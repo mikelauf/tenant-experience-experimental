@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import type { VenueTag } from "@/lib/data/types";
-import { venueTags, venues } from "@/lib/data/venues";
+import { useTenant } from "@/lib/tenants/client";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import { VenueCard } from "./VenueCard";
 
@@ -25,6 +25,7 @@ const sizes = [
 ];
 
 export function VenueCollection() {
+  const { venues, venueTags, copy } = useTenant();
   const [tag, setTag] = useState<VenueTag | null>(null);
   const [size, setSize] = useState("any");
   const min = sizes.find((s) => s.id === size)!.min;
@@ -35,9 +36,9 @@ export function VenueCollection() {
     <section id="collection" className="frame pb-24 pt-20 lg:pb-36 lg:pt-32">
       <div className="grid-12 items-end gap-y-6">
         <h2 className="t-h1 col-span-12 lg:col-span-7">
-          Three places to gather,
+          {copy.public.collection[0]}
           <br />
-          <span className="text-stone">from the grove to the 27th floor.</span>
+          <span className="text-stone">{copy.public.collection[1]}</span>
         </h2>
         <p className="t-lead col-span-12 text-stone lg:col-span-4 lg:col-start-9">
           Every venue comes with our events team, trusted caterers and a single point of contact from first call to last guest.
@@ -97,9 +98,21 @@ export function VenueCollection() {
 
       {/* Editorial mosaic on desktop, swipe rail on phones */}
       <div className="no-scrollbar -mx-[var(--gutter)] mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] lg:mx-0 lg:grid lg:grid-cols-12 lg:gap-[var(--col-gap)] lg:overflow-visible lg:px-0">
-        <VenueCard v={venues[0]} size="lg" dim={!match(venues[0])} priority className="w-[84vw] shrink-0 snap-start lg:col-span-7 lg:row-span-2 lg:w-auto" />
-        <VenueCard v={venues[1]} dim={!match(venues[1])} stagger={2300} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
-        <VenueCard v={venues[2]} dim={!match(venues[2])} stagger={4600} className="w-[84vw] shrink-0 snap-start lg:col-span-5 lg:w-auto" />
+        {venues.map((v, i) => {
+          // Lead venue big on the left; a pair splits the row evenly
+          const span = venues.length === 2 ? "lg:col-span-6" : i === 0 ? "lg:col-span-7 lg:row-span-2" : "lg:col-span-5";
+          return (
+            <VenueCard
+              key={v.slug}
+              v={v}
+              size={i === 0 || venues.length === 2 ? "lg" : undefined}
+              dim={!match(v)}
+              priority={i === 0}
+              stagger={i * 2300}
+              className={`w-[84vw] shrink-0 snap-start lg:w-auto ${span}`}
+            />
+          );
+        })}
       </div>
     </section>
   );

@@ -1,5 +1,5 @@
 import { images } from "./images";
-import type { Venue, VenueTag } from "./types";
+import type { Venue, VenueTag } from "@/lib/data/types";
 
 const img = images;
 
@@ -104,10 +104,3 @@ export const venues: Venue[] = [
     plate: { w: 25.5, d: 15.3, windows: "north" },
   },
 ];
-
-export const maxCap = (v: Venue) => Math.max(...Object.values(v.capacities).map((n) => n ?? 0));
-
-export const venue = (slug: string) => venues.find((v) => v.slug === slug);
-
-export const eventTypes = ["Reception", "Dinner", "Offsite or meeting", "Launch or press", "Holiday party", "Panel or talk", "Something else"];
-export const budgets = ["Under $10k", "$10k–$25k", "$25k–$50k", "$50k+", "Not sure yet"];
