@@ -80,6 +80,7 @@ const data: TenantData = {
     },
   ],
   leadId: "rosa",
+  publicHostId: "rosa",
   member: { first: "Priya", last: "Shah", email: "priya.shah@halvorsen.example", company: "Halvorsen Partners", floor: "Level 22" },
   venues: [
     {
@@ -95,8 +96,15 @@ const data: TenantData = {
         "The Lantern Room was the building's observation deck in 1931. It's glassed in now, but the brass rails and the terrazzo compass in the floor are original.",
         "It holds a standing reception or a long seated dinner, and after dark the crown above it glows the building's blue.",
       ],
-      capacities: { reception: 110, banquet: 60, lounge: 50 },
+      capacity: 110,
       sqft: 2800,
+      facts: [
+        { label: "Capacity", value: "Up to 110 guests" },
+        { label: "Area", value: "2,800 sq ft" },
+        { label: "Setting", value: "Crown lounge" },
+      ],
+      services: [],
+      policies: [],
       features: [
         { icon: "view", label: "Four-way views", detail: "Lake Michigan, the river and the Loop" },
         { icon: "glass", label: "Walnut cocktail bar", detail: "Staffed bar service through approved caterers" },
@@ -105,11 +113,9 @@ const data: TenantData = {
         { icon: "access", label: "Step-free access", detail: "Express elevator from the Great Hall" },
       ],
       goodFor: ["Receptions", "Client dinners", "Launches", "Holiday parties"],
-      tags: ["views", "evening", "catering", "private"],
       hero: images.lanternBar,
       gallery: [images.lanternBar, images.lanternLounge, images.lanternRound, images.lanternCoffee, images.talk],
-      hostId: "rosa",
-      plate: { w: 17, d: 15.3, windows: "wrap" },
+      layout: { plate: { w: 17, d: 15.3, windows: "wrap" }, capacities: { reception: 110, banquet: 60, lounge: 50 } },
     },
     {
       slug: "great-hall",
@@ -124,8 +130,15 @@ const data: TenantData = {
         "The hall runs the full width of the tower between the plaza and the river walk, with tall windows at both ends.",
         "Evening events take the whole room from 6pm. Daytime events use the east half while the lobby stays open.",
       ],
-      capacities: { reception: 260, theater: 180, banquet: 140, classroom: 90 },
+      capacity: 260,
       sqft: 6200,
+      facts: [
+        { label: "Capacity", value: "Up to 260 guests" },
+        { label: "Area", value: "6,200 sq ft" },
+        { label: "Setting", value: "Grand lobby hall" },
+      ],
+      services: [],
+      policies: [],
       features: [
         { icon: "sun", label: "Double-height daylight", detail: "Tall windows at both ends of the hall" },
         { icon: "screen", label: "Projection and screen", detail: "A drop-down screen and 4K projector" },
@@ -134,20 +147,10 @@ const data: TenantData = {
         { icon: "people", label: "Staffed setup", detail: "Our team sets and turns the room" },
       ],
       goodFor: ["Town halls", "Galas", "Conferences", "Markets"],
-      tags: ["daylight", "av", "catering"],
       hero: images.hallColonnade,
       gallery: [images.hallColonnade, images.hallTheater, images.hallLounge, images.hallDesk, images.hallCoffee],
-      hostId: "rosa",
-      plate: { w: 32, d: 18, windows: "north" },
+      layout: { plate: { w: 32, d: 18, windows: "north" }, capacities: { reception: 260, theater: 180, banquet: 140, classroom: 90 } },
     },
-  ],
-  venueTags: [
-    { id: "views", label: "Lake views" },
-    { id: "evening", label: "Evening events" },
-    { id: "daylight", label: "Daylight" },
-    { id: "catering", label: "Catering-ready" },
-    { id: "av", label: "Full AV" },
-    { id: "private", label: "Fully private" },
   ],
   rooms: [
     {
@@ -335,7 +338,9 @@ const data: TenantData = {
       heroLines: ["Gather at", "the Meridian."],
       heroLead:
         "From a deco hall at the foot of the tower to a lounge inside its lit crown, host the night people remember, with a team that does this every week.",
+      heroSlides: [],
       collection: ["Two rooms to gather in,", "from the Great Hall to the 40th floor."],
+      collectionLead: "Every venue comes with our events team, trusted caterers and a single point of contact from first call to last guest.",
       hostQuote: "Give me the date and the mood. I'll handle the room, the caterer and the elevator.",
       moments: [
         { img: images.lanternLounge, title: "A partners' dinner for forty", where: "The Lantern Room" },
@@ -366,6 +371,7 @@ const data: TenantData = {
         title: "And above it, the mast.",
         body: "A 1931 mooring mast that never moored anything. It's lit blue every night and you can see it from the lake.",
       },
+      contact: { phone: "(312) 555-0140", email: "events@meridian.example" },
     },
   },
 };

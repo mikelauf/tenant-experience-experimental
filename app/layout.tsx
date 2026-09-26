@@ -4,6 +4,7 @@ import { MotionRoot } from "@/components/motion/MotionRoot";
 import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { DemoDock } from "@/components/ui/DemoDock";
 import { Toast } from "@/components/ui/Toast";
+import { isDemo } from "@/lib/flags";
 import { shapeBootScript } from "@/lib/shape";
 import { themeVars } from "@/lib/tenants";
 import { TenantProvider } from "@/lib/tenants/client";
@@ -22,7 +23,11 @@ export async function generateMetadata(): Promise<Metadata> {
   const name = t.building.name;
   return {
     title: { default: name, template: `%s · ${name}` },
-    description: `Book rooms${t.fitness ? ", classes" : ""} and events at ${name}, or plan your next gathering in ${t.venues[0].name}. A Playbook prototype.`,
+    description: isDemo
+      ? `Book rooms${t.fitness ? ", classes" : ""} and events at ${name}, or plan your next gathering in ${t.venues[0].name}. A Playbook prototype.`
+      : t.copy.public.description,
+    // Indexing is opt-in: only a launched production site sets SITE_INDEXABLE=1.
+    robots: process.env.SITE_INDEXABLE === "1" && !isDemo ? undefined : { index: false, follow: false },
   };
 }
 
@@ -51,7 +56,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           <MotionRoot>
             {children}
             <Toast />
-            <DemoDock />
+            {isDemo && <DemoDock />}
           </MotionRoot>
         </TenantProvider>
       </body>

@@ -74,7 +74,7 @@ export const rooms: Room[] = [
     level: 5,
     capacity: 40,
     setups: ["theater", "classroom", "reception", "banquet"],
-    summary: "A divisible section of Montgomery Hall for members. Big enough for an all-hands; needs a quick approval from our events team.",
+    summary: "The largest member room, big enough for an all-hands. It needs a quick approval from our events team.",
     amenities: [
       { icon: "screen", label: "Projection" },
       { icon: "mic", label: "Wireless mics" },

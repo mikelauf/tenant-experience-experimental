@@ -50,6 +50,19 @@
   --animate-breathe: breathe 3.2s var(--ease-in-out) infinite;
   --animate-live: live 2s var(--ease-out-quart) infinite;
   --animate-rise: rise 0.7s var(--ease-out-expo) both;
+  --animate-beacon: beacon 2.6s var(--ease-out-quart) infinite;
+
+  @keyframes beacon {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    70%,
+    100% {
+      transform: scale(2.6);
+      opacity: 0;
+    }
+  }
 
   @keyframes breathe {
     0%,
@@ -74,6 +87,17 @@
     }
     to {
       transform: scale(1);
+    }
+  }
+  @keyframes cue {
+    0%,
+    100% {
+      transform: translateY(-2px);
+      opacity: 0.6;
+    }
+    50% {
+      transform: translateY(3px);
+      opacity: 1;
     }
   }
   @keyframes rise {
@@ -352,6 +376,15 @@ html.lenis body {
 }
 
 /* Live Building time scrubber: a filled track up to the thumb */
+/* Drafting paper, for the cutaway explorer (after playbookexp.com) */
+.grid-paper {
+  background-color: #fbfaf2;
+  background-image:
+    linear-gradient(to right, rgb(17 19 21 / 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(17 19 21 / 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
 .scrub {
   appearance: none;
   height: 28px;

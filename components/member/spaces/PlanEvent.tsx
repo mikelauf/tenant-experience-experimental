@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
 import { cn } from "@/lib/cn";
-import { eventTypes, maxCap } from "@/lib/data/shared";
+import { eventTypes, guestsShort } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { Avatar } from "@/components/ui/Avatar";
@@ -109,7 +109,7 @@ export function PlanEvent() {
                   <span className="min-w-0 flex-1">
                     <span className="block font-medium">{x.name}</span>
                     <span className="t-meta block">
-                      {x.levelLabel} · up to {maxCap(x)}
+                      {x.levelLabel} · {guestsShort(x)}
                     </span>
                   </span>
                   <Icon
@@ -179,7 +179,7 @@ export function PlanEvent() {
                       <option value="unsure">Not sure yet, suggest one</option>
                       {venues.map((x) => (
                         <option key={x.slug} value={x.slug}>
-                          {x.name} (up to {maxCap(x)})
+                          {x.name} ({guestsShort(x)})
                         </option>
                       ))}
                     </select>

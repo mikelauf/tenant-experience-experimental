@@ -12,6 +12,19 @@ export const DEFAULT_TENANT: TenantId = "pyramid";
 export const isTenantId = (v: unknown): v is TenantId => typeof v === "string" && v in TENANTS;
 export const tenantById = (id: unknown): Tenant => TENANTS[isTenantId(id) ? id : DEFAULT_TENANT];
 
+/**
+ * Production hostnames and the building each one serves. Any other host (a Vercel preview,
+ * a staging alias) serves `PRODUCTION_TENANT`, or the Pyramid. Add a building's domains here when it launches.
+ */
+export const HOSTS: Record<string, TenantId> = {
+  "public-tap.playbookexp.com": "pyramid",
+};
+
+export function tenantForHost(host: string | null | undefined, fallback?: string): Tenant {
+  const name = host?.split(":")[0].trim().toLowerCase();
+  return tenantById((name && HOSTS[name]) || fallback);
+}
+
 /** Accent colors as CSS custom properties, applied to <html> so there's no flash of the wrong brand. */
 export const themeVars = (t: Tenant) =>
   ({

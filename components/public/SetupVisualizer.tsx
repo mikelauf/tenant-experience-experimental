@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { setupLabels } from "@/lib/data/shared";
-import type { Setup, Venue } from "@/lib/data/types";
+import type { Plate, Setup } from "@/lib/data/types";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
 import { barFront, barLength, makeLayout, stageSize } from "@/components/three/setup/layouts";
@@ -21,7 +21,7 @@ const setupNotes: Record<Setup, string> = {
 };
 
 /** Top-down plan, drawn from the same layout. Used as the poster and the reduced-motion view. */
-function Plan({ plate, setup, capacity }: { plate: Venue["plate"]; setup: Setup; capacity: number }) {
+function Plan({ plate, setup, capacity }: { plate: Plate; setup: Setup; capacity: number }) {
   const L = useMemo(() => makeLayout(setup, capacity, plate.w, plate.d), [setup, capacity, plate.w, plate.d]);
   const pad = 1;
   return (
@@ -85,13 +85,15 @@ export function SetupVisualizer({
   value,
   onChange,
   title = "How it sets",
+  footnote = "Illustrative layout at the listed capacity. Our events team confirms the final plan with you.",
 }: {
-  plate: Venue["plate"];
+  plate: Plate;
   capacities: Partial<Record<Setup, number>>;
   className?: string;
   value?: Setup;
   onChange?: (s: Setup) => void;
   title?: string;
+  footnote?: string;
 }) {
   const setups = Object.keys(capacities) as Setup[];
   const [inner, setInner] = useState<Setup>(setups[0]);
@@ -139,7 +141,7 @@ export function SetupVisualizer({
       >
         {({ active, onReady }) => <SetupCanvas plate={plate} setup={setup} capacity={cap} active={active} onReady={onReady} />}
       </Lazy3D>
-      <p className="t-meta px-5 pb-5 sm:px-7 sm:pb-6">Illustrative layout at the listed capacity. Our events team confirms the final plan with you.</p>
+      <p className="t-meta px-5 pb-5 sm:px-7 sm:pb-6">{footnote}</p>
     </div>
   );
 }

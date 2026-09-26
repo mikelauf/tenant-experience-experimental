@@ -17,7 +17,10 @@ export function PublicNav() {
   const s = useDemo();
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
-  const { building, venues } = useTenant();
+  const { building, venues, copy } = useTenant();
+  const hasFaq = !!copy.public.faq?.length;
+  // "Transamerica Redwood Park" reads as "Redwood Park" in the nav; the building name is already beside it.
+  const navName = (name: string) => name.replace(/^Transamerica /, "");
   const shortlist = hydrated ? s.shortlist.length : 0;
   const light = over && !open;
 
@@ -53,12 +56,23 @@ export function PublicNav() {
               href={`/venues/${v.slug}`}
               className={cn(
                 "rounded-full px-3.5 py-2 text-[0.9375rem] font-medium transition-colors",
-                path === `/venues/${v.slug}` ? (light ? "bg-white/15" : "bg-ink/6") : light ? "text-white/80 hover:text-white" : "text-stone hover:text-ink",
+                path === `/venues/${v.slug}` ? (light ? "bg-white/15 text-white" : "bg-ink/6 text-ink") : light ? "text-white/80 hover:text-white" : "text-stone hover:text-ink",
               )}
             >
-              {v.name}
+              {navName(v.name)}
             </Link>
           ))}
+          {hasFaq && (
+            <Link
+              href="/venues/faq"
+              className={cn(
+                "ml-2 rounded-full px-3.5 py-2 text-[0.9375rem] font-medium transition-colors",
+                path === "/venues/faq" ? (light ? "bg-white/15 text-white" : "bg-ink/6 text-ink") : light ? "text-white/80 hover:text-white" : "text-stone hover:text-ink",
+              )}
+            >
+              FAQ
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -111,6 +125,14 @@ export function PublicNav() {
                   </Link>
                 </motion.li>
               ))}
+              {hasFaq && (
+                <li>
+                  <Link href="/venues/faq" onClick={() => setOpen(false)} className="flex items-baseline justify-between border-b hairline py-4">
+                    <span className="t-h2">Questions & answers</span>
+                    <span className="t-meta">FAQ</span>
+                  </Link>
+                </li>
+              )}
             </ul>
           </motion.nav>
         )}

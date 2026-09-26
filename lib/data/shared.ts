@@ -11,7 +11,14 @@ export const setupLabels: Record<Setup, string> = {
   lounge: "Lounge",
 };
 
-export const maxCap = (v: Venue) => Math.max(...Object.values(v.capacities).map((n) => n ?? 0));
+/** The most guests a venue holds, or undefined while it isn't confirmed. */
+export const maxCap = (v: Venue): number | undefined => v.capacity;
+
+/** The venue's qualified wording when it has one, else "Up to 1,000 guests". */
+export const guestsLabel = (v: Venue) => v.capacityNote ?? (v.capacity ? `Up to ${v.capacity.toLocaleString("en-US")} guests` : "Capacity on request");
+
+/** The compact form, for meta lines: "up to 130", or "varies by setup". */
+export const guestsShort = (v: Venue) => (v.capacity ? `up to ${v.capacity.toLocaleString("en-US")}` : (v.capacityNote ?? "capacity on request").toLowerCase());
 
 export const eventTypes = ["Reception", "Dinner", "Offsite or meeting", "Launch or press", "Holiday party", "Panel or talk", "Something else"];
 export const budgets = ["Under $10k", "$10k–$25k", "$25k–$50k", "$50k+", "Not sure yet"];

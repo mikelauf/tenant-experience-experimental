@@ -20,6 +20,20 @@ export function Tower({
   bands,
   pins,
   onPick,
+  pickable,
+  hotspots,
+  renderHotspot,
+  onHover,
+  hoverLevel,
+  shift,
+  zoom,
+  landmarks,
+  pois,
+  activePoi,
+  focusPoi,
+  onPoi,
+  onPoiHover,
+  compass,
 }: {
   level: number | null;
   /** 0 night · 0.5 dusk · 1 day */
@@ -31,6 +45,20 @@ export function Tower({
   bands?: Band[];
   pins?: Pin[];
   onPick?: (floor: number) => void;
+  pickable?: number[];
+  hotspots?: { id: string; level: number }[];
+  renderHotspot?: (id: string) => React.ReactNode;
+  onHover?: (floor: number | null) => void;
+  hoverLevel?: number | null;
+  shift?: [x: number, y: number];
+  zoom?: number;
+  landmarks?: boolean;
+  pois?: boolean;
+  activePoi?: string | null;
+  focusPoi?: string | null;
+  onPoi?: (id: string) => void;
+  onPoiHover?: (id: string | null) => void;
+  compass?: string;
 }) {
   const { tower, theme } = useTenant();
   return (
@@ -48,6 +76,20 @@ export function Tower({
           bands={bands}
           pins={pins}
           onPick={onPick}
+          pickable={pickable}
+          hotspots={hotspots}
+          renderHotspot={renderHotspot}
+          onHover={onHover}
+          hoverLevel={hoverLevel}
+          shift={shift}
+          zoom={zoom}
+          landmarks={landmarks}
+          pois={pois}
+          activePoi={activePoi}
+          focusPoi={focusPoi}
+          onPoi={onPoi}
+          onPoiHover={onPoiHover}
+          compass={compass}
         />
       )}
     </Lazy3D>

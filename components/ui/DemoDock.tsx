@@ -58,7 +58,7 @@ export function DemoDock() {
     <div
       ref={ref}
       className={cn(
-        "fixed left-3 z-[70] lg:left-auto lg:right-5 lg:bottom-5",
+        "fixed left-3 z-[70] lg:left-5 lg:bottom-5",
         isPublic ? "bottom-3" : "bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom)+10px)]",
       )}
     >
@@ -70,7 +70,7 @@ export function DemoDock() {
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
 
-            className="theme-night absolute bottom-12 left-0 w-[min(340px,calc(100vw-24px))] lg:left-auto lg:right-0 rounded-[22px] p-4 shadow-[var(--shadow-float)]"
+            className="theme-night absolute bottom-12 left-0 w-[min(340px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]"
             role="dialog"
             aria-label="Demo controls"
           >

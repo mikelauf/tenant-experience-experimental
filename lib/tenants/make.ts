@@ -28,6 +28,7 @@ export function makeTenant(d: TenantData): Tenant {
     ...d,
     person,
     lead: person(d.leadId),
+    publicHost: d.publicHostId ? person(d.publicHostId) : undefined,
     venue: (slug) => d.venues.find((v) => v.slug === slug),
     room: (slug) => d.rooms.find((r) => r.slug === slug),
     eventBySlug: (slug) => d.events().find((e) => e.slug === slug),

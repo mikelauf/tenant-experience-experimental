@@ -5,10 +5,9 @@ import { ContactShadows, OrthographicCamera } from "@react-three/drei";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
-import type { Setup, Venue } from "@/lib/data/types";
+import type { Plate, Setup } from "@/lib/data/types";
 import { barFront, barLength, makeLayout, stageSize, type P } from "./layouts";
 
-type Plate = Venue["plate"];
 
 const col = {
   floor: "#ebe4d8",

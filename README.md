@@ -5,12 +5,26 @@ A front-end study of how Playbook's building app could feel, using the **Transam
 - **Members** (`/`): people who work in the building discover what's there, book rooms, reserve classes, RSVP to events, and manage all of it in **Plans**.
 - **Public venues** (`/venues`): outside organizers explore the Bay Lounge, Redwood Park and Montgomery Hall, then send an account-free inquiry.
 
-Everything is simulated. There's no backend, real sign-in, payment or message delivery. Venues, schedules, people, capacities and policies are sample content, not operating facts.
+**This repo is becoming the production public venue site for the Transamerica Pyramid** (see [`docs/production-roadmap.md`](docs/production-roadmap.md)). The Pyramid's venues, facts and photography are now real, taken from Tenant Experience's reviewed content. Everything else (the member app, The Meridian, schedules, people) is still simulated demo content.
 
 ```bash
 npm install
-npm run dev        # http://localhost:3100
+npm run dev        # http://localhost:3100 (demo mode)
+npm test           # inquiry contract and route tests
+npm run typecheck && npm run lint
 ```
+
+## Two builds from one codebase
+
+| | Demo (default) | Production (`NEXT_PUBLIC_SITE_MODE=production`) |
+|---|---|---|
+| Serves | Member app at `/`, venues at `/venues`, both buildings | The public venue site only; `/` shows the venues home |
+| Building | Picked in the Demo dock (a cookie) | Picked by hostname (`HOSTS` in `lib/tenants/index.ts`) |
+| V2 sections (facilities, 3D setups) | Shown, labeled "In progress · hidden at launch" | Hidden unless `NEXT_PUBLIC_V2_SECTIONS=1` |
+| Old Tenant Experience URLs | n/a | `/spaces/:slug` redirects to `/venues/:slug` |
+| Indexing | Always noindex | Noindex until `SITE_INDEXABLE=1` |
+
+**Content is code, actions are real.** Venue content lives in each building's bundle (`lib/tenants/<building>/`). The one real action is the inquiry: `POST /api/inquiries` (`lib/core/inquiry/`, ported from Tenant Experience with its tests) validates everything, then either answers with a `PREVIEW-…` reference (default) or, with `PUBLIC_INQUIRY_MODE=live`, files it in Core at `/public/buildings/:id/conference-inquiries`. Live mode also needs `CORE_HOST`, `CORE_PUBLIC_API_KEY` and the building's `inquiry.privacyVersion`; without them it answers "temporarily unavailable" rather than guessing. See `.env.example`.
 
 ## Try these journeys
 

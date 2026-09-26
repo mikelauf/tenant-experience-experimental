@@ -1,4 +1,4 @@
-export type Img = { src: string; alt: string; /** focal point for object-position */ pos?: string };
+export type Img = { src: string; alt: string; /** focal point for object-position */ pos?: string; /** short caption, shown in galleries */ caption?: string };
 
 export type Setup = "reception" | "theater" | "banquet" | "boardroom" | "classroom" | "lounge";
 
@@ -25,28 +25,61 @@ export type Person = {
 
 export type Feature = { icon: IconName; label: string; detail?: string };
 
+/** Floor plate for the setup visualizer, in meters; w × d should match the area (1 m² ≈ 10.76 sq ft) */
+export type Plate = { w: number; d: number; windows: "north" | "east" | "wrap" | "none"; outdoor?: boolean };
+
+/**
+ * A photo looking out from a venue. `tags` mark landmarks where they actually appear in the frame
+ * (x and y in percent of the photo); `bearing` is the direction the camera faced, degrees from north.
+ */
+export type ViewPhoto = Img & { tags?: { label: string; x: number; y: number }[]; bearing?: number; ratio: number };
+
+/** A labeled fact, e.g. { label: "Area", value: "3,020 sq ft" } */
+export type Fact = { label: string; value: string; note?: string };
+
 export type Venue = {
   slug: string;
   name: string;
   level: number;
   levelLabel: string;
+  /** The setting in a few words, e.g. "Skyline lounge & bar" */
   kind: string;
   tagline: string;
   summary: string;
   story: string[];
-  capacities: Partial<Record<Setup, number>>;
-  sqft: number;
+  /** Most guests the venue holds. Leave it out until it's confirmed; the site then shows `capacityNote`. */
+  capacity?: number;
+  /** A qualified capacity, e.g. "Varies by setup", when a single number would mislead */
+  capacityNote?: string;
+  sqft?: number;
+  /** The ledger on the venue page: capacity, area, setting, access… */
+  facts: Fact[];
+  /** Facilities, shown as "What this venue offers" */
   features: Feature[];
+  services: { title: string; items: string[]; note?: string }[];
+  /** Venue-specific policies. Empty means none are published yet. */
+  policies: string[];
   goodFor: string[];
-  tags: VenueTag[];
   hero: Img;
+  /** Every photo, hero first */
   gallery: Img[];
-  hostId: string;
-  /** Plate for the setup visualizer, in meters; w × d should match `sqft` (1 m² ≈ 10.76 sq ft) */
-  plate: { w: number; d: number; windows: "north" | "east" | "wrap" | "none"; outdoor?: boolean };
+  /**
+   * Seats by setup, for the 3D setup visualizer. `illustrative` layouts are
+   * estimates drawn from the area until real floor plans exist, and say so.
+   */
+  layout?: { plate: Plate; capacities: Partial<Record<Setup, number>>; illustrative?: boolean };
+  /** The building's own floor plans, one per documented setup. Oriented with Washington St at the top. */
+  floorPlans?: (Img & { label: string; guests?: number })[];
+  /** Photos taken from the venue, looking out. Shown as "The view from here", with landmarks tagged. */
+  views?: ViewPhoto[];
+  /** Which way the venue's best view faces, degrees clockwise from north; drives the 3D "look out" camera */
+  viewBearing?: number;
+  /**
+   * The lowest all-in budget the events team will consider, in dollars. Never shown publicly; the inquiry
+   * uses it to ask "is your budget flexible?" before sending a lead that can't work.
+   */
+  minBudget?: number;
 };
-
-export type VenueTag = "views" | "outdoor" | "catering" | "av" | "evening" | "daylight" | "private";
 
 export type Room = {
   slug: string;
@@ -62,7 +95,7 @@ export type Room = {
   tags: RoomTag[];
   /** named after */
   namesake: string;
-  plate: Venue["plate"];
+  plate: Plate;
 };
 
 export type RoomTag = "views" | "small" | "video" | "whiteboard" | "large";

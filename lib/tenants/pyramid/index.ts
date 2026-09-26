@@ -4,6 +4,7 @@ import { events } from "./events";
 import { fitness } from "./fitness";
 import { images } from "./images";
 import { rooms } from "./rooms";
+import { tap } from "./tap";
 import { venues } from "./venues";
 
 /**
@@ -43,20 +44,118 @@ const data: TenantData = {
     // Elevator (east) and stair (west) towers from floor 29 to just above the roof
     wings: { from: 29, to: 52 },
     facade: { slits: 28, width: 3.2 / 9 },
-    // Redwood Park sits on the east side of the tower
-    park: { x: 3.6, z: 0, w: 2.6, d: 3.8, pad: [0.5, 0.7], trees: 26, shape: "cone", yaw: [0.15, 0.85] },
-    city: { inner: 3.4, count: 34 },
+    // Redwood Park sits on the east side of the tower; its extent is OpenStreetMap's, squared to the grid
+    park: {
+      x: 2.6,
+      z: 0,
+      w: 2.6,
+      d: 3.9,
+      pad: [0.5, 0.7],
+      trees: 26,
+      shape: "cone",
+      yaw: [0.15, 0.85],
+      // OpenStreetMap's outline: the park wraps a notch beside the Pyramid's east face
+      outline: [
+        [3.9, -1.98],
+        [3.9, -1.49],
+        [3.71, -1.49],
+        [3.67, 2],
+        [1.52, 1.94],
+        [1.29, 1.79],
+        [1.29, 1.45],
+        [1.45, 1.45],
+        [1.45, 0.64],
+        [2.08, 0.64],
+        [2.08, -0.59],
+        [1.45, -0.58],
+        [1.45, -1.78],
+        [1.68, -1.99],
+      ],
+    },
+    // The real blocks around the tower (scripts/osm-city.mjs); procedural blocks only fill the outskirts beyond them
+    realCity: { src: "/data/pyramid-city.json", radius: 14.2 },
+    city: { inner: 15.2, count: 170, spread: 7.4, height: 0.55 },
+    ground: 23,
+    // Downtown's street grid (and the Pyramid, square to it) sits 9.1° west of true north; measured from the streets
+    north: -9.1,
+    // Landmarks stand in a ring beyond the real neighborhood instead of among its buildings
+    landmarkRing: { start: 16.5, perKm: 2.5 },
     restLevel: 27,
     seed: 0,
+    // Bearings and distances from 600 Montgomery Street, from each landmark's coordinates.
+    landmarks: [
+      { name: "Coit Tower", kind: "coit", bearing: 342, km: 0.84 },
+      { name: "Saints Peter and Paul Church", kind: "church", bearing: 317, km: 0.98 },
+      { name: "Ferry Building", kind: "ferry", bearing: 88, km: 0.8 },
+      { name: "Salesforce Tower", kind: "skyscraper", bearing: 141, km: 0.78 },
+      { name: "Bay Bridge", kind: "bay-bridge", bearing: 82, km: 2.3, heading: 52 },
+      { name: "Alcatraz", kind: "island", bearing: 333, km: 3.9 },
+      { name: "Golden Gate Bridge", kind: "golden-gate", bearing: 292, km: 7.2, heading: 12 },
+    ],
+    // From the booklet's site plan, placed on the real streets (OpenStreetMap): Montgomery St runs at x −2.17,
+    // Washington at z −2.54, Clay at z 2.5, Sansome at x 5.58, and Mark Twain Place crosses the park at z 0.
+    // One scene unit is 18.8 m.
+    pois: [
+      {
+        id: "lobby",
+        label: "Main entrance",
+        detail: "600 Montgomery Street, between Washington and Clay",
+        x: -1.95,
+        z: 0,
+        maps: "600 Montgomery St, San Francisco, CA 94111",
+      },
+      {
+        id: "check-in",
+        label: "Guest check-in",
+        detail: "Redwood Park events: Mark Twain Alley, off Sansome Street",
+        x: 5.2,
+        z: 0,
+        maps: "Mark Twain Alley and Sansome St, San Francisco, CA",
+      },
+      {
+        id: "park-washington",
+        label: "Park entrance · Washington St",
+        detail: "Into Redwood Park from Washington Street",
+        x: 2.4,
+        z: -2.2,
+        maps: "Transamerica Redwood Park, Washington St, San Francisco, CA",
+      },
+      {
+        id: "park-clay",
+        label: "Park entrance · Clay St",
+        detail: "Into Redwood Park from Clay Street",
+        x: 2.4,
+        z: 2.2,
+        maps: "Transamerica Redwood Park, Clay St, San Francisco, CA",
+      },
+      {
+        id: "trucks",
+        label: "Food trucks",
+        detail: "Staged on Washington Street for park events",
+        x: 4.7,
+        z: -2.8,
+        maps: "Washington St and Sansome St, San Francisco, CA",
+      },
+      { id: "dock", label: "Loading dock", detail: "Location coming with the building's street-level diagrams", x: 0, z: 0, pending: true },
+    ],
+    // Street names on the real centrelines, a little way along from the corners
+    streets: [
+      { name: "Montgomery St", x: -2.17, z: 1.35 },
+      { name: "Washington St", x: 0.6, z: -2.54 },
+      { name: "Clay St", x: 0.6, z: 2.5 },
+      { name: "Sansome St", x: 5.58, z: 1.35 },
+      { name: "Mark Twain Pl", x: 3.7, z: 0 },
+    ],
   },
   levels: [
     { n: 0, label: "Street", place: "Redwood Park", href: "/venues/redwood-park", audience: "both" },
     { n: 1, label: "L1", place: "Lobby & concierge", audience: "both" },
     { n: 2, label: "L2", place: "Pyramid Fitness", href: "/fitness", audience: "member" },
-    { n: 5, label: "L5", place: "Montgomery Hall", href: "/venues/montgomery-hall", audience: "both" },
+    { n: 3, label: "L3", place: "The Sandbox", href: "/venues/sandbox", audience: "both" },
     { n: 6, label: "L6", place: "Meeting rooms", href: "/spaces", audience: "member" },
     { n: 27, label: "L27", place: "Bay Lounge", href: "/venues/bay-lounge", audience: "both" },
-    { n: 48, label: "L48", place: "The crown", audience: "public" },
+    { n: 36, label: "L36", place: "Legacy Gallery", href: "/venues/legacy-gallery", audience: "both" },
+    { n: 48, label: "L48", place: "Sky Bar", href: "/venues/sky-bar", audience: "both" },
   ],
   people: [
     {
@@ -100,15 +199,6 @@ const data: TenantData = {
   leadId: "ines",
   member: { first: "Jordan", last: "Ellis", email: "jordan.ellis@northline.example", company: "Northline Capital", floor: "Level 31" },
   venues,
-  venueTags: [
-    { id: "views", label: "Bay views" },
-    { id: "outdoor", label: "Outdoors" },
-    { id: "evening", label: "Evening events" },
-    { id: "daylight", label: "Daylight" },
-    { id: "catering", label: "Catering-ready" },
-    { id: "av", label: "Full AV" },
-    { id: "private", label: "Fully private" },
-  ],
   rooms,
   roomTags: [
     { id: "small", label: "Up to 6" },
@@ -119,6 +209,9 @@ const data: TenantData = {
   ],
   fitness,
   events,
+  // Core building and inquiry source from Tenant Experience's registry and the TAP inquiry draft in OS.
+  // The privacy policy version is set when that source is published; until then live inquiries stay off.
+  inquiry: { coreBuildingId: "768ca2ed-d07b-4b3c-adec-41ad66a83334", sourceKey: "web_inquiry" },
   copy: {
     the: "the Pyramid",
     The: "The Pyramid",
@@ -167,44 +260,120 @@ const data: TenantData = {
     ],
     public: {
       title: "Gather at the Pyramid",
-      description: "Host your reception, offsite or dinner at the Transamerica Pyramid: Bay Lounge on L27, Redwood Park and Montgomery Hall.",
+      description:
+        "Host your next event at the Transamerica Pyramid: Sky Bar on Level 48, Legacy Gallery on Level 36, Bay Lounge on Level 27, The Sandbox and Transamerica Redwood Park.",
       heroLines: ["Gather at", "the Pyramid."],
-      heroLead:
-        "From a redwood grove at street level to a lounge twenty-seven floors up, host the evening people keep talking about, with a team that does this every week.",
-      collection: ["Three places to gather,", "from the grove to the 27th floor."],
-      hostQuote: "Tell me the feeling you want in the room. I'll figure out the rest.",
-      moments: [
-        { img: images.bayReception, title: "Launch night for 120", where: "Bay Lounge" },
-        { img: images.bayDusk, title: "Blue hour for twenty", where: "Bay Lounge" },
-        { img: images.redwoodEvening, title: "A long-table dinner under the trees", where: "Redwood Park" },
-        { img: images.talk, title: "A fireside talk at dusk", where: "Bay Lounge" },
-        { img: images.artStratagems, title: "A private view in the pavilion", where: "The Pavilion" },
-        { img: images.montgomeryHall, title: "An all-hands for 160", where: "Montgomery Hall" },
+      heroLead: "City views, lounge floors and a redwood park. Find a setting for your next event at the Transamerica Pyramid.",
+      heroSlides: [
+        { ...tap["tap-8a345d4546"], label: "Transamerica Pyramid" },
+        { ...tap["tap-7344408fc8"], label: "Sky Bar" },
+        { ...tap["tap-2ef8d72b6d"], label: "Bay Lounge" },
+        { ...tap["tap-3fd70cd176"], label: "Transamerica Redwood Park" },
+      ],
+      setting: {
+        lines: ["Above the city.", "Among the redwoods."],
+        body: "Four indoor venues. A park beneath the redwoods. Five ways to bring people together at one San Francisco address.",
+        images: [
+          { ...tap["tap-8f781df493"], caption: "The Pyramid and the city" },
+          { ...tap["tap-dd2bfca670"], caption: "Among the redwoods" },
+        ],
+      },
+      collection: ["Five places to gather,", "from the redwoods to Level 48."],
+      collectionLead: "Compare them side by side, then send one inquiry for any of them.",
+      closerLook: {
+        heading: "A sense of place.",
+        body: "A table by the skyline. A seat beneath the trees.",
+        scenes: [
+          { ...tap["tap-575159c961"], caption: "A table at Sky Bar", venue: "sky-bar" },
+          { ...tap["tap-e1c1d016c2"], caption: "The coffee bar at Bay Lounge", venue: "bay-lounge" },
+          { ...tap["tap-45267c1d07"], caption: "A gathering place at The Sandbox", venue: "sandbox" },
+          { ...tap["tap-22f669475f"], caption: "Among the redwoods", venue: "redwood-park" },
+          { ...tap["booklet-legacy-gallery"], caption: "History on the walls at Legacy Gallery", venue: "legacy-gallery" },
+        ],
+      },
+      alaCarte: {
+        lead: "Venue rental includes access to preferred catering and production partners. Tailor the rest.",
+        groups: [
+          {
+            title: "Entertainment & production",
+            items: ["DJ or live music", "Custom lighting design", "Extended AV buildout", "Film & photo shoot support", "Branded signage and graphics"],
+          },
+          {
+            title: "Furniture & environment",
+            items: ["Alternative furniture, including table rounds", "Floral and botanical installations", "Custom décor packages"],
+          },
+          {
+            title: "Culinary & beverage",
+            items: [
+              "Custom cocktail menus",
+              "Wine and spirits curation",
+              "Chef's table experiences",
+              "Branded beverage activations",
+              "Staffed espresso service",
+            ],
+          },
+        ],
+      },
+      faq: [
+        {
+          q: "Can I inquire before choosing a venue?",
+          a: "Yes. Choose “Not sure yet” in the inquiry form, or pick several venues to compare, and share what you have in mind. The events team will suggest the best fit.",
+          tags: ["planning"],
+        },
+        {
+          q: "Does an inquiry reserve a venue?",
+          a: "No. An inquiry starts a conversation about your event; it doesn't reserve a venue or confirm availability. Nothing is held until you agree it with the events team.",
+          tags: ["planning"],
+        },
+        {
+          q: "What should my budget include?",
+          a: "Share your all-in event budget: the venue, furniture and rentals, and catering and beverage together. It helps the team suggest a space and setup that fits.",
+          tags: ["budget"],
+        },
+        {
+          q: "Is there a minimum budget?",
+          a: "Each space has a typical starting budget that depends on the date and format. If yours is below it, the inquiry form will tell you before you send, so you can adjust or choose another space. Not sure yet? Say so, and the team will talk it through.",
+          tags: ["budget"],
+        },
+        {
+          q: "What about catering and event services?",
+          a: "Venue rental includes access to preferred catering and production partners. Each venue page lists its facilities and services, and you can add DJs, lighting, décor, custom cocktails and more à la carte.",
+          tags: ["services"],
+        },
+        {
+          q: "Can I ask about a site visit?",
+          a: "Yes. Mention it in your inquiry, with the venues you'd like to see and any dates that work. If you're booking from overseas, ask about photos and floor plans in the meantime.",
+          tags: ["visits"],
+        },
+        {
+          q: "Where do guests arrive?",
+          a: "600 Montgomery Street, between Washington and Clay. For Redwood Park, guests check in at Mark Twain Alley off Sansome Street; the park is also reachable from Clay and Washington Streets.",
+          tags: ["visits"],
+        },
+        {
+          q: "Can I combine spaces?",
+          a: "Often, yes. Redwood Park can be booked in full or in sections, and The Sandbox and the park are arranged separately. Select every venue you're considering in one inquiry.",
+          tags: ["planning"],
+        },
       ],
       around: [
-        { img: images.lobbyCoffee, t: "Coffee in the lobby", d: "Your guests arrive to a travertine coffee bar and a concierge who knows their name." },
+        { img: images.lobbyCoffee, t: "Coffee in the lobby", d: "Guests arrive to the travertine coffee bar in the Pyramid's lobby." },
         { img: images.colonnade, t: "The colonnade", d: "The tower's sculpted concrete legs frame the walk in from Montgomery Street." },
-        { img: images.artStratagems, t: "Art in the pavilion", d: "Rotating installations from Pyramid Arts, open to guests before and after." },
-        { img: images.historyGallery, t: "The history gallery", d: "Fifty years of the building, from the drawings to the day it topped out." },
+        { img: images.artStratagems, t: "Art in the pavilion", d: "Installations in the Pyramid's glass pavilion." },
+        { img: images.historyGallery, t: "The history gallery", d: "The story of the building, from the first drawings to the day it topped out." },
       ],
       aroundLead: "The whole building is part of the welcome, from the lobby coffee bar to the art in the pavilion.",
       gettingHere: [
         { k: "Address", v: "600 Montgomery Street, San Francisco", d: "The full block between Washington and Clay, Montgomery and Sansome." },
-        { k: "Transit", v: "8 minutes from Embarcadero", d: "BART and Muni, with cable cars a few blocks south on California Street." },
-        { k: "Arrivals", v: "Guest check-in on L1", d: "Our team meets your guests at the lobby desk and rides up with them." },
-        { k: "Outdoor events", v: "Enter from Redwood Park", d: "Through the gates on Washington Street or Mark Twain Alley." },
+        { k: "Transit", v: "A short walk from Embarcadero", d: "BART and Muni, with cable cars a few blocks south on California Street." },
+        { k: "Redwood Park", v: "Clay Street, Washington Street & Mark Twain Alley", d: "Access for outdoor events depends on the proposed use." },
       ],
       siteMap: images.siteMap,
       towerPoster: images.pyramidDusk,
+      privacyUrl: "https://www.playbookexp.com/privacy.html",
       floorIntro: {
-        title: "853 feet. 48 floors. Three places to gather.",
-        body: "Scroll up the tower. Each venue sits on its own level, with its own light and its own kind of evening.",
-      },
-      crown: {
-        level: 48,
-        readout: "The crown",
-        title: "And above it all, the spire.",
-        body: "The top 212 feet are a hollow aluminum crown. It's not a venue, but it's lit for the holidays, and you'll see it from the Bay Lounge all evening.",
+        title: "853 feet. 48 floors. Five places to gather.",
+        body: "Scroll up the tower, from the redwoods at street level to Sky Bar on the 48th floor.",
       },
     },
   },

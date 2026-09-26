@@ -1,148 +1,227 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { maxCap } from "@/lib/data/shared";
+import { guestsShort } from "@/lib/data/shared";
+import { isDemo, showV2 } from "@/lib/flags";
 import { getTenant } from "@/lib/tenants/server";
 import { Reveal } from "@/components/motion/Reveal";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { Photo } from "@/components/ui/Photo";
+import { FloorPlan } from "@/components/public/FloorPlan";
 import { InquireCard } from "@/components/public/InquireCard";
-import { Mosaic } from "@/components/public/Mosaic";
+import { AnnotatedView } from "@/components/public/AnnotatedView";
 import { SetupVisualizer } from "@/components/public/SetupVisualizer";
-import { HeartButton } from "@/components/public/VenueCard";
+import { PhotoRow, VenueHero } from "@/components/public/VenuePhotos";
 
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
   const v = (await getTenant()).venue((await params).slug);
-  return { title: v?.name ?? "Venue", description: v?.summary };
+  return { title: v?.name ?? "Venue", description: v?.tagline };
+}
+
+/** Marks, in the demo only, the sections that are hidden at launch until real data backs them. */
+function InProgress() {
+  return isDemo ? <Pill tone="hold">In progress · hidden at launch</Pill> : null;
 }
 
 export default async function VenuePage({ params }: PageProps<"/venues/[slug]">) {
   const t = await getTenant();
   const v = t.venue((await params).slug);
   if (!v) notFound();
-  const host = t.person(v.hostId);
+  const host = t.publicHost;
   const others = t.venues.filter((x) => x.slug !== v.slug);
-  const policies = t.copy.policies;
+  const layout = showV2 ? v.layout : undefined;
+  const features = showV2 ? v.features : [];
 
   return (
-    <div className="pb-24 pt-[calc(var(--nav-h)+16px)] lg:pb-0">
-      <div className="frame">
-        <nav aria-label="Breadcrumb" className="t-small flex items-center gap-1.5 text-stone">
-          <Link href="/venues" className="hover:text-ink">
-            Venues
-          </Link>
-          <Icon name="chevron-right" size={14} />
-          <span className="text-ink">{v.name}</span>
-        </nav>
+    <div className="pb-24 lg:pb-0">
+      <VenueHero v={v} />
 
-        <div className="mt-5 flex flex-wrap items-end justify-between gap-x-10 gap-y-4 pb-6">
-          <div>
-            <h1 className="t-hero">{v.name}</h1>
-            <p className="t-lead mt-3 text-stone">
-              {v.levelLabel} · {v.kind} · Up to {maxCap(v)} guests
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <HeartButton slug={v.slug} name={v.name} tone="plain" />
-          </div>
-        </div>
-
-        <Mosaic images={v.gallery} vt={`venue-${v.slug}`} title={v.name} />
-      </div>
-
-      <div className="frame grid-12 mt-12 gap-y-16 lg:mt-20">
+      <div id="details" className="frame grid-12 mt-16 scroll-mt-[calc(var(--nav-h)+24px)] gap-y-16 lg:mt-24">
         <div className="col-span-12 lg:col-span-7">
           <Reveal>
             <p className="t-h2 max-w-[24ch]">{v.tagline}</p>
             <p className="t-lead mt-6 max-w-[58ch] text-stone">{v.summary}</p>
           </Reveal>
 
-          <div className="mt-8 flex flex-wrap gap-2">
-            {v.goodFor.map((g) => (
-              <Pill key={g}>{g}</Pill>
-            ))}
-          </div>
+          {v.goodFor.length > 0 && (
+            <div className="mt-8">
+              <p className="t-meta">Suited to</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {v.goodFor.map((g) => (
+                  <Pill key={g}>{g}</Pill>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <div className="mt-14 space-y-5 border-t hairline pt-10">
-            {v.story.map((p) => (
-              <p key={p.slice(0, 20)} className="t-body max-w-[62ch] text-ink-2">
-                {p}
+          {v.story.length > 0 && (
+            <div className="mt-14 space-y-5 border-t hairline pt-10">
+              {v.story.map((p) => (
+                <p key={p.slice(0, 20)} className="t-body max-w-[62ch] text-ink-2">
+                  {p}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {v.facts.length > 0 && (
+            <section className="mt-16" aria-labelledby="facts">
+              <h2 id="facts" className="sr-only">
+                At a glance
+              </h2>
+              <dl className="grid border-t hairline sm:grid-cols-3">
+                {v.facts.map((f) => (
+                  <div key={f.label} className="border-b hairline py-5 sm:pr-6">
+                    <dt className="t-meta">{f.label}</dt>
+                    <dd className="mt-1.5 font-medium">{f.value}</dd>
+                    {f.note && <dd className="t-small mt-1 text-stone">{f.note}</dd>}
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
+          {v.floorPlans && v.floorPlans.length > 0 && (
+            <section className="mt-16" aria-labelledby="plan">
+              <h2 id="plan" className="t-h2">
+                Floor plan
+              </h2>
+              <p className="t-body mt-3 max-w-[56ch] text-stone">
+                {v.floorPlans.length > 1 ? "The building's own plans for each setup." : "The building's own plan of the space."} Tap to enlarge.
               </p>
-            ))}
-          </div>
+              <div className="mt-8">
+                <FloorPlan plans={v.floorPlans} venue={v.name} />
+              </div>
+            </section>
+          )}
 
-          <section className="mt-16" aria-labelledby="offers">
-            <h2 id="offers" className="t-h2">
-              What this venue offers
-            </h2>
-            <ul className="mt-8 grid gap-x-8 gap-y-7 sm:grid-cols-2">
-              {v.features.map((f) => (
-                <li key={f.label} className="flex gap-4">
-                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-paper shadow-[var(--shadow-ring)]">
-                    <Icon name={f.icon} size={21} />
-                  </span>
-                  <span>
-                    <span className="block font-medium">{f.label}</span>
-                    {f.detail && <span className="t-small block text-stone">{f.detail}</span>}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mt-20" aria-labelledby="capacity">
-            <h2 id="capacity" className="t-h2">
-              Capacity, by setup
-            </h2>
-            <p className="t-body mt-3 max-w-[56ch] text-stone">Pick a setup to see how {v.name} arranges, and how many it seats.</p>
-            <SetupVisualizer className="mt-8" plate={v.plate} capacities={v.capacities} title={`${v.name} · ${v.sqft.toLocaleString()} sq ft`} />
-          </section>
-
-          <section
-            className="mt-20 grid gap-8 rounded-[var(--radius-media)] bg-paper p-6 shadow-[var(--shadow-ring)] sm:grid-cols-[180px_1fr] sm:p-8"
-            aria-labelledby="host"
-          >
-            {host.image ? (
-              <Photo img={host.image} className="media aspect-[4/5] w-full sm:w-[180px]" sizes="180px" />
-            ) : (
-              <span className="media grid aspect-[4/5] w-full place-items-center !bg-accent-deep text-[3rem] font-semibold text-accent-soft sm:w-[180px]">
-                {host.initials}
-              </span>
-            )}
-            <div>
-              <p className="t-meta">Your host for {v.name}</p>
-              <h2 id="host" className="t-h2 mt-2">
-                {host.name}
+          {v.views && v.views.length > 0 && (
+            <section className="mt-16" aria-labelledby="views">
+              <h2 id="views" className="t-h2">
+                The view from here
               </h2>
-              <p className="t-small text-stone">{host.role}</p>
-              <p className="t-body mt-4 max-w-[52ch]">{host.bio}</p>
-              <Link
-                href={`/venues/inquire?venue=${v.slug}`}
-                className="group mt-6 inline-flex items-center gap-2 border-b border-ink/25 pb-0.5 font-medium hover:border-ink"
-              >
-                Ask {host.name.split(" ")[0]} a question
-                <Icon name="arrow-right" size={17} className="transition-transform group-hover:translate-x-0.5" />
-              </Link>
-            </div>
-          </section>
+              <p className="t-body mt-3 max-w-[56ch] text-stone">Photographs taken from {v.name}, looking out, with the landmarks you can see.</p>
+              <div className="mt-8">
+                <AnnotatedView views={v.views} tone="day" />
+              </div>
+            </section>
+          )}
 
-          <section className="mt-20" aria-labelledby="know">
-            <div className="flex flex-wrap items-baseline justify-between gap-3">
+          {features.length > 0 && (
+            <section className="mt-16" aria-labelledby="offers">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 id="offers" className="t-h2">
+                  What this venue offers
+                </h2>
+                <InProgress />
+              </div>
+              <ul className="mt-8 grid gap-x-8 gap-y-6 sm:grid-cols-2">
+                {features.map((f) => (
+                  <li key={f.label} className="flex items-center gap-4">
+                    <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-paper shadow-[var(--shadow-ring)]">
+                      <Icon name={f.icon} size={21} />
+                    </span>
+                    <span>
+                      <span className="block font-medium">{f.label}</span>
+                      {f.detail && <span className="t-small block text-stone">{f.detail}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {v.services.length > 0 && (
+            <section className="mt-16" aria-labelledby="services">
+              <h2 id="services" className="t-h2">
+                Event services
+              </h2>
+              <div className="mt-8 grid gap-8 sm:grid-cols-2">
+                {v.services.map((g) => (
+                  <div key={g.title} className="border-t hairline pt-5">
+                    <p className="font-medium">{g.title}</p>
+                    <ul className="t-small mt-3 space-y-2 text-ink-2">
+                      {g.items.map((x) => (
+                        <li key={x} className="flex gap-2.5">
+                          <Icon name="check" size={16} className="mt-0.5 shrink-0 text-stone" />
+                          {x}
+                        </li>
+                      ))}
+                    </ul>
+                    {g.note && <p className="t-meta mt-3">{g.note}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {layout && (
+            <section className="mt-20" aria-labelledby="capacity">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 id="capacity" className="t-h2">
+                  Capacity, by setup
+                </h2>
+                <InProgress />
+              </div>
+              <p className="t-body mt-3 max-w-[56ch] text-stone">Pick a setup to see how {v.name} arranges.</p>
+              <SetupVisualizer
+                className="mt-8"
+                plate={layout.plate}
+                capacities={layout.capacities}
+                title={v.sqft ? `${v.name} · ${v.sqft.toLocaleString("en-US")} sq ft` : v.name}
+                footnote={
+                  layout.illustrative
+                    ? "Illustrative only. Seat counts are estimates until the venue's floor plans are in; the events team confirms every plan."
+                    : undefined
+                }
+              />
+            </section>
+          )}
+
+          {host && (
+            <section
+              className="mt-20 grid gap-8 rounded-[var(--radius-media)] bg-paper p-6 shadow-[var(--shadow-ring)] sm:grid-cols-[180px_1fr] sm:p-8"
+              aria-labelledby="host"
+            >
+              {host.image ? (
+                <Photo img={host.image} className="media aspect-[4/5] w-full sm:w-[180px]" sizes="180px" />
+              ) : (
+                <span className="media grid aspect-[4/5] w-full place-items-center !bg-accent-deep text-[3rem] font-semibold text-accent-soft sm:w-[180px]">
+                  {host.initials}
+                </span>
+              )}
+              <div>
+                <p className="t-meta">Your host for {v.name}</p>
+                <h2 id="host" className="t-h2 mt-2">
+                  {host.name}
+                </h2>
+                <p className="t-small text-stone">{host.role}</p>
+                <p className="t-body mt-4 max-w-[52ch]">{host.bio}</p>
+                <Link
+                  href={`/venues/inquire?venue=${v.slug}`}
+                  className="group mt-6 inline-flex items-center gap-2 border-b border-ink/25 pb-0.5 font-medium hover:border-ink"
+                >
+                  Ask {host.name.split(" ")[0]} a question
+                  <Icon name="arrow-right" size={17} className="transition-transform group-hover:translate-x-0.5" />
+                </Link>
+              </div>
+            </section>
+          )}
+
+          {v.policies.length > 0 && (
+            <section className="mt-16" aria-labelledby="know">
               <h2 id="know" className="t-h2">
-                Things to know
+                Good to know
               </h2>
-              <Pill tone="hold">Sample policy for this prototype</Pill>
-            </div>
-            <ul className="mt-8 grid gap-6 sm:grid-cols-2">
-              {policies.map((p) => (
-                <li key={p.t} className="border-t hairline pt-5">
-                  <Icon name={p.icon} size={20} className="text-stone" />
-                  <p className="mt-3 font-medium">{p.t}</p>
-                  <p className="t-small mt-1 text-stone">{p.d}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
+              <ul className="mt-6 space-y-4">
+                {v.policies.map((p) => (
+                  <li key={p} className="t-body max-w-[62ch] border-t hairline pt-4 text-ink-2">
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
 
         <div className="col-span-12 lg:col-span-4 lg:col-start-9">
@@ -150,28 +229,42 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
         </div>
       </div>
 
-      <section className="frame mt-28 border-t hairline pb-24 pt-14 lg:pb-32">
-        <h2 className="t-h2">Also at {t.copy.the}</h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {others.map((o) => (
-            <Link
-              key={o.slug}
-              href={`/venues/${o.slug}`}
-              className="group flex items-center gap-5 rounded-[var(--radius-media)] bg-paper p-3 pr-6 shadow-[var(--shadow-ring)] transition-shadow hover:shadow-[var(--shadow-soft)]"
-            >
-              <Photo img={o.hero} vt={`venue-${o.slug}`} className="media aspect-square w-28 shrink-0 sm:w-36" sizes="150px" />
-              <span className="min-w-0 flex-1">
-                <span className="t-meta block">
-                  {o.levelLabel} · Up to {maxCap(o)}
+      {v.gallery.length > 1 && (
+        <section className="frame mt-24 lg:mt-32" aria-labelledby="photos">
+          <div className="mb-6 flex items-baseline justify-between gap-4">
+            <h2 id="photos" className="t-h2">
+              Photos
+            </h2>
+            <p className="t-meta">{v.gallery.length} photographs</p>
+          </div>
+          <PhotoRow v={v} />
+        </section>
+      )}
+
+      {others.length > 0 && (
+        <section className="frame mt-24 border-t hairline pb-24 pt-14 lg:mt-32 lg:pb-32">
+          <h2 className="t-h2">Also at {t.copy.the}</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2">
+            {others.map((o) => (
+              <Link
+                key={o.slug}
+                href={`/venues/${o.slug}`}
+                className="group flex items-center gap-5 rounded-[var(--radius-media)] bg-paper p-3 pr-6 shadow-[var(--shadow-ring)] transition-shadow hover:shadow-[var(--shadow-soft)]"
+              >
+                <Photo img={o.hero} vt={`venue-${o.slug}`} className="media aspect-square w-28 shrink-0 sm:w-36" sizes="150px" />
+                <span className="min-w-0 flex-1">
+                  <span className="t-meta block first-letter:uppercase">
+                    {o.levelLabel} · {guestsShort(o)}
+                  </span>
+                  <span className="t-h3 mt-1 block">{o.name}</span>
+                  <span className="t-small mt-1 line-clamp-2 block text-stone">{o.tagline}</span>
                 </span>
-                <span className="t-h3 mt-1 block">{o.name}</span>
-                <span className="t-small mt-1 line-clamp-2 block text-stone">{o.tagline}</span>
-              </span>
-              <Icon name="arrow-right" size={20} className="shrink-0 transition-transform group-hover:translate-x-1" />
-            </Link>
-          ))}
-        </div>
-      </section>
+                <Icon name="arrow-right" size={20} className="shrink-0 transition-transform group-hover:translate-x-1" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

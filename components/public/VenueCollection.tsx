@@ -1,119 +1,50 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/cn";
-import type { VenueTag } from "@/lib/data/types";
+import { useInView } from "motion/react";
+import { useRef, useState } from "react";
 import { useTenant } from "@/lib/tenants/client";
-import { Icon, type AnyIcon } from "@/components/ui/Icon";
+import { Button } from "@/components/ui/Button";
 import { VenueCard } from "./VenueCard";
 
-const tagIcons: Record<VenueTag, AnyIcon> = {
-  views: "view",
-  outdoor: "tree",
-  evening: "moon",
-  daylight: "sun",
-  catering: "glass",
-  av: "mic",
-  private: "lock",
-};
+/** How many venues show before "View all". Spencer: showcase the top four. */
+const FIRST = 4;
+/** Each card starts this long after the one before it, so they never flip in unison. */
+const STEP_MS = 1000;
 
-const sizes = [
-  { id: "any", label: "Any size", min: 0 },
-  { id: "50", label: "50+", min: 50 },
-  { id: "120", label: "120+", min: 120 },
-  { id: "200", label: "200+", min: 200 },
-];
-
+/** Every venue in an even grid, like browsing products: same size, same facts, easy to compare. */
 export function VenueCollection() {
-  const { venues, venueTags, copy } = useTenant();
-  const [tag, setTag] = useState<VenueTag | null>(null);
-  const [size, setSize] = useState("any");
-  const min = sizes.find((s) => s.id === size)!.min;
-  const match = (v: (typeof venues)[number]) => (!tag || v.tags.includes(tag)) && Math.max(...Object.values(v.capacities).map((n) => n ?? 0)) >= min;
-  const count = venues.filter(match).length;
+  const { venues, copy } = useTenant();
+  const [all, setAll] = useState(false);
+  // One clock for the whole grid: it starts when the first card comes into view and
+  // pauses when the grid leaves it, so the one-second offsets between cards hold.
+  const grid = useRef<HTMLDivElement>(null);
+  const play = useInView(grid, { amount: 0.2 });
+  const shown = all ? venues : venues.slice(0, FIRST);
 
   return (
     <section id="collection" className="frame pb-24 pt-20 lg:pb-36 lg:pt-32">
       <div className="grid-12 items-end gap-y-6">
-        <h2 className="t-h1 col-span-12 lg:col-span-7">
+        <h2 className="t-h1 col-span-12 lg:col-span-8">
           {copy.public.collection[0]}
           <br />
           <span className="text-stone">{copy.public.collection[1]}</span>
         </h2>
-        <p className="t-lead col-span-12 text-stone lg:col-span-4 lg:col-start-9">
-          Every venue comes with our events team, trusted caterers and a single point of contact from first call to last guest.
-        </p>
+        <p className="t-lead col-span-12 text-stone lg:col-span-4 lg:col-start-9">{copy.public.collectionLead}</p>
       </div>
 
-      {/* Category chips (travel-app style) */}
-      <div className="sticky top-[var(--nav-h)] z-20 -mx-[var(--gutter)] mt-12 bg-quartz/85 px-[var(--gutter)] py-3 backdrop-blur-xl">
-        <div className="flex items-center gap-6">
-          <div role="group" aria-label="Filter by feature" className="no-scrollbar mask-fade-r -my-1 flex flex-1 gap-1 overflow-x-auto py-1 lg:mask-none">
-            {venueTags.map((t) => {
-              const on = tag === t.id;
-              return (
-                <button
-                  key={t.id}
-                  aria-pressed={on}
-                  onClick={() => setTag(on ? null : t.id)}
-                  className={cn(
-                    "group/chip flex shrink-0 flex-col items-center gap-1.5 rounded-2xl px-4 pb-2 pt-2.5 text-[0.8125rem] font-medium transition-colors",
-                    on ? "text-ink" : "text-stone hover:text-ink",
-                  )}
-                >
-                  <Icon name={tagIcons[t.id]} size={22} className="transition-transform duration-300 group-hover/chip:-translate-y-0.5" />
-                  <span className="relative whitespace-nowrap">
-                    {t.label}
-                    <span
-                      className={cn(
-                        "absolute -bottom-2 left-0 right-0 h-[2px] rounded-full bg-ink transition-transform duration-300",
-                        on ? "scale-x-100" : "scale-x-0",
-                      )}
-                    />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <div className="hidden shrink-0 items-center gap-1 rounded-full bg-fog p-1 md:flex" role="group" aria-label="Guest count">
-            {sizes.map((s) => (
-              <button
-                key={s.id}
-                aria-pressed={size === s.id}
-                onClick={() => setSize(s.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[0.8125rem] font-medium",
-                  size === s.id ? "bg-paper shadow-[var(--shadow-ring)]" : "text-stone hover:text-ink",
-                )}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+      <div ref={grid} className="mt-12 grid gap-x-[var(--col-gap)] gap-y-10 sm:grid-cols-2 lg:mt-16">
+        {shown.map((v, i) => (
+          <VenueCard key={v.slug} v={v} priority={i < 2} play={play} delay={i * STEP_MS} className={shown.length === 1 ? "sm:col-span-2" : undefined} />
+        ))}
+      </div>
+
+      {venues.length > FIRST && (
+        <div className="mt-10 flex justify-center">
+          <Button variant="outline" onClick={() => setAll((a) => !a)} icon={all ? undefined : "chevron-down"}>
+            {all ? "Show fewer" : `View all ${venues.length} venues`}
+          </Button>
         </div>
-      </div>
-      <p className="t-meta mt-4" aria-live="polite">
-        {count === venues.length ? `${count} venues` : count === 0 ? "No venue matches both filters. Try fewer." : `${count} of ${venues.length} venues match`}
-      </p>
-
-      {/* Editorial mosaic on desktop, swipe rail on phones */}
-      <div className="no-scrollbar -mx-[var(--gutter)] mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] lg:mx-0 lg:grid lg:grid-cols-12 lg:gap-[var(--col-gap)] lg:overflow-visible lg:px-0">
-        {venues.map((v, i) => {
-          // Lead venue big on the left; a pair splits the row evenly
-          const span = venues.length === 2 ? "lg:col-span-6" : i === 0 ? "lg:col-span-7 lg:row-span-2" : "lg:col-span-5";
-          return (
-            <VenueCard
-              key={v.slug}
-              v={v}
-              size={i === 0 || venues.length === 2 ? "lg" : undefined}
-              dim={!match(v)}
-              priority={i === 0}
-              stagger={i * 2300}
-              className={`w-[84vw] shrink-0 snap-start lg:w-auto ${span}`}
-            />
-          );
-        })}
-      </div>
+      )}
     </section>
   );
 }

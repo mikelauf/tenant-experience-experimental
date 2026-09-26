@@ -13,7 +13,6 @@ import type {
   Room,
   RoomTag,
   Venue,
-  VenueTag,
 } from "@/lib/data/types";
 import type { TowerProfile } from "@/lib/tower";
 
@@ -73,17 +72,36 @@ export type TenantCopy = {
     description: string;
     heroLines: string[];
     heroLead: string;
+    /** Crossfading hero photos, in order. The first also paints before the carousel starts. */
+    heroSlides: (Img & { label: string })[];
+    /** Optional hero film: plays once, then hands over to the photo carousel */
+    heroVideo?: { src: string; poster: Img };
+    /** "The setting": a two-line statement over a pair of photos that open out as you scroll */
+    setting?: { lines: [string, string]; body: string; images: [Img & { caption: string }, Img & { caption: string }] };
     /** Venue collection heading, two lines */
     collection: [string, string];
-    hostQuote: string;
-    moments: { img: Img; title: string; where: string }[];
+    collectionLead: string;
+    /** A line from the public host, if there is one */
+    hostQuote?: string;
+    /** "A closer look": full-bleed scenes, each optionally linking to its venue */
+    closerLook?: { heading: string; body?: string; scenes: (Img & { caption: string; venue?: string })[] };
+    /** Optional extras the building arranges, grouped */
+    alaCarte?: { lead: string; groups: { title: string; items: string[] }[] };
+    /** Frequently asked questions, shown on /venues/faq and after an inquiry */
+    faq?: { q: string; a: string; tags?: ("planning" | "budget" | "services" | "visits")[] }[];
+    /** Illustrative moments from past events. Leave out until there's real photography and permission to share it. */
+    moments?: { img: Img; title: string; where: string }[];
     around: { img: Img; t: string; d: string }[];
     aroundLead: string;
     gettingHere: { k: string; v: string; d: string }[];
     siteMap?: Img;
     towerPoster: Img;
     floorIntro: { title: string; body: string };
-    crown: { level: number; readout: string; title: string; body: string };
+    /** A last stop above the top venue. Leave out if the top venue is the top floor. */
+    crown?: { level: number; readout: string; title: string; body: string };
+    /** Public contact for event inquiries. Leave out until it's confirmed; nothing invented goes on the public site. */
+    contact?: { phone?: string; email?: string };
+    privacyUrl?: string;
   };
 };
 
@@ -114,16 +132,22 @@ export type TenantData = {
   /** The vertical index: every level with a place on it */
   levels: Level[];
   people: Person[];
-  /** Events & hospitality lead, the host for inquiries */
+  /** Events & hospitality lead, the host for member event planning */
   leadId: string;
+  /** The person introduced on the public venue site. Leave out until a real host is confirmed. */
+  publicHostId?: string;
   member: Member;
   venues: Venue[];
-  venueTags: { id: VenueTag; label: string }[];
   rooms: Room[];
   roomTags: { id: RoomTag; label: string }[];
   fitness: FitnessBundle | null;
   /** Built lazily so dates are relative to "now" in the browser */
   events: () => BuildingEvent[];
+  /**
+   * Where public inquiries are filed in Core. Without it (or without a privacy version),
+   * a live deployment answers "temporarily unavailable" rather than guessing.
+   */
+  inquiry?: { coreBuildingId: string; sourceKey: string; privacyVersion?: string };
   copy: TenantCopy;
 };
 
@@ -136,6 +160,8 @@ export type Tenant = TenantData & {
   sessionsFor: (day: Date) => ClassSession[];
   template: (kind: ClassKind) => ClassTemplate;
   lead: Person;
+  /** The public venue site's host, if there is one */
+  publicHost?: Person;
 };
 
 export type { Feature };

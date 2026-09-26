@@ -24,7 +24,10 @@ type UiIcon =
   | "alert"
   | "refresh"
   | "external"
-  | "ticket";
+  | "ticket"
+  | "play"
+  | "pause"
+  | "expand";
 
 export type AnyIcon = IconName | UiIcon;
 
@@ -243,6 +246,9 @@ const paths: Record<AnyIcon, React.ReactNode> = {
   ticket: (
     <path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h13A1.5 1.5 0 0 1 20 7.5V10a2 2 0 0 0 0 4v2.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 16.5V14a2 2 0 0 0 0-4V7.5Z" />
   ),
+  play: <path d="M8 5.5v13l10.5-6.5L8 5.5Z" fill="currentColor" />,
+  pause: <path d="M8 5.5v13M16 5.5v13" strokeWidth={2.5} />,
+  expand: <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />,
 };
 
 export function Icon({ name, size = 20, className, strokeWidth = 1.5 }: { name: AnyIcon; size?: number; className?: string; strokeWidth?: number }) {
