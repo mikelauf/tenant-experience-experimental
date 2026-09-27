@@ -30,7 +30,7 @@
   /* Status (quiet) */
   --color-ok: #2f6b4f;
   --color-ok-soft: #e1ece4;
-  --color-hold: #9a6a1c;
+  --color-hold: #7f5612;
   --color-hold-soft: #f4ead6;
 
   --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
@@ -50,6 +50,8 @@
   --animate-breathe: breathe 3.2s var(--ease-in-out) infinite;
   --animate-live: live 2s var(--ease-out-quart) infinite;
   --animate-rise: rise 0.7s var(--ease-out-expo) both;
+  /* A headline line rising out of its mask; CSS so the first screen paints before any script runs */
+  --animate-line: line-up 1s var(--ease-out-expo) both;
   --animate-beacon: beacon 2.6s var(--ease-out-quart) infinite;
 
   @keyframes beacon {
@@ -98,6 +100,14 @@
     50% {
       transform: translateY(3px);
       opacity: 1;
+    }
+  }
+  @keyframes line-up {
+    from {
+      transform: translateY(150%);
+    }
+    to {
+      transform: none;
     }
   }
   @keyframes rise {

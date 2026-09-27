@@ -11,7 +11,7 @@ import { blur } from "@/lib/blur";
  * filters or scaling left behind), so the final image renders pixel-sharp.
  * The fade lives on a wrapper so callers' own hover transforms stay untouched.
  */
-export default function SmoothImage({ onLoad, src, style, quality = 85, ...props }: ImageProps) {
+export default function SmoothImage({ onLoad, src, style, quality = 85, priority, ...props }: ImageProps) {
   const [loaded, setLoaded] = useState(false);
   const preview = typeof src === "string" ? blur[src] : undefined;
 
@@ -43,6 +43,8 @@ export default function SmoothImage({ onLoad, src, style, quality = 85, ...props
           src={src}
           style={style}
           quality={quality}
+          // Next 16 retired `priority`: a first-screen photo is fetched eagerly and at high priority instead
+          {...(priority && { loading: "eager" as const, fetchPriority: "high" as const })}
           {...props}
           onLoad={(e) => {
             setLoaded(true);

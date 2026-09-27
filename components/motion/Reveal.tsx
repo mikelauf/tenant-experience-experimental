@@ -20,6 +20,21 @@ export function Reveal({ delay = 0, y = 18, children, ...rest }: HTMLMotionProps
   );
 }
 
+/** `Reveal` as a list item, so lists keep valid markup (an `<li>` straight inside its `<ol>` or `<ul>`). */
+export function RevealItem({ delay = 0, y = 18, children, ...rest }: HTMLMotionProps<"li"> & { delay?: number; y?: number }) {
+  return (
+    <motion.li
+      initial={{ opacity: 0, y }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-8% 0px" }}
+      transition={{ duration: 0.9, ease, delay }}
+      {...rest}
+    >
+      {children}
+    </motion.li>
+  );
+}
+
 /** Splits a headline into lines that rise out of a mask, one after another. */
 export function LineReveal({ lines, className, as = "h2", delay = 0 }: { lines: string[]; className?: string; as?: "h1" | "h2" | "h3" | "p"; delay?: number }) {
   const Tag = motion[as];

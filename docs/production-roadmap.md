@@ -230,7 +230,13 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] Guest count set once (`useSharedGuests`): the grid brings rooms that hold it forward, and it fills the inquire card, the 3D space (until its slider is moved), the comparison, the brief picker and the inquiry
 - [x] Live hero (`LiveNow.tsx`): the stats card gains the time in SF and the real light (golden hour, sunset, after dark), leading to the live 3D tower. Kept the photo carousel Spencer chose; no second WebGL canvas above the fold
 - [x] Split `TowerCanvas` (1,606 → 499 + sky, park, city, markers, rig) and `landmarks` (991 → 145 + kit, bridges, buildings). `InquiryForm` gave up its model and fields; it stays ~1,150 lines until the ?layout= explorations (split, card, sentence) are retired or lifted into a hook
-- [ ] Lighthouse, image budget and mobile 3D pass
+- [x] Lighthouse (mobile, production build), 2026-09-27. Home: performance 42 → 79, total blocking 1,820 → 70 ms, accessibility 78 → 100. Sky Bar: 86, accessibility 97 → 100. Best practices 100 on both; SEO 63 is only the pre-launch noindex.
+  - Hero entrance is CSS (`animate-line`, `animate-rise`) so the first screen paints without waiting for hydration.
+  - `SmoothImage` maps the retired `priority` prop to `loading="eager"` + `fetchPriority="high"`; hero photos were fetching at Low.
+  - Valid list and definition markup (`RevealItem`), labeled explorer arrows, contrast (rail numbers, `--color-hold`), footer wordmark as CSS content.
+  - three.js (932 KB) never loads on first paint; it waits for the explorer or the 3D space to come near.
+  - Page weight: home 1.07 MB, Sky Bar 608 KB. `public/images` is 27 MB of sources, served resized by next/image.
+  - Still open: LCP reads 4–5 s (simulated) because hero photos blur up from transparent, and Chrome doesn't count an image that first paints at opacity 0. Dropping the fade on the hero would fix the metric but break the smooth-image rule, so it stays.
 
 ### Decisions made while building
 - **Invented content stays out of production.** The fictional host (Inés), the 555 phone number, "moments" from sample events, the spire "crown" stop (Sky Bar is on Level 48) and sample policies are no longer on the Pyramid's public site. The host section, public contact and moments return automatically once real ones are added to the bundle (`publicHostId`, `copy.public.contact`, `copy.public.moments`).

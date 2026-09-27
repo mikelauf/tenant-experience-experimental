@@ -1,6 +1,6 @@
 import Image from "@/components/ui/SmoothImage";
 import { getTenant } from "@/lib/tenants/server";
-import { LineReveal, Reveal, ClipReveal } from "@/components/motion/Reveal";
+import { LineReveal, Reveal, RevealItem, ClipReveal } from "@/components/motion/Reveal";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { ButtonLink } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
@@ -54,26 +54,29 @@ export default async function VenuesHome() {
         <div className="frame pointer-events-none relative grid-12 gap-y-10 pb-10 pt-[calc(var(--nav-h)+48px)] *:pointer-events-auto md:pb-24 lg:pb-28">
           <div className="col-span-12 lg:col-span-8">
             <p className="t-lead text-moon/80 animate-rise">Venues & events · {building.city}</p>
-            <LineReveal as="h1" className="t-mega mt-4" lines={pub.heroLines} />
-            <Reveal delay={0.35}>
-              <p className="t-lead mt-7 max-w-[44ch] text-moon/85">{pub.heroLead}</p>
-            </Reveal>
-            <Reveal delay={0.45} className="mt-9 flex flex-wrap gap-3">
+            {/* The first screen animates in CSS, not motion: it paints with the HTML instead of waiting for hydration */}
+            <h1 className="t-mega mt-4">
+              {pub.heroLines.map((l, i) => (
+                <span key={l} className="-mb-[0.22em] -mt-[0.1em] block overflow-hidden pb-[0.22em] pt-[0.1em]">
+                  <span className="block animate-line" style={{ animationDelay: `${0.1 + i * 0.08}s` }}>
+                    {l}
+                  </span>
+                </span>
+              ))}
+            </h1>
+            <p className="t-lead mt-7 max-w-[44ch] animate-rise text-moon/85 [animation-delay:0.35s]">{pub.heroLead}</p>
+            <div className="mt-9 flex animate-rise flex-wrap gap-3 [animation-delay:0.45s]">
               <ButtonLink href="#collection" variant="light" size="lg" icon="arrow-right">
                 Explore the venues
               </ButtonLink>
               <ButtonLink href="/venues/inquire" variant="glass" size="lg">
                 Start an inquiry
               </ButtonLink>
-            </Reveal>
+            </div>
           </div>
 
           {/* Wide screens: anchored to the hero's bottom edge, level with the slideshow controls on the left */}
-          <Reveal
-            delay={0.6}
-            animate={{ opacity: 1, y: 0 }}
-            className="col-span-12 lg:absolute lg:bottom-10 lg:right-[var(--gutter)] lg:w-[calc((100%-2*var(--gutter)-2*var(--col-gap))/3)]"
-          >
+          <div className="col-span-12 animate-rise [animation-delay:0.6s] lg:absolute lg:bottom-10 lg:right-[var(--gutter)] lg:w-[calc((100%-2*var(--gutter)-2*var(--col-gap))/3)]">
             <div className="overflow-hidden rounded-[20px] bg-white/10 backdrop-blur-md">
               <dl className="grid grid-cols-3 gap-px">
                 {[{ k: "Venues", v: venues.length }, ...(total ? [{ k: "Up to", v: total, s: " guests" }] : []), { k: "Floors", v: building.floors }].map(
@@ -93,7 +96,7 @@ export default async function VenuesHome() {
                 <LiveNow />
               </div>
             </div>
-          </Reveal>
+          </div>
         </div>
       </section>
 
@@ -122,21 +125,19 @@ export default async function VenuesHome() {
             </div>
             <ol className="col-span-12 border-t hairline lg:col-span-7 lg:col-start-6">
               {pub.alaCarte.groups.map((g, i) => (
-                <Reveal key={g.title} delay={i * 0.06}>
-                  <li className="grid gap-5 border-b hairline py-8 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:py-10">
-                    <div className="flex items-baseline gap-4">
-                      <span className="t-num text-[0.9375rem] font-medium text-accent">{String(i + 1).padStart(2, "0")}</span>
-                      <h3 className="t-h3">{g.title}</h3>
-                    </div>
-                    <ul className="flex flex-wrap content-start gap-2">
-                      {g.items.map((x) => (
-                        <li key={x}>
-                          <Pill>{x}</Pill>
-                        </li>
-                      ))}
-                    </ul>
-                  </li>
-                </Reveal>
+                <RevealItem key={g.title} delay={i * 0.06} className="grid gap-5 border-b hairline py-8 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:py-10">
+                  <div className="flex items-baseline gap-4">
+                    <span className="t-num text-[0.9375rem] font-medium text-accent">{String(i + 1).padStart(2, "0")}</span>
+                    <h3 className="t-h3">{g.title}</h3>
+                  </div>
+                  <ul className="flex flex-wrap content-start gap-2">
+                    {g.items.map((x) => (
+                      <li key={x}>
+                        <Pill>{x}</Pill>
+                      </li>
+                    ))}
+                  </ul>
+                </RevealItem>
               ))}
             </ol>
           </div>
@@ -162,13 +163,11 @@ export default async function VenuesHome() {
           </div>
           <ol className="col-span-12 grid gap-px overflow-hidden rounded-[var(--radius-media)] bg-night-line sm:grid-cols-2 lg:col-span-7">
             {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.06} className="bg-night-2">
-                <li className="flex h-full flex-col p-6 lg:p-8">
-                  <span className="t-num text-[0.9375rem] font-medium text-accent-glow">{s.n}</span>
-                  <h3 className="t-h3 mt-10 lg:mt-16">{s.title}</h3>
-                  <p className="t-body mt-2 text-moon-2">{s.body}</p>
-                </li>
-              </Reveal>
+              <RevealItem key={s.n} delay={i * 0.06} className="flex h-full flex-col bg-night-2 p-6 lg:p-8">
+                <span className="t-num text-[0.9375rem] font-medium text-accent-glow">{s.n}</span>
+                <h3 className="t-h3 mt-10 lg:mt-16">{s.title}</h3>
+                <p className="t-body mt-2 text-moon-2">{s.body}</p>
+              </RevealItem>
             ))}
           </ol>
         </div>
@@ -290,10 +289,10 @@ export default async function VenuesHome() {
               {pub.gettingHere.map((x) => (
                 <div key={x.k} className="grid grid-cols-[96px_1fr] gap-4 lg:grid-cols-[88px_1fr]">
                   <dt className="t-meta pt-0.5">{x.k}</dt>
-                  <div>
-                    <dd className="font-medium">{x.v}</dd>
-                    <dd className="t-small mt-1 text-stone">{x.d}</dd>
-                  </div>
+                  <dd>
+                    <span className="block font-medium">{x.v}</span>
+                    <span className="t-small mt-1 block text-stone">{x.d}</span>
+                  </dd>
                 </div>
               ))}
             </dl>

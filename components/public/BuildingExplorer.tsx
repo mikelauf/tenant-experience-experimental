@@ -692,7 +692,7 @@ function FloorChips({ stops, current, onPick }: { stops: Stop[]; current: string
               )}
             >
               {s.level != null && !s.arrive && (
-                <span className={cn("t-num text-[0.8125rem]", s.id === current ? "text-accent" : "text-moon-2/70")}>{num(s.level)}</span>
+                <span className={cn("t-num text-[0.8125rem]", s.id === current ? "text-accent" : "text-moon-2")}>{num(s.level)}</span>
               )}
               {s.label}
             </button>
@@ -707,7 +707,9 @@ function FloorChips({ stops, current, onPick }: { stops: Stop[]; current: string
           <button
             key={d}
             onClick={() => to && onPick(to.id)}
-            aria-label={to ? `Go to ${to.label}` : undefined}
+            aria-label={to ? `Go to ${to.label}` : d < 0 ? "Previous floor" : "Next floor"}
+            aria-hidden={!show || undefined}
+            disabled={!show}
             tabIndex={show ? 0 : -1}
             className={cn(
               "absolute top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full bg-night/85 text-moon shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)] backdrop-blur-md transition-opacity duration-300",

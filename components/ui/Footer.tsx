@@ -73,9 +73,12 @@ export async function Footer({ variant }: { variant: "member" | "public" }) {
         </nav>
       </div>
       <div className="frame overflow-hidden pb-[0.12em] text-[clamp(3.5rem,14.5vw,15rem)]">
-        <p aria-hidden className="t-mega select-none whitespace-nowrap text-[length:inherit] leading-[0.9] text-night-3">
-          {copy.The}
-        </p>
+        {/* Pure decoration, drawn from CSS content so it isn't read out or held to text contrast */}
+        <p
+          aria-hidden
+          data-text={copy.The}
+          className="t-mega select-none whitespace-nowrap text-[length:inherit] leading-[0.9] text-night-3 before:content-[attr(data-text)]"
+        />
       </div>
       <div className="frame flex flex-col gap-3 border-t hairline py-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="t-meta">
