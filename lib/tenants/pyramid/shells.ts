@@ -46,6 +46,11 @@ const skyBar: VenueLayout = {
     fixed: { bars: [{ ...sb.r(693, 290, 752, 615, "Bar"), always: true }] },
     streets,
     finish: "oak",
+    decor: {
+      plants: [sb.p(478, 126), sb.p(1122, 126), sb.p(478, 779), sb.p(1122, 779), sb.p(1000, 318), sb.p(1000, 590)],
+      shelves: [sb.r(650, 300, 670, 605)],
+      pendants: [sb.seg(722, 312, 722, 593)],
+    },
   },
   setups: { reception: { max: 80, zone: "floor" }, lounge: { max: 50, zone: "floor" }, banquet: { max: 48, zone: "floor" } },
   illustrative: true,
@@ -75,7 +80,19 @@ const bayLounge: VenueLayout = {
     },
     fixed: { bars: [{ ...bl.r(215, 378, 372, 416, "Coffee bar"), always: true, note: "Staffed espresso can be added as an à la carte service." }], screen: bl.seg(710, 445, 940, 445) },
     streets,
-    finish: "stone",
+    finish: "walnut",
+    decor: {
+      // The lobby's standing lounge, west of the screen, out of the theater's way
+      lounges: [bl.r(150, 150, 380, 340)],
+      rugs: [
+        { ...bl.r(135, 870, 375, 1195), color: "#bdb7ad" },
+        { ...bl.r(855, 960, 1195, 1195), color: "#bdb7ad" },
+      ],
+      boards: [bl.r(185, 930, 325, 1150)],
+      shelves: [bl.r(225, 428, 362, 446)],
+      pendants: [bl.seg(232, 397, 355, 397)],
+      plants: [bl.p(125, 128), bl.p(1195, 128), bl.p(1195, 446), bl.p(125, 440), bl.p(632, 482), bl.p(688, 482), bl.p(420, 1205), bl.p(470, 870), bl.p(820, 1205)],
+    },
   },
   setups: {
     reception: { max: 130, zone: "lobby" },
@@ -111,6 +128,11 @@ const sandbox: VenueLayout = {
     },
     streets,
     finish: "concrete",
+    decor: {
+      counters: [sx.r(835, 385, 855, 585), sx.r(125, 640, 143, 860)],
+      lounges: [sx.r(370, 810, 590, 895)],
+      plants: [sx.p(100, 94), sx.p(896, 94), sx.p(896, 893), sx.p(360, 893), sx.p(605, 893), sx.p(100, 330)],
+    },
   },
   setups: { theater: { max: 100, zone: "theater", traced: true }, reception: { max: 200, zone: "cocktail", traced: true } },
 };
@@ -166,6 +188,14 @@ const redwoodPark: VenueLayout = {
     streets: { n: "Washington St", s: "Clay St", w: "Transamerica Pyramid", e: "Sansome St" },
     outdoor: true,
     finish: "grass",
+    decor: {
+      // The walk along the tower's side, the fountain's plaza, and Mark Twain Alley
+      paths: [rp.r(1132, 60, 1152, 965), rp.r(1078, 488, 1162, 567), rp.r(1152, 500, 1470, 530)],
+      fountain: rp.r(1095, 505, 1145, 550),
+      benches: [rp.r(1121, 240, 1127, 264), rp.r(1121, 340, 1127, 364), rp.r(1121, 700, 1127, 724), rp.r(1121, 820, 1127, 844)],
+      lamps: [rp.p(1156, 120), rp.p(1156, 300), rp.p(1156, 640), rp.p(1156, 820), rp.p(1260, 496), rp.p(1360, 534)],
+      trucks: rp.r(1225, 62, 1455, 94),
+    },
   },
   setups: {
     reception: { max: 1500, min: 50, zone: "grove" },
@@ -230,7 +260,15 @@ const legacyGallery: VenueLayout = {
       marks: [{ ...lg.r(605, 170, 890, 205, "Chef stations"), note: "Chef stations along the Washington Street windows." }, lg.r(265, 265, 300, 350, "DJ"), lg.r(308, 197, 512, 438, "Lounge")],
     },
     streets,
-    finish: "stone",
+    finish: "ash",
+    decor: {
+      lounges: [lg.r(318, 210, 502, 425)],
+      counters: [lg.r(620, 179, 875, 196)],
+      // Pieces on plinths along the windows, and framed work on panels against the core
+      plinths: [lg.r(935, 140, 975, 172), lg.r(1065, 140, 1105, 172), lg.r(1195, 140, 1235, 172), lg.r(660, 1112, 700, 1144), lg.r(900, 1112, 940, 1144), lg.r(1140, 1112, 1180, 1144)],
+      art: [lg.seg(1040, 453, 1245, 453), lg.seg(665, 822, 815, 822), lg.seg(950, 822, 1100, 822)],
+      plants: [lg.p(245, 130), lg.p(1250, 130), lg.p(1250, 1145), lg.p(245, 455), lg.p(580, 1145)],
+    },
   },
   setups: { reception: { max: 120, zone: "gallery" }, banquet: { max: 80, zone: "gallery" }, theater: { max: 110, zone: "facingWall" } },
   illustrative: true,

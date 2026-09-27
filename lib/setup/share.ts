@@ -1,7 +1,7 @@
 import type { Setup, SetupSpec } from "../data/types.ts";
 
-/** Camera views a shared link can hold: the three presets, or standing at the window looking out. */
-export const SPACE_VIEWS = ["overview", "close", "top", "window"] as const;
+/** Camera views a shared link can hold: the three presets, standing at the window looking out, or the room's floor in its building. */
+export const SPACE_VIEWS = ["overview", "close", "top", "window", "building"] as const;
 export type SpaceView = (typeof SPACE_VIEWS)[number];
 
 export type SpaceState = { setup: Setup; guests: number; view: SpaceView };

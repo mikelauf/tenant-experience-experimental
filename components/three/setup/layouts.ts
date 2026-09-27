@@ -116,7 +116,7 @@ export function makeLayout(setup: Setup, guests: number, shell: Shell, spec: Set
     ...(f.marks ?? []),
     ...(L.stage && f.stage ? [f.stage] : []),
   ].map(box);
-  obstacles.push(...bars);
+  obstacles.push(...bars, ...decorFootprints(shell).map(box));
   const trees = f.trees ?? [];
 
   /** True where nothing can go: outside the floor, on a core, a bar, a mark, or a tree trunk. */
@@ -135,6 +135,25 @@ export function makeLayout(setup: Setup, guests: number, shell: Shell, spec: Set
   // Round so server and browser math agree to the digit (avoids hydration drift)
   const r = (ps: P[]) => ps.map(([a, b, c]) => [Math.round(a * 1000) / 1000, Math.round(b * 1000) / 1000, Math.round(c * 1000) / 1000] as P);
   return { ...L, chairs: r(L.chairs), rounds: r(L.rounds), longs: r(L.longs), highs: r(L.highs), people: r(L.people), sofas: r(L.sofas) };
+}
+
+/** The floor the room's dressing stands on, so furniture keeps clear of it. Rugs, paths and art don't count. */
+function decorFootprints(shell: Shell): Rect[] {
+  const d = shell.decor ?? {};
+  const dot = ([x, z]: [number, number], s: number): Rect => ({ x, z, w: s, d: s });
+  return [
+    ...(d.plants ?? []).map((p) => dot(p, 0.7)),
+    ...(d.lamps ?? []).map((p) => dot(p, 0.3)),
+    ...(d.lounges ?? []),
+    ...(d.boards ?? []),
+    ...(d.plinths ?? []),
+    ...(d.shelves ?? []),
+    ...(d.counters ?? []),
+    ...(d.benches ?? []),
+    ...(d.art ?? []).map(([x0, z0, x1, z1]) => ({ x: (x0 + x1) / 2, z: (z0 + z1) / 2, w: Math.abs(x1 - x0) + 0.3, d: Math.abs(z1 - z0) + 0.3 })),
+    ...(d.fountain ? [d.fountain] : []),
+    ...(d.trucks ? [d.trucks] : []),
+  ];
 }
 
 function inBox(x: number, z: number, b: Box) {

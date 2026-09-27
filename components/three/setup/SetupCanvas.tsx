@@ -4,12 +4,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, PerspectiveCamera } from "@react-three/drei";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { cn } from "@/lib/cn";
 import type { Rect, Seg, Setup, SetupSpec, Shell } from "@/lib/data/types";
 import { shellBounds } from "@/lib/setup/shell";
 import { useOrbit } from "../useOrbit";
 import { fitRadius, focusFrame, frameFor, outward, type Box, type Lookout, type Preset } from "./camera";
+import { Canopy, Decor } from "./decor";
+import { chairGeometry, coffeeGeometry, highGeometry, personGeometry, roundGeometry, sofaGeometry } from "./furniture";
 import { MAX_FIGURES, makeLayout, type P } from "./layouts";
 
 const col = {
@@ -31,52 +32,6 @@ const col = {
 const guestColors = ["#2a2d30", "#62666a", "#9a3f25", "#c9b8a2", "#4b5a66", "#8f9396"].map((c) => new THREE.Color(c));
 
 const FOV = 28;
-
-/* ------------------------------------------------------------------ furniture */
-
-function chairGeometry() {
-  const seat = new THREE.BoxGeometry(0.44, 0.08, 0.42).translate(0, 0.44, 0);
-  const back = new THREE.BoxGeometry(0.44, 0.42, 0.07).translate(0, 0.7, 0.19);
-  const legs = new THREE.BoxGeometry(0.36, 0.4, 0.34).translate(0, 0.2, 0);
-  return mergeGeometries([seat, back, legs]);
-}
-
-/** A guest: body, shoulders and a head, so a crowd reads as people rather than pegs. */
-function personGeometry() {
-  const body = new THREE.CapsuleGeometry(0.16, 0.78, 4, 10).translate(0, 0.55, 0);
-  const shoulders = new THREE.CapsuleGeometry(0.13, 0.16, 4, 8).rotateZ(Math.PI / 2).translate(0, 1.2, 0);
-  const head = new THREE.SphereGeometry(0.11, 12, 10).translate(0, 1.5, 0);
-  return mergeGeometries([body, shoulders, head]);
-}
-
-/** A banquet round with a floor-length cloth. */
-function roundGeometry() {
-  const top = new THREE.CylinderGeometry(0.64, 0.64, 0.04, 32).translate(0, 0.74, 0);
-  const skirt = new THREE.CylinderGeometry(0.64, 0.7, 0.72, 32, 1, true).translate(0, 0.36, 0);
-  return mergeGeometries([top, skirt]);
-}
-
-function coffeeGeometry() {
-  return mergeGeometries([new THREE.CylinderGeometry(0.62, 0.62, 0.05, 28).translate(0, 0.42, 0), new THREE.CylinderGeometry(0.08, 0.22, 0.4, 12).translate(0, 0.2, 0)]);
-}
-
-function highGeometry() {
-  return mergeGeometries([
-    new THREE.CylinderGeometry(0.34, 0.34, 0.04, 24).translate(0, 1.08, 0),
-    new THREE.CylinderGeometry(0.04, 0.04, 1.06, 8).translate(0, 0.53, 0),
-    new THREE.CylinderGeometry(0.24, 0.26, 0.03, 20).translate(0, 0.015, 0),
-  ]);
-}
-
-function sofaGeometry() {
-  return mergeGeometries([
-    new THREE.BoxGeometry(1.9, 0.26, 0.8).translate(0, 0.2, 0),
-    new THREE.BoxGeometry(1.7, 0.12, 0.62).translate(0, 0.39, 0.06),
-    new THREE.BoxGeometry(1.9, 0.4, 0.18).translate(0, 0.53, -0.31),
-    new THREE.BoxGeometry(0.16, 0.26, 0.8).translate(-0.87, 0.46, 0),
-    new THREE.BoxGeometry(0.16, 0.26, 0.8).translate(0.87, 0.46, 0),
-  ]);
-}
 
 /**
  * An instanced pool whose members glide from their last position to the new one with a small stagger,
@@ -285,8 +240,9 @@ const sameSeg = (a: Seg, b: Seg) =>
   (a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3]) || (a[0] === b[2] && a[1] === b[3] && a[2] === b[0] && a[3] === b[1]);
 
 /**
- * A floor finish drawn once into a canvas and tiled by the meter: oak planks for Sky Bar, pale stone
- * for the lounges, polished concrete for The Sandbox, grass for the park. Subtle on purpose.
+ * A floor finish drawn once into a canvas and tiled by the meter: oak planks for Sky Bar, walnut
+ * herringbone for Bay Lounge, wide pale ash boards for Legacy Gallery, polished concrete for The Sandbox,
+ * grass for the park. Subtle on purpose.
  */
 function finishTexture(finish: Shell["finish"]) {
   const size = 512;
@@ -314,6 +270,79 @@ function finishTexture(finish: Shell["finish"]) {
       g.fillStyle = "rgba(90,60,30,0.16)";
       g.fillRect(0, y * h, size, 1);
     }
+  } else if (finish === "walnut") {
+    // Herringbone: a staircase of planks (4 × 1 units) that repeats every 8 units, turned 45° so the zigzag runs east–west
+    tile = 1.4;
+    const u = size / 8;
+    const plank = (x: number, y: number, w: number, h: number) => {
+      const l = 55 + r() * 10;
+      for (const dx of [-size, 0, size])
+        for (const dy of [-size, 0, size]) {
+          g.fillStyle = `hsl(28 ${20 + r() * 7}% ${l}%)`;
+          g.fillRect(x * u + dx, y * u + dy, w * u, h * u);
+          g.fillStyle = "rgba(50,28,12,0.07)";
+          for (let k = 0; k < 3; k++) {
+            if (w > h) g.fillRect(x * u + dx, (y + 0.2 + k * 0.28) * u + dy, w * u, 1);
+            else g.fillRect((x + 0.2 + k * 0.28) * u + dx, y * u + dy, 1, h * u);
+          }
+          g.strokeStyle = "rgba(45,25,10,0.22)";
+          g.lineWidth = 1.5;
+          g.strokeRect(x * u + dx, y * u + dy, w * u, h * u);
+        }
+    };
+    for (let row = -3; row <= 3; row++)
+      for (let n = -4; n < 12; n++) {
+        plank(n + row * 4, n - row * 4, 4, 1);
+        plank(n + row * 4, n + 1 - row * 4, 1, 4);
+      }
+  } else if (finish === "ash") {
+    // Wide, long, pale boards, as a gallery floor
+    tile = 6;
+    const rows = 16;
+    const h = size / rows;
+    for (let y = 0; y < rows; y++) {
+      let x = -r() * 300;
+      while (x < size) {
+        const w = 220 + r() * 200;
+        g.fillStyle = `hsl(35 ${26 + r() * 8}% ${73 + r() * 7}%)`;
+        g.fillRect(x, y * h, w, h);
+        g.fillStyle = "rgba(120,90,55,0.08)";
+        for (let k = 0; k < 4; k++) g.fillRect(x, y * h + 4 + r() * (h - 8), w, 1);
+        g.fillStyle = "rgba(100,72,42,0.26)";
+        g.fillRect(x, y * h, 1.5, h);
+        x += w;
+      }
+      g.fillStyle = "rgba(100,72,42,0.22)";
+      g.fillRect(0, y * h, size, 1.5);
+    }
+  } else if (finish === "concrete") {
+    // Troweled concrete: soft clouding, fine aggregate, and saw cuts every three meters
+    tile = 6;
+    g.fillStyle = "#d1ccc3";
+    g.fillRect(0, 0, size, size);
+    for (let i = 0; i < 60; i++) {
+      const x = r() * size;
+      const y = r() * size;
+      const rad = 40 + r() * 110;
+      const dark = r() < 0.5;
+      for (const dx of [-size, 0, size])
+        for (const dy of [-size, 0, size]) {
+          const grd = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rad);
+          grd.addColorStop(0, dark ? "rgba(90,80,70,0.07)" : "rgba(255,255,255,0.09)");
+          grd.addColorStop(1, "rgba(0,0,0,0)");
+          g.fillStyle = grd;
+          g.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2);
+        }
+    }
+    for (let i = 0; i < 16000; i++) {
+      g.fillStyle = `rgba(${r() < 0.5 ? "255,255,255" : "70,62,55"},${0.03 + r() * 0.05})`;
+      g.fillRect(r() * size, r() * size, 1.5, 1.5);
+    }
+    g.fillStyle = "rgba(70,60,50,0.22)";
+    for (const k of [0, size / 2]) {
+      g.fillRect(k, 0, 1.5, size);
+      g.fillRect(0, k, size, 1.5);
+    }
   } else if (finish === "grass") {
     tile = 6;
     g.fillStyle = "#b7c2a3";
@@ -323,15 +352,14 @@ function finishTexture(finish: Shell["finish"]) {
       g.fillRect(r() * size, r() * size, 2, 2 + r() * 3);
     }
   } else {
-    const concrete = finish === "concrete";
-    tile = concrete ? 6 : 2.4;
-    g.fillStyle = concrete ? "#d3cfc6" : "#e4dac8";
+    tile = 2.4;
+    g.fillStyle = "#e4dac8";
     g.fillRect(0, 0, size, size);
     for (let i = 0; i < 14000; i++) {
       g.fillStyle = `rgba(${r() < 0.5 ? "255,255,255" : "80,70,60"},${0.02 + r() * 0.04})`;
       g.fillRect(r() * size, r() * size, 2, 2);
     }
-    g.strokeStyle = concrete ? "rgba(80,70,60,0.14)" : "rgba(120,100,75,0.24)";
+    g.strokeStyle = "rgba(120,100,75,0.24)";
     g.lineWidth = 2;
     const n = 2;
     for (let i = 0; i <= n; i++) {
@@ -346,6 +374,7 @@ function finishTexture(finish: Shell["finish"]) {
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(1 / tile, 1 / tile);
+  if (finish === "walnut") t.rotation = Math.PI / 4;
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;
   return t;
@@ -365,7 +394,7 @@ function Room({ shell, view }: { shell: Shell; view: ViewRef }) {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <primitive object={floor} attach="geometry" />
-        <meshStandardMaterial map={tex} roughness={shell.finish === "concrete" ? 0.6 : 0.85} />
+        <meshStandardMaterial map={tex} roughness={shell.finish === "concrete" ? 0.55 : shell.finish === "walnut" ? 0.6 : 0.85} />
       </mesh>
       <Slab outline={outline} />
       {walls.map((s, i) => (
@@ -398,6 +427,7 @@ function Room({ shell, view }: { shell: Shell; view: ViewRef }) {
         </Run>
       )}
       {fixed.trees && <Trees trees={fixed.trees} view={view} />}
+      <Decor decor={shell.decor} />
     </group>
   );
 }
@@ -714,9 +744,10 @@ export default function SetupCanvas({
   const full = useMemo(() => makeLayout(setup, spec.max, shell, spec), [setup, shell, spec]);
   const framed = useMemo(() => frameFor(shell, spec, setup, full, preset), [shell, spec, setup, full, preset]);
 
-  // A tapped label flies the camera to it. It belongs to the setup and view it was tapped in, so picking
-  // another of either lets it go without an effect.
+  // A tapped label flies the camera to it. Picking another setup or view drops it for good, so coming
+  // back to the setup it was tapped in shows the setup, not the label.
   const [picked, setPicked] = useState<{ i: number; setup: Setup; preset: Preset } | null>(null);
+  if (picked && (picked.setup !== setup || picked.preset !== preset)) setPicked(null);
   const focus = picked && picked.setup === setup && picked.preset === preset ? picked.i : null;
 
   const geo = useMemo(
@@ -790,7 +821,8 @@ export default function SetupCanvas({
         <Pool items={layout.highs} max={40} geometry={geo.high} color={col.cloth} />
         <Pool items={layout.people} max={MAX_FIGURES} geometry={geo.person} color="#fff" palette={guestColors} from={entry} rate={2.6} sway vary={figure} />
         <Pool items={layout.sofas} max={40} geometry={geo.sofa} color={col.sofa} />
-        {f.stage && <Toggle r={f.stage} h={f.stage.always ? 0.6 : 0.24} on={layout.stage} color={col.stage} />}
+        {f.stage && <Toggle r={f.stage} h={f.stage.always ? 0.6 : 0.24} on={layout.stage} color={shell.outdoor ? col.wood : col.stage} />}
+        {f.stage?.always && shell.outdoor && <Canopy r={f.stage} />}
         {(f.bars ?? []).map((r, i) => (
           <Toggle key={i} r={r} h={1} on={!!r.always || layout.bar} color={col.wood} counter />
         ))}

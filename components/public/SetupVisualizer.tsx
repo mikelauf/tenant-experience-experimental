@@ -12,6 +12,7 @@ import { readSpace, spaceQuery } from "@/lib/setup/share";
 import { shellBounds } from "@/lib/setup/shell";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
+import { Tower } from "@/components/three/Tower";
 import { windowFor, type Preset } from "@/components/three/setup/camera";
 import { makeLayout, perFigure } from "@/components/three/setup/layouts";
 import { Button, ButtonLink } from "@/components/ui/Button";
@@ -300,6 +301,7 @@ export function SetupVisualizer({
   north,
   shareable,
   slug,
+  building,
 }: {
   shell: Shell;
   setups: Partial<Record<Setup, SetupSpec>>;
@@ -325,6 +327,8 @@ export function SetupVisualizer({
   shareable?: boolean;
   /** The venue, for "Make a brief" */
   slug?: string;
+  /** The room's floor, to offer "3D render": the 3D tower with that floor lit, in place of the room */
+  building?: { level: number; name: string };
 }) {
   const keys = Object.keys(setups) as Setup[];
   const [inner, setInner] = useState<Setup>(keys[0]);
@@ -338,10 +342,23 @@ export function SetupVisualizer({
   // Look out from here: the camera walks to the window facing the view, then the view photo fades in
   const lookout = useMemo(() => (views?.length && viewBearing != null ? windowFor(shell, viewBearing, north) : null), [views, viewBearing, north, shell]);
   const [looking, setLooking] = useState(false);
+  // In the building: the tower takes over the stage. It mounts on first ask and stays, paused, after that.
+  const [inBuilding, setInBuilding] = useState(false);
+  const [builtOnce, setBuiltOnce] = useState(false);
+  const [towerUp, setTowerUp] = useState(false);
+  const showBuilding = () => {
+    setInBuilding(true);
+    setBuiltOnce(true);
+    setLooking(false);
+    setSeen(false);
+    setCovered(false);
+    setChanged(true);
+  };
   const [seen, setSeen] = useState(false);
   // Once the photo fully covers the stage, the 3D behind it stops drawing
   const [covered, setCovered] = useState(false);
   const lookOut = () => {
+    setInBuilding(false);
     setLooking(true);
     setChanged(true);
     if (reduce) setSeen(true);
@@ -369,6 +386,7 @@ export function SetupVisualizer({
   }
   const setPreset = (p: Preset) => {
     setPresetRaw(p);
+    setInBuilding(false);
     setLooking(false);
     setSeen(false);
     setCovered(false);
@@ -386,6 +404,11 @@ export function SetupVisualizer({
         setLooking(true);
         if (reduce) setSeen(true);
       }
+    } else if (s.view === "building") {
+      if (building) {
+        setInBuilding(true);
+        setBuiltOnce(true);
+      }
     } else setPresetRaw(s.view);
     /* eslint-enable react-hooks/set-state-in-effect */
     // Arrival only
@@ -398,11 +421,11 @@ export function SetupVisualizer({
   useEffect(() => {
     if (!shareable || !changed) return;
     const t = setTimeout(() => {
-      const q = spaceQuery({ setup, guests: shown, view: looking ? "window" : preset });
+      const q = spaceQuery({ setup, guests: shown, view: inBuilding ? "building" : looking ? "window" : preset });
       window.history.replaceState(null, "", `${window.location.pathname}?${q}${window.location.hash}`);
     }, 250);
     return () => clearTimeout(t);
-  }, [shareable, changed, setup, shown, preset, looking]);
+  }, [shareable, changed, setup, shown, preset, looking, inBuilding]);
 
   const min = spec.min ?? Math.min(10, spec.max);
   const step = spec.max >= 500 ? 10 : 1;
@@ -550,7 +573,7 @@ export function SetupVisualizer({
           setup={setup}
           guests={deferred}
           preset={preset}
-          active={active && !covered}
+          active={active && !covered && !(inBuilding && towerUp)}
           onReady={onReady}
           onInteract={() => setTouched(true)}
           look={looking ? lookout : null}
@@ -563,8 +586,41 @@ export function SetupVisualizer({
   // Camera views, floating over the stage. Hidden without motion, where the flat plan stands in.
   const cameraViews = (
     <>
+      {building && builtOnce && (
+        <div
+          className={cn(
+            "absolute inset-0 overflow-hidden bg-[radial-gradient(120%_90%_at_60%_0%,#3a4d66_0%,#141a21_55%,#0b0e12_100%)] transition-opacity duration-700",
+            inBuilding ? "opacity-100" : "pointer-events-none opacity-0",
+          )}
+          aria-hidden={!inBuilding}
+          onTransitionEnd={(e) => e.target === e.currentTarget && setTowerUp(inBuilding)}
+        >
+          <Tower
+            level={building.level}
+            sun={0.32}
+            landmarks
+            whole
+            zoom={building.level >= 15 ? 0.8 : 1.2}
+            paused={!inBuilding}
+            className="absolute inset-0"
+            // The park is outlined and its own places are pinned; a floor gets a label
+            hotspots={building.level > 0 ? [{ id: "here", level: building.level }] : undefined}
+            renderHotspot={() => (
+              <span className="-ml-[5px] flex items-center">
+                <span className="keep-round size-2.5 rounded-full bg-accent-glow shadow-[0_0_0_3px_rgb(0_0_0/0.25)]" />
+                <span className="h-px w-5 bg-moon/50" />
+                <span className="flex h-7 items-center gap-2 whitespace-nowrap rounded-full bg-accent pl-2.5 pr-3 text-[0.75rem] font-medium text-paper shadow-[0_8px_24px_-8px_rgb(0_0_0/0.6)]">
+                  <span className="t-num text-[0.8125rem] text-paper/80">{building.level}</span>
+                  {building.name}
+                </span>
+              </span>
+            )}
+            poster={null}
+          />
+        </div>
+      )}
       <AnimatePresence>{seen && views && <WindowView key="window" views={views} onBack={back} onCovered={() => setCovered(true)} />}</AnimatePresence>
-      {lookout && !looking && (
+      {lookout && !looking && !inBuilding && (
         <button
           onClick={lookOut}
           className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-[0.8125rem] font-medium text-paper shadow-[var(--shadow-soft)] transition-transform hover:scale-[1.03] sm:right-4 sm:top-4"
@@ -582,17 +638,31 @@ export function SetupVisualizer({
           <button
             key={p.id}
             role="radio"
-            aria-checked={preset === p.id && !looking}
+            aria-checked={preset === p.id && !looking && !inBuilding}
             onClick={() => setPreset(p.id)}
             className={cn(
               "relative whitespace-nowrap rounded-full px-3 py-1.5 text-[0.8125rem] font-medium transition-colors duration-300 sm:px-3.5",
-              preset === p.id && !looking ? "text-paper" : "text-stone hover:text-ink",
+              preset === p.id && !looking && !inBuilding ? "text-paper" : "text-stone hover:text-ink",
             )}
           >
-            {preset === p.id && !looking && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
+            {preset === p.id && !looking && !inBuilding && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
             <span className="relative">{p.label}</span>
           </button>
         ))}
+        {building && (
+          <button
+            role="radio"
+            aria-checked={inBuilding}
+            onClick={showBuilding}
+            className={cn(
+              "relative whitespace-nowrap rounded-full px-3 py-1.5 text-[0.8125rem] font-medium transition-colors duration-300 sm:px-3.5",
+              inBuilding ? "text-paper" : "text-stone hover:text-ink",
+            )}
+          >
+            {inBuilding && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
+            <span className="relative">3D render</span>
+          </button>
+        )}
       </div>
       <p
         className={cn(

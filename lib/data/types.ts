@@ -78,7 +78,41 @@ export type Shell = {
   streets?: { n?: string; s?: string; e?: string; w?: string };
   outdoor?: boolean;
   /** Floor finish, for the 3D view */
-  finish?: "oak" | "stone" | "concrete" | "grass";
+  finish?: "oak" | "walnut" | "ash" | "stone" | "concrete" | "grass";
+  /** What dresses the room in the 3D view. Anything that stands on the floor also keeps furniture clear. */
+  decor?: Decor;
+};
+
+/** Set dressing for a shell's 3D view, in the shell's meters. */
+export type Decor = {
+  /** Potted plants */
+  plants?: [number, number][];
+  /** Rugs or carpet, laid flat */
+  rugs?: (Rect & { color?: string })[];
+  /** A standing lounge: rug, two facing sofas and a coffee table, turned to the rect's long side */
+  lounges?: Rect[];
+  /** A table with chairs down its long sides, for rooms the setups don't use */
+  boards?: Rect[];
+  /** Display plinths with a piece on top */
+  plinths?: Rect[];
+  /** Freestanding exhibit walls along a line, framed pieces hung on both faces */
+  art?: Seg[];
+  /** Pendant lights hung along a line */
+  pendants?: Seg[];
+  /** Back-bar shelving with bottles */
+  shelves?: Rect[];
+  /** Serving counters: buffets, catering lines */
+  counters?: Rect[];
+  /** Paved paths over grass */
+  paths?: Rect[];
+  /** Benches, turned to the rect's long side */
+  benches?: Rect[];
+  /** Lamp posts */
+  lamps?: [number, number][];
+  /** A round fountain basin */
+  fountain?: Rect;
+  /** A row of food trucks along the rect's long side */
+  trucks?: Rect;
 };
 
 /** One setup on a venue: its most guests, the zone it fills, and whether it's traced from the building's own plan. */

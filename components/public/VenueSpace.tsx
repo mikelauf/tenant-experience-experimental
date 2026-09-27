@@ -9,9 +9,10 @@ import { SetupVisualizer } from "./SetupVisualizer";
 /**
  * "The space": the venue in one place, near the top of its page. The 3D room set for an event leads,
  * with its controls in one rail (setup, guests, inquiry). The building's floor plan rides under the
- * inquiry card, and the photos just above point out what's in them.
+ * inquiry card, and the photos just above point out what's in them. "3D render" swaps the room for
+ * the tower with this floor lit, so where it sits is answered here rather than on the explorer.
  */
-export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing"> }) {
+export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing" | "level"> }) {
   const { tower } = useTenant();
   const inquire = useInquire();
   const [guests] = useSharedGuests();
@@ -23,7 +24,7 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         The space
       </h2>
       <p className="t-body mt-2 max-w-[62ch] text-stone">
-        {v.name}, traced from the building&apos;s plan. Pick a setup, drag the guest count, turn the room, tap a label to look closer, or look out from the windows.
+        {v.name}, traced from the building&apos;s plan. Pick a setup, drag the guest count, turn the room, look out from the windows, or step back to see where it sits in the building.
       </p>
 
       <SetupVisualizer
@@ -40,6 +41,7 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         north={tower.north}
         shareable
         slug={v.slug}
+        building={{ level: v.level, name: v.name.replace(/^Transamerica /, "") }}
         footnote={
           v.layout.illustrative
             ? "Illustrative. Traced from the building's plan; capacities are estimates until the events team confirms your plan."

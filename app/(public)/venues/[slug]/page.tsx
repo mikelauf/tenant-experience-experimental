@@ -57,10 +57,12 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
               </div>
             )}
           </Reveal>
-          {/* Where it is in the building, in the column beside the introduction */}
-          <Reveal delay={0.1} className="col-span-12 mt-12 lg:col-span-3 lg:col-start-10 lg:mt-0">
-            <TowerLocator v={{ slug: v.slug, name: v.name, level: v.level }} />
-          </Reveal>
+          {/* Where it is in the building, for a venue with no room to show; otherwise "The space" answers it */}
+          {!v.layout && (
+            <Reveal delay={0.1} className="col-span-12 mt-12 lg:col-span-3 lg:col-start-10 lg:mt-0">
+              <TowerLocator v={{ slug: v.slug, name: v.name, level: v.level }} />
+            </Reveal>
+          )}
         </div>
 
         {/* The rest of the photographs, right after the introduction: the mood before the plan */}
@@ -70,7 +72,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           </section>
         )}
 
-        <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout, views: v.views, viewBearing: v.viewBearing }} />
+        <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout, views: v.views, viewBearing: v.viewBearing, level: v.level }} />
 
         <div className="frame grid-12 mt-16 gap-y-16 lg:mt-24">
           <div className="col-span-12 flex flex-col gap-16 lg:col-span-7">
