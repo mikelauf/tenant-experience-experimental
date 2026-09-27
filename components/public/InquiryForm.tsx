@@ -18,6 +18,7 @@ import type { Setup } from "@/lib/data/types";
 import { isDemo } from "@/lib/flags";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { DatePicker, formatDate } from "./DatePicker";
 import { GuestStepper } from "./GuestStepper";
@@ -176,7 +177,14 @@ const EVENT_PHRASE: Record<string, string> = {
   "Something else": "an event",
 };
 
-export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string; time?: string; layout?: string; setup?: string } }) {
+export type InquiryInitial = { venue?: string; guests?: string; date?: string; time?: string; layout?: string; setup?: string };
+
+/**
+ * `onClose` puts the form in a modal over a venue's page: the focused card without its page backdrop,
+ * a close button in its header, and the confirmation shown in place instead of on its own page.
+ */
+export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onClose?: () => void }) {
+  const modal = !!onClose;
   const tenant = useTenant();
   const { venues: all, publicHost: host, building, copy } = tenant;
   const router = useRouter();
@@ -206,9 +214,12 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     news: false,
   });
   // Focused is the inquiry; ?layout= still opens the other explorations.
-  const layout: InquiryLayout = isLayout(initial.layout) ? initial.layout : "focused";
-  const [step, setStep] = useState(0);
-  const [reached, setReached] = useState(0);
+  const layout: InquiryLayout = modal ? "focused" : isLayout(initial.layout) ? initial.layout : "focused";
+  // A date and a headcount already chosen on the venue's page count as the first step answered
+  const start = layout !== "sentence" && v.date && v.guests ? 1 : 0;
+  const [step, setStep] = useState(start);
+  const [reached, setReached] = useState(start);
+  const [sent, setSent] = useState<{ ref: string; preview: boolean } | null>(null);
   const [errors, setErrors] = useState<Errors>({});
   const [sending, setSending] = useState(false);
   const [netError, setNetError] = useState(false);
@@ -353,6 +364,11 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
             date: body.date,
             eventType: body.eventType || undefined,
           });
+        if (modal) {
+          setSent({ ref: result.inquiry_reference, preview: !!result.preview });
+          setSending(false);
+          return;
+        }
         const q = new URLSearchParams({ ref: result.inquiry_reference, venue: venues.join(",") });
         if (result.preview) q.set("preview", "1");
         router.push(`/venues/inquire/sent?${q}`);
@@ -844,81 +860,127 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
 
   if (layout === "focused") {
     const answered = rows.filter((r) => r.val && r.s !== step);
-    return (
-      <div className="relative isolate">
-        {/* The chosen space, blurred wide behind everything, so the card sits in its light */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+    const card = (
+      <form
+        {...formProps}
+        className={cn(
+          "relative bg-paper",
+          modal
+            ? "rounded-t-[28px] lg:rounded-[28px]"
+            : "mx-auto max-w-[580px] scroll-mt-[calc(var(--nav-h)+16px)] rounded-[28px] shadow-[var(--shadow-float),var(--shadow-ring)] lg:max-w-[720px]",
+        )}
+      >
+        {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
+        <div className={cn("theme-night relative overflow-hidden rounded-t-[28px] bg-night", modal ? "h-[184px] sm:h-[208px]" : "h-[208px] sm:h-[232px]")}>
           <AnimatePresence initial={false}>
             <motion.div
               key={hero.src}
-              className="absolute -inset-16"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.55 }}
+              className="absolute inset-0"
+              initial={{ opacity: 0, scale: 1.08 }}
+              animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
             >
-              <Image src={hero.src} alt="" fill sizes="40vw" className="scale-110 object-cover blur-[72px] saturate-[1.3]" />
+              <Image src={hero.src} alt="" fill sizes="(min-width:1024px) 720px, 580px" className="object-cover" style={{ objectPosition: hero.pos }} />
             </motion.div>
           </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-b from-quartz/40 via-quartz/70 to-quartz" />
+          <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-5 sm:px-8">
+            {modal ? (
+              <h2 id={id("title")} className="t-meta !text-moon/85">
+                Event inquiry
+              </h2>
+            ) : (
+              <h1 className="t-meta !text-moon/85">Event inquiry</h1>
+            )}
+            <span className="flex items-center gap-2">
+              <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
+                {sent ? "Sent" : `${step + 1} / ${STEPS.length}`}
+              </span>
+              {modal && (
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close"
+                  className="-mr-1.5 grid size-9 place-items-center rounded-full bg-white/15 text-moon backdrop-blur-md transition-colors hover:bg-white/25"
+                >
+                  <Icon name="close" size={18} />
+                </button>
+              )}
+            </span>
+          </div>
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.p
+                key={title}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="t-h2 text-moon"
+              >
+                {title}
+              </motion.p>
+            </AnimatePresence>
+            <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
+              {answered.map((r) => (
+                <button
+                  key={r.k}
+                  type="button"
+                  onClick={() => go(r.s)}
+                  disabled={!!sent}
+                  title={sent ? undefined : `Edit ${r.k.toLowerCase()}`}
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25 disabled:hover:bg-white/15"
+                >
+                  {r.val}
+                </button>
+              ))}
+              {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
+            </div>
+          </div>
         </div>
 
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-          <form
-            {...formProps}
-            className="relative mx-auto max-w-[580px] lg:max-w-[720px] scroll-mt-[calc(var(--nav-h)+16px)] rounded-[28px] bg-paper shadow-[var(--shadow-float),var(--shadow-ring)]"
+        {sent ? (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="px-5 pb-8 pt-8 sm:px-8"
+            role="status"
           >
-            {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
-            <div className="theme-night relative h-[208px] overflow-hidden rounded-t-[28px] bg-night sm:h-[232px]">
-              <AnimatePresence initial={false}>
-                <motion.div
-                  key={hero.src}
-                  className="absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.08 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+            <motion.span
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
+              className="grid size-14 place-items-center rounded-full bg-accent text-paper"
+            >
+              <Icon name="check" size={26} strokeWidth={2} />
+            </motion.span>
+            <p className="t-h2 mt-6">{sent.preview ? "Preview complete." : "Inquiry received."}</p>
+            <p className="t-body mt-3 max-w-[46ch] text-stone">
+              {sent.preview
+                ? "It was checked but not sent, so no one on the events team has received it. On the live site, they'd now follow up by email."
+                : `${host ? `${host.name.split(" ")[0]} and the events team` : "The events team"} will follow up at ${v.email.trim()}. Nothing is reserved until you say so.`}
+            </p>
+            <p className="mt-5 inline-flex items-center gap-3 rounded-full bg-quartz px-4 py-2 shadow-[var(--shadow-ring)]">
+              <span className="t-meta">Reference</span>
+              <span className="t-num font-medium">{sent.ref}</span>
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Button onClick={onClose}>Done</Button>
+              {chosen.length > 0 && (
+                <ButtonLink
+                  href={briefHref({ venues: chosen.map((x) => x.slug), guests: Number(v.guests) || undefined, date: v.date || undefined, time: v.time || undefined })}
+                  variant="outline"
+                  icon="share"
                 >
-                  <Image src={hero.src} alt="" fill sizes="(min-width:1024px) 720px, 580px" className="object-cover" style={{ objectPosition: hero.pos }} />
-                </motion.div>
-              </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
-              <div className="absolute inset-x-0 top-0 flex items-center justify-between p-5 sm:px-8">
-                <h1 className="t-meta !text-moon/85">Event inquiry</h1>
-                <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
-                  {step + 1} / {STEPS.length}
-                </span>
-              </div>
-              <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
-                <AnimatePresence mode="wait" initial={false}>
-                  <motion.p
-                    key={title}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                    className="t-h2 text-moon"
-                  >
-                    {title}
-                  </motion.p>
-                </AnimatePresence>
-                <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
-                  {answered.map((r) => (
-                      <button
-                        key={r.k}
-                        type="button"
-                        onClick={() => go(r.s)}
-                        title={`Edit ${r.k.toLowerCase()}`}
-                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25"
-                      >
-                        {r.val}
-                      </button>
-                    ))}
-                  {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
-                </div>
-              </div>
+                  Share a brief with your team
+                </ButtonLink>
+              )}
             </div>
-
+          </motion.div>
+        ) : (
+          <>
             {/* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */}
             <ol className="grid grid-cols-4 gap-2 px-5 pt-6 sm:px-8" aria-label="Inquiry steps">
               {STEPS.map((st, k) => (
@@ -951,10 +1013,23 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
               ))}
             </ol>
 
-            <div className="px-5 pb-8 pt-7 sm:px-8">{fieldset}</div>
+            <div className="px-5 pb-8 pt-7 sm:px-8">
+              {fieldset}
+              {modal && isDemo && step === 3 && (
+                <label className="t-meta mt-6 flex cursor-pointer items-center gap-2">
+                  <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
+                  Demo: simulate a connection error
+                </label>
+              )}
+            </div>
 
             {/* Actions live in the card; on long steps they stick to the bottom of the screen */}
-            <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 rounded-b-[28px] border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5">
+            <div
+              className={cn(
+                "sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5",
+                modal ? "lg:rounded-b-[28px]" : "rounded-b-[28px]",
+              )}
+            >
               {backButton}
               <button
                 type="submit"
@@ -974,7 +1049,33 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                 )}
               </button>
             </div>
-          </form>
+          </>
+        )}
+      </form>
+    );
+    if (modal) return card;
+
+    return (
+      <div className="relative isolate">
+        {/* The chosen space, blurred wide behind everything, so the card sits in its light */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={hero.src}
+              className="absolute -inset-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.55 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Image src={hero.src} alt="" fill sizes="40vw" className="scale-110 object-cover blur-[72px] saturate-[1.3]" />
+            </motion.div>
+          </AnimatePresence>
+          <div className="absolute inset-0 bg-gradient-to-b from-quartz/40 via-quartz/70 to-quartz" />
+        </div>
+
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
+          {card}
         </motion.div>
         {isDemo && step === 3 && (
           <label className="t-meta mx-auto mt-4 flex max-w-[580px] lg:max-w-[720px] cursor-pointer items-center justify-end gap-2">

@@ -2,6 +2,7 @@
 
 import type { Venue } from "@/lib/data/types";
 import { useTenant } from "@/lib/tenants/client";
+import { useInquire } from "./InquiryModal";
 import { SetupVisualizer } from "./SetupVisualizer";
 
 /**
@@ -11,6 +12,7 @@ import { SetupVisualizer } from "./SetupVisualizer";
  */
 export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing"> }) {
   const { tower } = useTenant();
+  const inquire = useInquire();
   if (!v.layout) return null;
 
   return (
@@ -29,6 +31,7 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         setups={v.layout.setups}
         title={v.sqft ? `${v.name} · ${v.sqft.toLocaleString("en-US")} sq ft` : v.name}
         inquireHref={`/venues/inquire?venue=${v.slug}`}
+        onInquire={inquire ? ({ guests, setup }) => inquire({ venue: v.slug, guests: String(guests), setup }) : undefined}
         views={v.views}
         viewBearing={v.viewBearing}
         north={tower.north}

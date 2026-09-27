@@ -14,7 +14,7 @@ import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
 import { windowFor, type Preset } from "@/components/three/setup/camera";
 import { makeLayout, perFigure } from "@/components/three/setup/layouts";
-import { ButtonLink } from "@/components/ui/Button";
+import { Button, ButtonLink } from "@/components/ui/Button";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { compass } from "@/lib/format";
@@ -118,6 +118,12 @@ const presets: { id: Preset; label: string }[] = [
   { id: "close", label: "Close-up" },
   { id: "top", label: "Top-down" },
 ];
+
+/** Where the slider starts: half the setup's most, on its step, so a big room doesn't open with its whole crowd. */
+function startAt(spec: SetupSpec) {
+  const step = spec.max >= 500 ? 10 : 1;
+  return Math.max(spec.min ?? Math.min(10, spec.max), Math.round(spec.max / 2 / step) * step);
+}
 
 /** How full the room reads at this count, against the setup's most guests. */
 function fullness(guests: number, max: number) {
@@ -287,6 +293,7 @@ export function SetupVisualizer({
   footnote = "Illustrative layout. Our events team confirms the final plan with you.",
   variant = "stacked",
   inquireHref,
+  onInquire,
   views,
   viewBearing,
   north,
@@ -303,6 +310,8 @@ export function SetupVisualizer({
   variant?: "stacked" | "split";
   /** Inquiry link; the guest count and setup are added to it */
   inquireHref?: string;
+  /** Opens the inquiry in place with the guest count and setup; wins over `inquireHref` */
+  onInquire?: (q: { guests: number; setup: Setup }) => void;
   /** The venue's view photos, for "Look out from here" */
   views?: ViewPhoto[];
   /** Which way the best view faces (degrees from true north), to pick the window */
@@ -318,7 +327,7 @@ export function SetupVisualizer({
   const [inner, setInner] = useState<Setup>(keys[0]);
   const setup = value && setups[value] ? value : inner;
   const spec = setups[setup]!;
-  const [guests, setGuests] = useState(spec.max);
+  const [guests, setGuests] = useState(() => startAt(spec));
   const [preset, setPresetRaw] = useState<Preset>("close");
   const [touched, setTouched] = useState(false);
   const reduce = useReducedMotion();
@@ -391,13 +400,13 @@ export function SetupVisualizer({
   const per = standing(setup) ? perFigure(deferred) : 1;
   const full = fullness(shown, spec.max);
 
-  // At the most a setup holds, switching follows the new setup's most; otherwise the count carries over.
+  // At the starting count or the most a setup holds, switching follows the new setup's; otherwise the count carries over.
   const split = variant === "split";
 
   const choose = (s: Setup) => {
     const next = setups[s]!;
     setChanged(true);
-    setGuests((g) => (g >= spec.max ? next.max : Math.max(next.min ?? Math.min(10, next.max), Math.min(g, next.max))));
+    setGuests((g) => (g === startAt(spec) ? startAt(next) : g >= spec.max ? next.max : Math.max(next.min ?? Math.min(10, next.max), Math.min(g, next.max))));
     setPreset("close");
     if (onChange) onChange(s);
     else setInner(s);
@@ -516,7 +525,7 @@ export function SetupVisualizer({
 
   const stage = (
     <Lazy3D
-      className={cn("w-full", split ? "aspect-square sm:aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[600px]" : "aspect-[16/10]")}
+      className={cn("w-full", split ? "aspect-[4/5] sm:aspect-[4/3] lg:aspect-auto lg:h-full" : "aspect-[16/10]")}
       eager
       poster={
         <div className="flex h-full items-center justify-center p-6">
@@ -589,20 +598,30 @@ export function SetupVisualizer({
     </>
   );
 
-  const cta = inquireHref && (
+  const cta = onInquire ? (
+    <Button onClick={() => onInquire({ guests: shown, setup })} variant="accent" icon="arrow-right" className="w-full">
+      Inquire for {shown.toLocaleString("en-US")} guests
+    </Button>
+  ) : inquireHref && (
     <ButtonLink href={`${inquireHref}${inquireHref.includes("?") ? "&" : "?"}guests=${shown}&setup=${setup}`} variant="accent" icon="arrow-right" className="w-full">
       Inquire for {shown.toLocaleString("en-US")} guests
     </ButtonLink>
   );
 
   if (split) {
+    // Wide screens: most of a screen tall (short of it, so the section still reads as part of the page)
     return (
-      <div className={cn("grid overflow-hidden rounded-[var(--radius-media)] bg-paper shadow-[var(--shadow-ring)] lg:grid-cols-[minmax(0,1fr)_340px]", className)}>
+      <div
+        className={cn(
+          "grid overflow-hidden rounded-[var(--radius-media)] bg-paper shadow-[var(--shadow-ring)] lg:h-[clamp(680px,calc(100svh-var(--nav-h)-72px),960px)] lg:grid-cols-[minmax(0,1fr)_340px]",
+          className,
+        )}
+      >
         <div className="relative min-w-0 bg-[radial-gradient(ellipse_at_50%_40%,var(--color-paper),var(--color-quartz))]">
           {stage}
           {cameraViews}
         </div>
-        <div className="flex flex-col gap-6 border-t hairline p-5 sm:p-7 lg:border-l lg:border-t-0">
+        <div data-lenis-prevent className="flex flex-col gap-6 border-t hairline p-5 sm:p-7 lg:min-h-0 lg:overflow-y-auto lg:border-l lg:border-t-0">
           {list}
           {count}
           {slider}

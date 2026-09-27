@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { Venue } from "@/lib/data/types";
 import { guestsLabel, maxCap } from "@/lib/data/shared";
@@ -8,16 +7,10 @@ import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { DatePicker } from "./DatePicker";
 import { GuestStepper } from "./GuestStepper";
+import { InquireLink } from "./InquiryModal";
 import { HeartButton } from "./VenueCard";
 
-function href(v: Venue, guests: string, date: string) {
-  const q = new URLSearchParams({ venue: v.slug });
-  if (guests) q.set("guests", guests);
-  if (date) q.set("date", date);
-  return `/venues/inquire?${q}`;
-}
-
-/** Side card on desktop (the page's column keeps it in view); a bottom bar on phones. Hands its values to the inquiry form. */
+/** Side card on desktop (the page's column keeps it in view); a bottom bar on phones. Hands its values to the inquiry, which opens over the page. */
 export function InquireCard({ v }: { v: Venue }) {
   const cap = maxCap(v);
   const [guests, setGuests] = useState(String(cap ? Math.max(10, Math.round((cap * 0.6) / 10) * 10) : 40));
@@ -58,13 +51,13 @@ export function InquireCard({ v }: { v: Venue }) {
               : `Within ${v.name}'s capacity of ${cap.toLocaleString("en-US")}.`}
         </p>
 
-        <Link
-          href={href(v, guests, date)}
+        <InquireLink
+          initial={{ venue: v.slug, guests, date }}
           className="mt-5 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep"
         >
           Continue inquiry
           <Icon name="arrow-right" size={18} />
-        </Link>
+        </InquireLink>
         <p className="t-meta mt-3 text-center">An inquiry starts a conversation with the events team.</p>
       </aside>
 
@@ -74,9 +67,9 @@ export function InquireCard({ v }: { v: Venue }) {
             <p className="truncate font-medium">{v.name}</p>
             <p className="t-meta">{guestsLabel(v)}</p>
           </div>
-          <Link href={href(v, "", "")} className="flex h-12 shrink-0 items-center rounded-full bg-accent px-6 font-medium text-paper">
+          <InquireLink initial={{ venue: v.slug }} className="flex h-12 shrink-0 items-center rounded-full bg-accent px-6 font-medium text-paper">
             Inquire
-          </Link>
+          </InquireLink>
         </div>
       </div>
     </>
