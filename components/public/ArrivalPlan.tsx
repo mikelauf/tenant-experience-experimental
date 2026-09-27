@@ -18,6 +18,8 @@ function pts(flat: number[]) {
   for (let i = 0; i + 1 < flat.length; i += 2) out.push(`${flat[i]},${flat[i + 1]}`);
   return out.join(" ");
 }
+/** The plan's own palette: land a step darker than the page, white streets with a fine edge, a green park, the tower in ink */
+const MAP = { land: "#e6e2d9", building: "#d4cfc4", buildingEdge: "#c3bcae", roadEdge: "#cbc4b6", road: "#ffffff", park: "#bccfae", tree: "#6a8a60" };
 const mapsUrl = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 
 /**
@@ -62,13 +64,13 @@ export function ArrivalPlan({ intro }: { intro: React.ReactNode }) {
   const outline = p.park?.outline?.flat();
 
   return (
-    <div className="grid-12 gap-y-10">
+    <div className="grid-12 gap-y-10 lg:grid-rows-[auto_1fr]">
       <div className="col-span-12 lg:col-span-5 lg:row-start-1 xl:col-span-4">{intro}</div>
 
       {/* The plan: beside the text on wide screens, held in view while the list beside it scrolls */}
       <div className="col-span-12 lg:col-span-7 lg:col-start-6 lg:row-span-2 lg:row-start-1 xl:col-span-8 xl:col-start-5">
         <div className="lg:sticky lg:top-[calc(var(--nav-h)+24px)]">
-          <div ref={frame} className="relative overflow-hidden rounded-[var(--radius-media)] bg-paper shadow-[var(--shadow-ring)]">
+          <div ref={frame} className="relative overflow-hidden rounded-[var(--radius-media)] shadow-[var(--shadow-ring)]" style={{ background: MAP.land }}>
             <svg
               viewBox={`${VIEW.x} ${VIEW.z} ${VIEW.w} ${VIEW.h}`}
               className="block w-full"
@@ -80,44 +82,38 @@ export function ArrivalPlan({ intro }: { intro: React.ReactNode }) {
               {city?.buildings
                 .filter((b) => inView(b.p))
                 .map((b, i) => (
-                  <polygon key={i} points={pts(b.p)} fill="var(--color-ink)" fillOpacity={0.055} />
+                  <polygon key={i} points={pts(b.p)} fill={MAP.building} stroke={MAP.buildingEdge} strokeWidth={0.015} />
                 ))}
-              {city?.roads
-                .filter((r) => inView(r.p))
-                .map((r, i) => (
-                  <polyline
-                    key={i}
-                    points={pts(r.p)}
-                    fill="none"
-                    stroke="var(--color-quartz)"
-                    strokeWidth={r.w * 1.15}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ))}
+              {/* Streets: every edge first, then every white fill, so crossings join cleanly */}
+              {(["edge", "fill"] as const).map((layer) =>
+                city?.roads
+                  .filter((r) => inView(r.p))
+                  .map((r, i) => (
+                    <polyline
+                      key={`${layer}${i}`}
+                      points={pts(r.p)}
+                      fill="none"
+                      stroke={layer === "edge" ? MAP.roadEdge : MAP.road}
+                      strokeWidth={r.w * 1.15 + (layer === "edge" ? 3 * px : 0)}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )),
+              )}
 
               {/* The park, and its trees where they stand */}
-              {outline && <polygon points={pts(outline)} fill="#8aa287" fillOpacity={0.28} />}
+              {outline && <polygon points={pts(outline)} fill={MAP.park} />}
               {p.park?.plan?.trees.map(([x, z], i) => (
-                <circle key={i} cx={x} cy={z} r={0.065} fill="#5f7a5c" fillOpacity={0.5} />
+                <circle key={i} cx={x} cy={z} r={0.065} fill={MAP.tree} fillOpacity={0.75} />
               ))}
 
               {/* The building from above: a square base, its four faces meeting at the top */}
-              <rect
-                x={-half}
-                y={-half}
-                width={half * 2}
-                height={half * 2}
-                fill="var(--color-paper)"
-                stroke="var(--color-ink)"
-                strokeOpacity={0.55}
-                strokeWidth={0.03}
-              />
+              <rect x={-half} y={-half} width={half * 2} height={half * 2} fill="var(--color-ink)" />
               <path
                 d={`M${-half},${-half} L${half},${half} M${half},${-half} L${-half},${half}`}
-                stroke="var(--color-ink)"
-                strokeOpacity={0.3}
-                strokeWidth={0.02}
+                stroke="var(--color-paper)"
+                strokeOpacity={0.35}
+                strokeWidth={1.5 * px}
               />
 
               {/* Street names along their centrelines */}
@@ -145,9 +141,9 @@ export function ArrivalPlan({ intro }: { intro: React.ReactNode }) {
                     dominantBaseline="central"
                     fontSize={12 * px}
                     letterSpacing={0.4 * px}
-                    fill="var(--color-stone)"
+                    fill="var(--color-ink-2)"
                     // A halo in the paper's color keeps names legible over trees and footprints
-                    stroke="var(--color-paper)"
+                    stroke={MAP.road}
                     strokeWidth={3.5 * px}
                     strokeLinejoin="round"
                     paintOrder="stroke"
