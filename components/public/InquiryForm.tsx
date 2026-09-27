@@ -154,10 +154,22 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     if (errors.venues) setErrors((e) => ({ ...e, venues: undefined }));
   };
 
+  /** The hero's x: out of this inquiry, and off the saved list too, so the hearts everywhere agree */
+  const removeVenue = (slug: string) => {
+    toggleVenue(slug);
+    if (s.shortlist.includes(slug)) actions.toggleShortlist(slug);
+  };
+
   const go = (to: number) => {
     setStep(to);
     setErrors({});
-    requestAnimationFrame(() => top.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+    // Only brings the steps back when they've scrolled out of view above; a step change otherwise leaves the page where it is
+    requestAnimationFrame(() => {
+      const el = top.current;
+      if (!el) return;
+      const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 68;
+      if (modal || el.getBoundingClientRect().top < nav) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
   };
   const next = () => {
     const checks = sentence ? [0, 1, 2] : [step];
@@ -327,9 +339,14 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           <input type="checkbox" checked={v.flexible} onChange={(e) => set("flexible", e.target.checked)} className="size-[18px] accent-[var(--color-ink)]" />
           My dates are flexible
         </label>
-        <label className="flex items-center gap-2 text-[0.9375rem]">
+        <label className="relative flex items-center gap-1.5 text-[0.9375rem]">
           <span className="text-stone">Starting</span>
-          <select value={v.time} onChange={(e) => set("time", e.target.value)} aria-label="Start time (optional)" className="field !h-10 !w-auto !py-0 pr-8">
+          <select
+            value={v.time}
+            onChange={(e) => set("time", e.target.value)}
+            aria-label="Start time (optional)"
+            className="cursor-pointer appearance-none rounded-md bg-transparent py-1 pr-6 font-medium outline-none focus-visible:shadow-[0_0_0_2px_var(--color-ink)]"
+          >
             <option value="">Any time</option>
             {START_TIMES.map((t) => (
               <option key={t} value={t}>
@@ -337,6 +354,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               </option>
             ))}
           </select>
+          <Icon name="chevron-down" size={14} className="pointer-events-none absolute right-0.5 text-stone" />
         </label>
       </div>
     </Field>
@@ -384,12 +402,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               key={o.slug}
               onClick={() => toggleVenue(o.slug)}
               className={cn(
-                "relative flex items-center gap-4 rounded-[var(--radius-card)] bg-paper p-2.5 pr-4 text-left transition-[box-shadow] duration-200",
+                "relative flex items-center gap-4 rounded-[var(--radius-card)] p-2.5 pr-4 text-left transition-[background-color,box-shadow] duration-200",
                 on
-                  ? "shadow-[inset_0_0_0_2px_var(--color-ink)]"
+                  ? "bg-paper shadow-[inset_0_0_0_2px_var(--color-ink)]"
                   : errors.venues
-                    ? "shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
-                    : "shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-stone-2)]",
+                    ? "bg-ink/[0.04] shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
+                    : "bg-ink/[0.04] hover:bg-ink/[0.07]",
               )}
             >
               <span className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-fog">
@@ -403,7 +421,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               <span
                 className={cn(
                   "grid size-5 shrink-0 place-items-center rounded-md border transition-colors",
-                  on ? "border-ink bg-ink text-paper" : "border-line-2",
+                  on ? "border-ink bg-ink text-paper" : "border-stone-2/70 bg-paper",
                 )}
               >
                 {on && <Icon name="check" size={12} strokeWidth={2.5} />}
@@ -692,7 +710,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       >
         <legend className={sentence ? "sr-only" : legendClass}>{sentence ? "Your event" : STEPS[step].title}</legend>
-        {layout === "focused" && step === 0 && <p className="t-small mt-2 max-w-[48ch] text-stone">{LEAD}</p>}
+        {modal && step === 0 && <p className="t-small mt-2 max-w-[48ch] text-stone">{LEAD}</p>}
 
         {sentence ? (
           sentenceStep
@@ -877,42 +895,112 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
     if (!modal) {
       const one = chosen.length === 1 ? chosen[0] : undefined;
-      return (
-        <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
-          {/* The space, as large as the screen allows: it follows the venues picked, and the answers gather on it */}
-          <div className="theme-night relative mt-[var(--nav-h)] h-[300px] overflow-hidden bg-night sm:h-[380px] lg:sticky lg:top-0 lg:mt-0 lg:h-[100svh]">
-            {scene("(min-width:1024px) 55vw, 100vw")}
-            <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-night/5" />
-            <div className="frame absolute inset-x-0 bottom-0 pb-6 lg:pb-12">
-              <h1 className="t-meta !text-moon/80">Event inquiry</h1>
-              {titleText("t-hero mt-2 max-w-[14ch] text-moon")}
-              <p className="t-small mt-3 min-h-5 text-moon/75">
-                {one
-                  ? `${one.levelLabel.replace(/^./, (c) => c.toUpperCase())} · ${guestsShort(one)} guests`
-                  : chosen.length > 1
-                    ? chosen.map((x) => x.name).join(" · ")
-                    : "Four quick steps. No account, nothing reserved."}
-              </p>
-              {rows.some((r) => r.val) && <div className="mt-5 flex flex-wrap gap-1.5">{pills(rows.filter((r) => r.val))}</div>}
+      /** Each venue in the inquiry, with its own x */
+      const venueList = chosen.length > 0 && (
+        <ul aria-label="Venues in this inquiry">
+          {chosen.map((x) => (
+            <li key={x.slug} className="flex items-center gap-3 border-t hairline py-3 first:border-t-0">
+              <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-fog">
+                <Image src={x.hero.src} alt="" fill sizes="48px" className="object-cover" style={{ objectPosition: x.hero.pos }} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">{x.name}</span>
+                <span className="t-meta block first-letter:uppercase">
+                  {x.levelLabel} · {guestsShort(x)}
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => removeVenue(x.slug)}
+                aria-label={`Remove ${x.name} from this inquiry`}
+                className="grid size-9 shrink-0 place-items-center rounded-full text-stone transition-colors hover:bg-fog hover:text-ink"
+              >
+                <Icon name="close" size={16} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      );
+      const noVenue = (
+        <p className="t-small py-4 text-stone">
+          {venues.includes(NOT_SURE) ? "The events team will suggest the right space." : "No venue yet. Pick one on the Where step, or let the team suggest one."}
+        </p>
+      );
+      /* The inquiry so far, beside the form: the space, the venues (each removable) and the answers, which jump back to their step */
+      const summary = (
+        <div className="overflow-hidden rounded-[28px] bg-paper shadow-[var(--shadow-soft)]">
+          <div className="theme-night relative aspect-[16/10] overflow-hidden bg-night">
+            {scene("(min-width:1024px) 34vw, 100vw")}
+            <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/40 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+              <p className="t-small font-medium text-moon/85 first-letter:uppercase">{one ? one.levelLabel : "Your inquiry"}</p>
+              {titleText("t-h2 mt-1 text-moon")}
             </div>
           </div>
+          <div className="px-5 pb-3 sm:px-6">
+            <div className="pt-2">{venueList || noVenue}</div>
+            <dl className="border-t hairline py-2">
+              {rows
+                .filter((r) => r.k !== "Where")
+                .map((r) => (
+                  <div key={r.k} className="flex items-baseline justify-between gap-4 py-2.5">
+                    <dt className="t-small text-stone">{r.k}</dt>
+                    <dd className="text-right text-[0.9375rem]">
+                      {r.val ? (
+                        <button
+                          type="button"
+                          onClick={() => r.s <= reached && go(r.s)}
+                          disabled={r.s > reached}
+                          className="font-medium underline-offset-2 hover:underline disabled:no-underline"
+                        >
+                          {r.val}
+                        </button>
+                      ) : (
+                        <span className="text-stone-2">—</span>
+                      )}
+                    </dd>
+                  </div>
+                ))}
+            </dl>
+          </div>
+        </div>
+      );
 
-          <form {...formProps} className="relative flex min-h-[calc(100svh-var(--nav-h))] scroll-mt-[var(--nav-h)] flex-col lg:min-h-[100svh]">
-            <div className="frame flex-1 pb-10 pt-8 lg:px-[clamp(40px,5vw,96px)] lg:pt-[calc(var(--nav-h)+56px)]">
-              <div className="max-w-[600px]">
+      return (
+        <div className="frame grid min-h-[100svh] content-start gap-y-8 pb-16 pt-[calc(var(--nav-h)+32px)] lg:grid-cols-12 lg:gap-x-[var(--col-gap)] lg:pt-[calc(var(--nav-h)+56px)]">
+          <div className="lg:col-span-7">
+            <header>
+              <p className="t-small font-medium text-accent">Event inquiry · {building.name}</p>
+              <h1 className="t-h1 mt-3">Plan your event.</h1>
+              <p className="t-lead mt-4 max-w-[46ch] text-stone">{LEAD}</p>
+            </header>
+
+            {/* Phones: the venues sit above the form, where the card would be */}
+            {chosen.length > 0 && <div className="mt-8 rounded-[20px] bg-paper px-4 py-1 shadow-[var(--shadow-soft)] lg:hidden">{venueList}</div>}
+
+            {/* The steps in a card of their own, a match for the summary beside it */}
+            <form
+              {...formProps}
+              className="soft mt-8 scroll-mt-[calc(var(--nav-h)+16px)] rounded-[24px] bg-paper shadow-[var(--shadow-soft)] lg:mt-12 lg:rounded-[28px]"
+            >
+              <div className="px-5 pb-8 pt-6 sm:px-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-9">
                 {stepper}
-                <div className="mt-10">{fieldset}</div>
+                <div className="mt-9 lg:mt-11">{fieldset}</div>
                 {simulate}
               </div>
-            </div>
-            {/* Actions stick to the bottom of the screen on long steps */}
-            <div className="sticky bottom-0 z-10 border-t hairline bg-quartz/95 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur-xl sm:pb-5">
-              <div className="frame flex max-w-[calc(600px+2*var(--gutter))] items-center justify-between gap-4 lg:max-w-[calc(600px+2*clamp(40px,5vw,96px))] lg:px-[clamp(40px,5vw,96px)]">
-                {backButton}
-                {sendButton}
+              {/* Actions stay in reach at the bottom of the screen on long steps */}
+              <div className="sticky bottom-0 z-10 rounded-b-[24px] bg-paper/90 px-5 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 backdrop-blur-xl sm:px-8 sm:pb-4 lg:rounded-b-[28px] lg:px-10">
+                <div className="flex items-center justify-between gap-4">
+                  {backButton}
+                  {sendButton}
+                </div>
               </div>
-            </div>
-          </form>
+            </form>
+          </div>
+
+          <aside aria-label="Your inquiry" className="hidden pb-28 lg:col-span-5 lg:col-start-8 lg:block xl:col-span-4 xl:col-start-9">
+            <div className="sticky top-[calc(var(--nav-h)+32px)]">{summary}</div>
+          </aside>
         </div>
       );
     }

@@ -204,6 +204,9 @@ export const actions = {
   toggleShortlist(slug: string) {
     setState((s) => ({ ...s, shortlist: s.shortlist.includes(slug) ? s.shortlist.filter((x) => x !== slug) : [...s.shortlist, slug] }));
   },
+  clearShortlist() {
+    setState((s) => ({ ...s, shortlist: [] }));
+  },
   setGuests(n: number | undefined) {
     setState((s) => (s.guests === n ? s : { ...s, guests: n && n > 0 ? n : undefined }));
   },

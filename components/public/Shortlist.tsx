@@ -10,17 +10,17 @@ import { BRIEF_MAX, briefHref } from "@/lib/brief";
 import { cn } from "@/lib/cn";
 import { guestsShort, setupLabels } from "@/lib/data/shared";
 import type { Setup, Venue } from "@/lib/data/types";
-import { useDemo, useHydrated, useSharedGuests } from "@/lib/store";
+import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { useNavOver } from "@/components/ui/useNavOver";
-import { GuestStepper } from "./GuestStepper";
-import { HeartButton } from "./VenueCard";
 
 /**
  * The venues someone has saved (the hearts), gathered in a tray at the bottom of the screen once they
  * scroll past the hero. Two or more open side by side, and from there one inquiry or one brief covers them all.
+ * Every one can be taken out from here (the tray's x with one saved, each column's x or "Clear all" side by side),
+ * so nobody has to go back to a card to unheart it.
  */
 export function Shortlist() {
   const { venues } = useTenant();
@@ -81,6 +81,16 @@ export function Shortlist() {
                 <Icon name="arrow-right" size={16} />
               </Link>
             )}
+            {saved.length === 1 && (
+              <button
+                type="button"
+                onClick={() => actions.toggleShortlist(saved[0].slug)}
+                aria-label={`Remove ${saved[0].name} from saved`}
+                className="-ml-1 grid size-10 shrink-0 place-items-center rounded-full text-moon-2 transition-colors hover:bg-white/10 hover:text-moon"
+              >
+                <Icon name="close" size={16} />
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -97,8 +107,6 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
   const reduce = useReducedMotion();
   const hydrated = useHydrated();
   const panel = useRef<HTMLDivElement>(null);
-  const [guests, setGuests] = useSharedGuests();
-  const n = Number(guests) || 0;
 
   useEffect(() => {
     if (!open) return;
@@ -119,7 +127,6 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
 
   if (!hydrated) return null;
   const setups = setupsOf(saved);
-  const fits = (max?: number) => !n || max == null || max >= n;
   const cols = { gridTemplateColumns: `clamp(84px,14vw,160px) repeat(${saved.length}, minmax(168px,1fr))` };
 
   const row = (label: string, cells: React.ReactNode[]) => (
@@ -165,15 +172,19 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
                 <h2 id="compare-title" className="t-h2">
                   Side by side
                 </h2>
-                <p className="t-small mt-1 text-stone">Your {saved.length} saved venues. Add a guest count to see which rooms fit.</p>
+                <p className="t-small mt-1 text-stone">Your {saved.length} saved venues. Take any out with its ×.</p>
               </div>
-              <div className="flex items-end gap-3">
-                <div className="w-[220px]">
-                  <label htmlFor="compare-guests" className="t-meta mb-1.5 block">
-                    Guests
-                  </label>
-                  <GuestStepper id="compare-guests" value={guests} onChange={setGuests} />
-                </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    actions.clearShortlist();
+                    onClose();
+                  }}
+                  className="t-small font-medium text-stone underline-offset-2 transition-colors hover:text-ink hover:underline"
+                >
+                  Clear all
+                </button>
                 <button
                   type="button"
                   onClick={onClose}
@@ -188,14 +199,21 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
             <div className="min-h-0 flex-1 overflow-auto overscroll-contain px-5 sm:px-8">
               {/* Narrow screens: each venue keeps a readable column and the next one peeks in, so it reads as scrollable */}
               <div style={{ minWidth: `calc(clamp(84px,14vw,160px) + ${saved.length} * 184px)` }}>
-                {/* The venues across the top: photo, name, and a heart to take one out */}
+                {/* The venues across the top: photo, name, and an x to take one out */}
                 <div className="grid pb-5" style={cols}>
                   <div className="sticky left-0 z-[1] bg-paper" />
                   {saved.map((v) => (
                     <div key={v.slug} className="pr-5">
                       <div className="media relative aspect-[4/3]">
                         <Image src={v.hero.src} alt="" fill sizes="240px" className="object-cover" style={{ objectPosition: v.hero.pos }} />
-                        <HeartButton slug={v.slug} name={v.name} className="absolute right-2 top-2 size-9" />
+                        <button
+                          type="button"
+                          onClick={() => actions.toggleShortlist(v.slug)}
+                          aria-label={`Remove ${v.name} from saved`}
+                          className="absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-black/35 text-white backdrop-blur-md transition-[background-color,transform] hover:bg-black/50 active:scale-90"
+                        >
+                          <Icon name="close" size={16} />
+                        </button>
                       </div>
                       <Link href={`/venues/${v.slug}`} onClick={onClose} className="group mt-3 flex items-center gap-1.5 font-medium">
                         {v.name}
@@ -209,13 +227,8 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
                 {row(
                   "Guests",
                   saved.map((v) => (
-                    <span key={v.slug} className={cn("block", !fits(v.capacity) && "text-stone-2")}>
-                      <span className="block font-medium first-letter:uppercase">{guestsShort(v)}</span>
-                      {n > 0 && v.capacity != null && (
-                        <span className={cn("t-meta mt-1 block", fits(v.capacity) ? "!text-accent" : "")}>
-                          {fits(v.capacity) ? `Fits ${n.toLocaleString("en-US")}` : `Too small for ${n.toLocaleString("en-US")}`}
-                        </span>
-                      )}
+                    <span key={v.slug} className="block font-medium first-letter:uppercase">
+                      {guestsShort(v)}
                     </span>
                   )),
                 )}
@@ -232,7 +245,7 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
                             —
                           </span>
                         );
-                      return <span key={v.slug} className={cn(!fits(spec.max) && "text-stone-2 line-through decoration-stone-2/60")}>Up to {spec.max.toLocaleString("en-US")}</span>;
+                      return <span key={v.slug}>Up to {spec.max.toLocaleString("en-US")}</span>;
                     }),
                   ),
                 )}
@@ -243,10 +256,10 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
             <footer className="flex flex-col-reverse gap-3 border-t hairline bg-paper px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:flex-row sm:items-center sm:justify-between sm:px-8">
               <p className="t-meta">Setup capacities are estimates until the events team confirms your plan.</p>
               <div className="flex flex-wrap gap-2">
-                <ButtonLink href={briefHref({ venues: saved.map((v) => v.slug), guests: n || undefined })} variant="outline" icon="share">
+                <ButtonLink href={briefHref({ venues: saved.map((v) => v.slug) })} variant="outline" icon="share">
                   Make a brief
                 </ButtonLink>
-                <ButtonLink href={`/venues/inquire${n ? `?guests=${n}` : ""}`} variant="accent" icon="arrow-right">
+                <ButtonLink href="/venues/inquire" variant="accent" icon="arrow-right">
                   Inquire about {saved.length === 2 ? "both" : `all ${saved.length}`}
                 </ButtonLink>
               </div>

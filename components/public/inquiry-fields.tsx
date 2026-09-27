@@ -78,8 +78,8 @@ export function Chips({
               on
                 ? "bg-ink text-paper"
                 : invalid
-                  ? "bg-paper text-ink-2 shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
-                  : "bg-paper text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-stone-2)]",
+                  ? "bg-ink/[0.05] text-ink-2 shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
+                  : "bg-ink/[0.05] text-ink-2 hover:bg-ink/[0.1]",
             )}
           >
             {o}

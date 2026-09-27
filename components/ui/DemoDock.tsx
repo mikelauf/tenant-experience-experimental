@@ -175,7 +175,7 @@ export function DemoDock() {
                   </span>
                   {s.shortlist.length > 0 && (
                     <button
-                      onClick={() => s.shortlist.forEach((slug) => actions.toggleShortlist(slug))}
+                      onClick={() => actions.clearShortlist()}
                       className="rounded-full border border-night-line px-3 py-1.5 text-[0.8125rem] font-medium hover:bg-night-2"
                     >
                       Clear

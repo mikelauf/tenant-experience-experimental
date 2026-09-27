@@ -69,7 +69,8 @@ export function InquireCard({ v }: { v: Venue }) {
         <p className="t-meta mt-3 text-center">An inquiry starts a conversation with the events team.</p>
       </aside>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t hairline bg-paper/92 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur-xl lg:hidden">
+      {/* mb-0! because the sidebar's space-y margin would otherwise lift a fixed bar off the bottom */}
+      <div className="fixed inset-x-0 bottom-0 z-40 mb-0! border-t hairline bg-paper/92 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur-xl lg:hidden">
         <div className="flex items-center justify-between gap-4 pl-[52px] sm:pl-[88px]">
           <div className="min-w-0">
             <p className="truncate font-medium">{v.name}</p>

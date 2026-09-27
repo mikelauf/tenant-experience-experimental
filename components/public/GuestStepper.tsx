@@ -62,7 +62,7 @@ export function GuestStepper({
             onClick={() => nudge(d)}
             disabled={d < 0 && n <= 1}
             aria-label={d < 0 ? `${STEP} fewer guests` : `${STEP} more guests`}
-            className="grid size-9 place-items-center rounded-full shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:bg-fog disabled:opacity-40"
+            className="grid size-9 place-items-center rounded-full bg-ink/[0.06] transition-colors hover:bg-ink/[0.11] disabled:opacity-40 disabled:hover:bg-ink/[0.06]"
           >
             <Icon name={d < 0 ? "minus" : "plus"} size={16} />
           </button>
