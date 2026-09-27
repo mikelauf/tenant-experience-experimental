@@ -3,6 +3,7 @@ import { getTenant } from "@/lib/tenants/server";
 import { LineReveal, Reveal, ClipReveal } from "@/components/motion/Reveal";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { ButtonLink } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
 import { Photo } from "@/components/ui/Photo";
 import { CloserLook } from "@/components/public/CloserLook";
 import { HeroMedia } from "@/components/public/HeroMedia";
@@ -96,30 +97,38 @@ export default async function VenuesHome() {
 
       <CloserLook />
 
-      {/* À la carte: what the building can add */}
+      {/* À la carte: what the building can add. A side label and numbered rows, not another heading-and-grid */}
       {pub.alaCarte && (
         <section className="frame py-24 lg:py-36" aria-labelledby="alacarte-h">
-          <div className="grid-12 items-end gap-y-6">
-            <h2 id="alacarte-h" className="t-h1 col-span-12 lg:col-span-6">
-              À la carte.
-              <br />
-              <span className="text-stone">Tailor the experience.</span>
-            </h2>
-            <p className="t-lead col-span-12 text-stone lg:col-span-4 lg:col-start-9">{pub.alaCarte.lead}</p>
-          </div>
-          <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-media)] bg-line md:grid-cols-3">
-            {pub.alaCarte.groups.map((g, i) => (
-              <Reveal key={g.title} delay={i * 0.06} className="bg-paper">
-                <div className="h-full p-6 lg:p-8">
-                  <p className="t-h3">{g.title}</p>
-                  <ul className="t-body mt-5 space-y-2 text-ink-2">
-                    {g.items.map((x) => (
-                      <li key={x}>{x}</li>
-                    ))}
-                  </ul>
-                </div>
-              </Reveal>
-            ))}
+          <div className="grid-12 gap-y-10">
+            <div className="col-span-12 lg:col-span-4">
+              <div className="lg:sticky lg:top-[calc(var(--nav-h)+32px)]">
+                <p className="t-meta">À la carte</p>
+                <h2 id="alacarte-h" className="t-h2 mt-3 lg:max-w-[14ch]">
+                  Tailor the experience.
+                </h2>
+                <p className="t-body mt-4 max-w-[36ch] text-stone">{pub.alaCarte.lead}</p>
+              </div>
+            </div>
+            <ol className="col-span-12 border-t hairline lg:col-span-7 lg:col-start-6">
+              {pub.alaCarte.groups.map((g, i) => (
+                <Reveal key={g.title} delay={i * 0.06}>
+                  <li className="grid gap-5 border-b hairline py-8 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:py-10">
+                    <div className="flex items-baseline gap-4">
+                      <span className="t-num text-[0.9375rem] font-medium text-accent">{String(i + 1).padStart(2, "0")}</span>
+                      <h3 className="t-h3">{g.title}</h3>
+                    </div>
+                    <ul className="flex flex-wrap content-start gap-2">
+                      {g.items.map((x) => (
+                        <li key={x}>
+                          <Pill>{x}</Pill>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                </Reveal>
+              ))}
+            </ol>
           </div>
         </section>
       )}
@@ -229,14 +238,12 @@ export default async function VenuesHome() {
 
       {/* Around the building */}
       <section className="frame py-24 lg:py-36" aria-labelledby="around-h">
-        <div className="grid-12 items-end gap-y-6">
-          <h2 id="around-h" className="t-h1 col-span-12 lg:col-span-6">
-            More than a room
-            <br />
-            <span className="text-stone">for the night.</span>
-          </h2>
-          <p className="t-lead col-span-12 text-stone lg:col-span-4 lg:col-start-9">{pub.aroundLead}</p>
-        </div>
+        {/* One voice, stacked: an eyebrow, the line, then the lead under it */}
+        <p className="t-meta">Around the building</p>
+        <h2 id="around-h" className="t-h1 mt-3 max-w-[18ch] text-balance">
+          More than a room for the night.
+        </h2>
+        <p className="t-lead mt-5 max-w-[48ch] text-stone">{pub.aroundLead}</p>
         <div className={`mt-12 grid gap-3 sm:grid-cols-2 lg:gap-[var(--col-gap)] ${pub.around.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}>
           {pub.around.map((a, i) => (
             <Reveal key={a.t} delay={i * 0.06}>

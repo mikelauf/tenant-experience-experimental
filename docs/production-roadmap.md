@@ -223,7 +223,7 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] Demo dock is an edge tab on public pages, clear of the corner controls
 - [x] Brief empty state: pick venues right there, saved ones pre-ticked
 - [x] Footer: already right in production (member link and "Demo build" are demo-only); the events contact appears once `copy.public.contact` is filled
-- [ ] Home: fewer same-shaped section heads (the two-tone line on every section)
+- [x] Home: the two-tone head stays for the collection and the setting; à la carte is a side label with numbered rows, "around the building" a stacked eyebrow and line
 - [ ] Getting here: the plaza tower with arrival pins in place of the flat site plan
 - [x] Shortlist tray → side-by-side compare (guests, setups, area, views; a guest count marks rooms that fit) → one inquiry or brief (`Shortlist.tsx`)
 - [x] Tower locator on each venue page (`TowerLocator.tsx`): an elevation drawn from the tenant's tower profile, every venue named and linked, this one lit; opens the explorer at that floor (`/venues?floor=`)
