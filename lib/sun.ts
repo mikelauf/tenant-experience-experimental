@@ -58,6 +58,16 @@ export function zonedTime(date: string, time: string, tz: string): Date {
   return new Date(ms);
 }
 
+/** The building's own date ("YYYY-MM-DD") and minutes after midnight at an instant, whatever the viewer's time zone. */
+export function nowIn(tz: string, at = new Date()) {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: tz, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+      .formatToParts(at)
+      .map((x) => [x.type, x.value]),
+  );
+  return { date: `${p.year}-${p.month}-${p.day}`, minutes: +p.hour * 60 + +p.minute };
+}
+
 /** Minutes after local midnight to "7:05 pm". */
 export const clock = (min: number) => {
   const h = Math.floor(min / 60) % 24;

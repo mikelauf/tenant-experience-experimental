@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { clock, eveningOf, lightAt, minutesOf, sunLevel, sunPosition, zonedTime, type Geo } from "./sun.ts";
+import { clock, eveningOf, nowIn, lightAt, minutesOf, sunLevel, sunPosition, zonedTime, type Geo } from "./sun.ts";
 
 // 600 Montgomery Street
 const pyramid: Geo = { lat: 37.7952, lng: -122.4028, tz: "America/Los_Angeles" };
@@ -47,6 +47,11 @@ test("light levels run night, dusk, day without jumps", () => {
   assert.equal(lightAt(3), "golden");
   assert.equal(lightAt(-3), "dusk");
   assert.equal(lightAt(-10), "night");
+});
+
+test("now is the building's time, not the viewer's", () => {
+  // 03:30 UTC on Sep 27 is still the evening of Sep 26 in San Francisco (PDT, UTC−7)
+  assert.deepEqual(nowIn(pyramid.tz, new Date("2026-09-27T03:30:00Z")), { date: "2026-09-26", minutes: 20 * 60 + 30 });
 });
 
 test("clock text", () => {

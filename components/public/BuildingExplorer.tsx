@@ -8,14 +8,14 @@ import Image from "@/components/ui/SmoothImage";
 import { cn } from "@/lib/cn";
 import { guestsLabel } from "@/lib/data/shared";
 import type { Venue } from "@/lib/data/types";
-import { eveningOf, lightAt, sunLevel, sunPosition, zonedTime } from "@/lib/sun";
+import { clock, eveningOf, lightAt, nowIn, sunLevel, sunPosition, zonedTime } from "@/lib/sun";
 import { useTenant } from "@/lib/tenants/client";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Icon } from "@/components/ui/Icon";
 import { Tower } from "@/components/three/Tower";
 import { DWELL_MS, FloorMarker, PEEK_MS } from "./explorer/FloorMarker";
 import { ArrivalStage, STAGE_PHOTO_SIZES, StagePanel, VenueStage, type Ride, type Tab } from "./explorer/VenueStage";
-import { SkyControl, isoDay, skyBackdrop } from "./explorer/SkyControl";
+import { SkyControl, skyBackdrop } from "./explorer/SkyControl";
 import { useTour } from "./explorer/useTour";
 
 type Stop = { id: string; label: string; level: number | null; venue?: Venue; arrive?: boolean };
@@ -56,7 +56,11 @@ function useStage() {
  * with the space's photos, floor plan and tagged views. The rail only highlights on hover and changes floors
  * on click, so a stray pointer can't send the camera off. Arrow keys ride the floors; Escape comes back out.
  */
-const noopSubscribe = () => () => {};
+/** Ticks twice a minute, so "now" follows the clock without re-rendering every frame. */
+const subscribeClock = (cb: () => void) => {
+  const t = setInterval(cb, 30_000);
+  return () => clearInterval(t);
+};
 
 export function BuildingExplorer() {
   const t = useTenant();
@@ -81,18 +85,21 @@ export function BuildingExplorer() {
   const [stageRef, stage] = useStage();
   const panelRef = useRef<HTMLElement>(null);
 
-  /* Your event's sky: a date and time relight the building with the real sun. Today is only known in the browser,
-     so the server draws the default dusk and the real sky takes over on arrival. */
-  const today = useSyncExternalStore(
-    noopSubscribe,
-    () => isoDay(new Date()),
-    () => "",
+  /* The sky: live by default, the building as it is right now in its own time zone, lit by the real sun. Pick a
+     date or time for your event and it holds that moment until "Back to now". The clock is only known in the
+     browser, so the server draws the default dusk and the real sky takes over on arrival. */
+  const minute = useSyncExternalStore(
+    subscribeClock,
+    () => Math.floor(Date.now() / 60_000),
+    () => 0,
   );
-  const [skyDate, setSkyDate] = useState("");
-  const [skyMin, setSkyMin] = useState(19 * 60);
-  const [skyOpen, setSkyOpen] = useState(false);
   const geo = tower.geo;
-  const date = skyDate || today;
+  const now = geo && minute ? nowIn(geo.tz, new Date(minute * 60_000)) : null;
+  const [pick, setPick] = useState<{ date: string; minutes: number } | null>(null);
+  const [skyOpen, setSkyOpen] = useState(false);
+  const live = !pick;
+  const date = pick?.date ?? now?.date ?? "";
+  const skyMin = pick?.minutes ?? now?.minutes ?? 19 * 60;
   const hh = `${String(Math.floor(skyMin / 60)).padStart(2, "0")}:${String(skyMin % 60).padStart(2, "0")}`;
   const sunSky = geo && date ? sunPosition(zonedTime(date, hh, geo.tz), geo) : null;
   const evening = geo && date ? eveningOf(date, geo) : null;
@@ -479,13 +486,16 @@ export function BuildingExplorer() {
                     >
                       <SkyControl
                         date={date}
+                        today={now?.date ?? date}
                         minutes={skyMin}
+                        live={live}
+                        onNow={() => setPick(null)}
                         onDate={(d) => {
-                          setSkyDate(d);
+                          setPick({ date: d, minutes: skyMin });
                           endTour();
                         }}
                         onMinutes={(m) => {
-                          setSkyMin(m);
+                          setPick({ date, minutes: m });
                           endTour();
                         }}
                         light={light}
@@ -505,9 +515,18 @@ export function BuildingExplorer() {
                     skyOpen ? "bg-moon text-night" : "bg-black/40 hover:bg-black/55",
                   )}
                 >
-                  <Icon name={light === "day" || light === "golden" ? "sun" : "moon"} size={14} />
-                  <span className="t-num">{`${Math.floor(skyMin / 60) % 12 || 12}:${String(skyMin % 60).padStart(2, "0")} ${skyMin < 720 ? "am" : "pm"}`}</span>
-                  <span className={cn(skyOpen ? "text-night/60" : "text-moon-2")}>{skyDate ? new Date(`${date}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Tonight"}</span>
+                  {live ? (
+                    <span className="relative flex size-2" aria-hidden>
+                      <span className="keep-round absolute inset-0 animate-ping rounded-full bg-accent-glow opacity-60 motion-reduce:hidden" />
+                      <span className="keep-round relative size-2 rounded-full bg-accent-glow" />
+                    </span>
+                  ) : (
+                    <Icon name={light === "day" || light === "golden" ? "sun" : "moon"} size={14} />
+                  )}
+                  <span className={cn(!live && "t-num")}>{live ? "Now" : clock(skyMin)}</span>
+                  <span className={cn("t-num", skyOpen ? "text-night/60" : "text-moon-2")}>
+                    {live ? `${clock(skyMin)} in SF` : new Date(`${date}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
                 </button>
               </div>
             )}

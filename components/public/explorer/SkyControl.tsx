@@ -7,9 +7,9 @@ import { briefHref } from "@/lib/brief";
 import { LIGHT_LABEL, clock, type Light } from "@/lib/sun";
 import { Icon } from "@/components/ui/Icon";
 
-/** The slider's range: the hours events happen in, 7 am to 11 pm, in quarter hours. */
-export const SKY_FROM = 7 * 60;
-export const SKY_TO = 23 * 60;
+/** The slider's range: the whole day, in quarter hours, so "now" always has a place on it. */
+export const SKY_FROM = 0;
+export const SKY_TO = 23 * 60 + 45;
 
 /** Local "YYYY-MM-DD", never through UTC. */
 export const isoDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -22,7 +22,10 @@ const DOT: Record<Light, string> = { day: "bg-[#f3e2b8]", golden: "bg-[#f0a45e]"
  */
 export function SkyControl({
   date,
+  today,
   minutes,
+  live,
+  onNow,
   onDate,
   onMinutes,
   light,
@@ -33,7 +36,12 @@ export function SkyControl({
   className,
 }: {
   date: string;
+  /** The building's today, in its own time zone */
+  today: string;
   minutes: number;
+  /** Following the clock, rather than a picked moment */
+  live: boolean;
+  onNow: () => void;
   onDate: (d: string) => void;
   onMinutes: (m: number) => void;
   light: Light;
@@ -46,7 +54,6 @@ export function SkyControl({
   className?: string;
 }) {
   const picker = useRef<HTMLInputElement>(null);
-  const today = isoDay(new Date());
   // A day either side, for stepping through dates without the calendar
   const shift = (d: number) => {
     const [y, m, day] = date.split("-").map(Number);
@@ -72,7 +79,14 @@ export function SkyControl({
   return (
     <div className={cn("relative rounded-[20px] bg-night/65 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_24px_48px_-20px_rgb(0_0_0/0.65)] backdrop-blur-xl", className)}>
       <div className="flex items-center justify-between gap-3">
-        <p className="t-meta whitespace-nowrap">Your event</p>
+        {live ? (
+          <p className="t-meta whitespace-nowrap">Now in San Francisco</p>
+        ) : (
+          <button onClick={onNow} className="t-meta flex items-center gap-1 whitespace-nowrap !text-moon-2 hover:!text-moon">
+            <Icon name="refresh" size={12} />
+            Back to now
+          </button>
+        )}
         <div className="flex items-center gap-0.5">
           <button
             onClick={() => shift(-1)}
@@ -101,7 +115,9 @@ export function SkyControl({
           />
         </div>
       </div>
-      <p className="t-small mt-1.5 text-moon-2">Pick a date and time. The building relights with the real sun for that moment.</p>
+      <p className="t-small mt-1.5 text-moon-2">
+        {live ? "The building as it looks right now. Pick your event's date and time to see its light." : "The building lit by the real sun at that moment."}
+      </p>
 
       <div className="mt-2 flex items-baseline gap-2">
         <span className="t-num text-[1.625rem] font-medium leading-none">{clock(minutes)}</span>
@@ -139,13 +155,13 @@ export function SkyControl({
         href={`${inquireHref}${inquireHref.includes("?") ? "&" : "?"}date=${date}&time=${hh}`}
         className="mt-2.5 flex h-9 items-center justify-center gap-1.5 rounded-full bg-moon text-[0.8125rem] font-medium text-night transition-colors hover:bg-white"
       >
-        Inquire for this evening
+        Inquire for this date and time
         <Icon name="arrow-right" size={14} />
       </Link>
       {slug && (
         <Link href={briefHref({ venues: [slug], date, time: hh })} className="t-meta mt-2 flex items-center justify-center gap-1.5 !text-moon-2 hover:!text-moon">
           <Icon name="print" size={13} />
-          Save as a one-page brief to share
+          Save it as a one-page brief to share
         </Link>
       )}
     </div>
