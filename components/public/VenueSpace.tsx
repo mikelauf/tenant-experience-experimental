@@ -8,7 +8,7 @@ import { SetupVisualizer } from "./SetupVisualizer";
 /**
  * "The space": the venue in one place, near the top of its page. The 3D room set for an event leads,
  * with its controls in one rail (setup, guests, inquiry). The building's floor plan rides under the
- * inquiry card, and the photos at the bottom of the page point out what's in them.
+ * inquiry card, and the photos just above point out what's in them.
  */
 export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing"> }) {
   const { tower } = useTenant();

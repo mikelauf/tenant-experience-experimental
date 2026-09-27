@@ -8,6 +8,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Gallery } from "./Gallery";
 import { PhotoTags } from "./PhotoTags";
+import { useInquire } from "./InquiryModal";
 import { HeartButton } from "./VenueCard";
 
 /**
@@ -16,6 +17,7 @@ import { HeartButton } from "./VenueCard";
  */
 export function VenueHero({ v }: { v: Venue }) {
   const [open, setOpen] = useState<number | null>(null);
+  const inquire = useInquire();
   const hero = v.gallery[0] ?? v.hero;
 
   return (
@@ -55,9 +57,15 @@ export function VenueHero({ v }: { v: Venue }) {
               Show all {v.gallery.length} photos
             </Button>
           )}
-          <ButtonLink href={`/venues/inquire?venue=${v.slug}`} variant="light" icon="arrow-right">
-            Inquire
-          </ButtonLink>
+          {inquire ? (
+            <Button variant="light" icon="arrow-right" onClick={() => inquire({ venue: v.slug })}>
+              Inquire
+            </Button>
+          ) : (
+            <ButtonLink href={`/venues/inquire?venue=${v.slug}`} variant="light" icon="arrow-right">
+              Inquire
+            </ButtonLink>
+          )}
           <HeartButton slug={v.slug} name={v.name} className="hidden size-11 sm:grid" />
         </div>
       </div>

@@ -58,6 +58,13 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           </Reveal>
         </div>
 
+        {/* The rest of the photographs, right after the introduction: the mood before the plan */}
+        {v.gallery.length > 1 && (
+          <section className="frame mt-12 lg:mt-16" aria-label={`Photos of ${v.name}`}>
+            <PhotoRow v={v} />
+          </section>
+        )}
+
         <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout, views: v.views, viewBearing: v.viewBearing }} />
 
         <div className="frame grid-12 mt-16 gap-y-16 lg:mt-24">
@@ -192,18 +199,6 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
             </div>
           </div>
         </div>
-
-        {v.gallery.length > 1 && (
-          <section className="frame mt-24 lg:mt-32" aria-labelledby="photos">
-            <div className="mb-6 flex items-baseline justify-between gap-4">
-              <h2 id="photos" className="t-h2">
-                Photos
-              </h2>
-              <p className="t-meta">{v.gallery.length} photographs</p>
-            </div>
-            <PhotoRow v={v} />
-          </section>
-        )}
 
         {others.length > 0 && (
           <section className="frame mt-24 border-t hairline pb-24 pt-14 lg:mt-32 lg:pb-32">
