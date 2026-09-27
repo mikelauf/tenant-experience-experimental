@@ -489,3 +489,21 @@ html.lenis body {
     0 0 0 3px var(--color-accent-glow),
     0 4px 12px rgb(0 0 0 / 0.4);
 }
+
+/* Printing (the event brief): the page is the paper. Site chrome, the demo dock and anything marked print:hidden stay off it. */
+@page {
+  margin: 14mm 12mm;
+}
+@media print {
+  [data-noprint] {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

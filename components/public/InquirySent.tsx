@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import Image from "@/components/ui/SmoothImage";
 import { useSearchParams } from "next/navigation";
+import { briefHref } from "@/lib/brief";
 import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -110,6 +111,11 @@ export function InquirySent() {
             {chosen.length === 1 && (
               <ButtonLink href={`/venues/${v.slug}`} variant="outline">
                 Back to {v.name}
+              </ButtonLink>
+            )}
+            {chosen.length > 0 && (
+              <ButtonLink href={briefHref({ venues: chosen.map((x) => x.slug) })} variant="outline" icon="share">
+                Share a brief with your team
               </ButtonLink>
             )}
             <ButtonLink href="/venues" variant="ghost">

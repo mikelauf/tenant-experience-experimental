@@ -33,6 +33,7 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         viewBearing={v.viewBearing}
         north={tower.north}
         shareable
+        slug={v.slug}
         footnote={
           v.layout.illustrative
             ? "Illustrative. Traced from the building's plan; capacities are estimates until the events team confirms your plan."

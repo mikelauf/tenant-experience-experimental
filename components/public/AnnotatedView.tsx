@@ -7,8 +7,7 @@ import { cn } from "@/lib/cn";
 import type { ViewPhoto } from "@/lib/data/types";
 import { Icon } from "@/components/ui/Icon";
 
-const POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-export const compass = (deg: number) => POINTS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+import { compass } from "@/lib/format";
 
 /**
  * A real photo looking out from a venue, with the landmarks in it tagged where they actually are,

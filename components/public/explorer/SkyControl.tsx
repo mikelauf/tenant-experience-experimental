@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { briefHref } from "@/lib/brief";
 import { LIGHT_LABEL, clock, type Light } from "@/lib/sun";
 import { Icon } from "@/components/ui/Icon";
 
@@ -27,6 +28,7 @@ export function SkyControl({
   evening,
   inView,
   inquireHref,
+  slug,
   className,
 }: {
   date: string;
@@ -38,6 +40,8 @@ export function SkyControl({
   /** The open venue's name, when the sun sets inside its view */
   inView?: string;
   inquireHref: string;
+  /** The open venue, for a brief of this evening */
+  slug?: string;
   className?: string;
 }) {
   const pct = ((minutes - SKY_FROM) / (SKY_TO - SKY_FROM)) * 100;
@@ -102,6 +106,12 @@ export function SkyControl({
         Inquire for this evening
         <Icon name="arrow-right" size={14} />
       </Link>
+      {slug && (
+        <Link href={briefHref({ venues: [slug], date, time: hh })} className="t-meta mt-2 flex items-center justify-center gap-1.5 !text-moon-2 hover:!text-moon">
+          <Icon name="print" size={13} />
+          Make a brief of this evening
+        </Link>
+      )}
     </div>
   );
 }

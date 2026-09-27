@@ -9,7 +9,7 @@ import { cn } from "@/lib/cn";
 import type { Img, Venue, ViewPhoto } from "@/lib/data/types";
 import type { Poi } from "@/lib/tower";
 import { Icon } from "@/components/ui/Icon";
-import { compass } from "../AnnotatedView";
+import { compass } from "@/lib/format";
 import { PlanViewer } from "../FloorPlan";
 
 /** The main photo's `sizes`; the explorer preloads the hero with the same value while you hover. */

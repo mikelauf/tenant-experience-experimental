@@ -492,6 +492,7 @@ export function BuildingExplorer() {
                         evening={evening}
                         inView={setsInView}
                         inquireHref={v ? `/venues/inquire?venue=${v.slug}` : "/venues/inquire"}
+                        slug={v?.slug}
                       />
                     </motion.div>
                   )}

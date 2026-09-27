@@ -3,6 +3,9 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { formatDate } from "@/lib/format";
+
+export { formatDate };
 import { Icon } from "@/components/ui/Icon";
 
 /** Local calendar dates as "YYYY-MM-DD", never through UTC, so the day never shifts. */
@@ -15,10 +18,6 @@ const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), 
 const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth() + n, Math.min(d.getDate(), 28));
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 const WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-/** "Thu, Nov 12, 2026" for a "YYYY-MM-DD" value */
-export const formatDate = (s: string) =>
-  parse(s)?.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }) ?? s;
 
 /**
  * A date field with its own calendar: a popover on desktop, a sheet on phones. Past days are disabled.

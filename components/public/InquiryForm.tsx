@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
@@ -10,6 +11,7 @@ import { MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/cont
 import { getPublicCampaign } from "@/lib/core/inquiry/campaign";
 import { INQUIRY_CLIENT_TIMEOUT_MS } from "@/lib/core/inquiry/timeouts";
 import { START_TIMES, dateText } from "@/lib/core/inquiry/when";
+import { briefHref } from "@/lib/brief";
 import { clock, minutesOf } from "@/lib/sun";
 import { eventTypes, guestsShort, setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
@@ -1083,6 +1085,17 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
                 </div>
               ))}
             </dl>
+            {chosen.length > 0 && (
+              <div className="shrink-0 border-t border-night-line px-6 py-4">
+                <Link
+                  href={briefHref({ venues: chosen.map((x) => x.slug), guests: Number(v.guests) || undefined, date: v.date || undefined, time: v.time || undefined })}
+                  className="t-small inline-flex items-center gap-1.5 font-medium text-moon underline-offset-2 hover:underline"
+                >
+                  <Icon name="share" size={15} />
+                  {chosen.length > 1 ? "Compare these as a brief to share" : "Make a brief to share"}
+                </Link>
+              </div>
+            )}
             <div className="hidden shrink-0 border-t border-night-line px-6 py-5 lg:block">
               <p className="t-small text-moon-2">
                 {host ? `${host.name.split(" ")[0]} and the events team` : "The events team"} follow up by email. An inquiry doesn&apos;t reserve anything.

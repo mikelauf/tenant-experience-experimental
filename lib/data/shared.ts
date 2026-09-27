@@ -12,6 +12,17 @@ export const setupLabels: Record<Setup, string> = {
   concert: "Concert",
 };
 
+/** What each setup looks like, in a line */
+export const setupNotes: Record<Setup, string> = {
+  reception: "Standing, with high-tops and a bar",
+  theater: "Rows facing the stage or screen",
+  banquet: "Rounds of eight for a seated meal",
+  boardroom: "One long table",
+  classroom: "Tables in rows, facing forward",
+  lounge: "Sofa groups for conversation",
+  concert: "A standing crowd facing the stage",
+};
+
 /** The most guests a venue holds, or undefined while it isn't confirmed. */
 export const maxCap = (v: Venue): number | undefined => v.capacity;
 

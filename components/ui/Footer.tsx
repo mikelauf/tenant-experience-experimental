@@ -37,7 +37,7 @@ export async function Footer({ variant }: { variant: "member" | "public" }) {
         : null;
 
   return (
-    <footer className={`theme-night relative overflow-hidden ${variant === "member" ? "max-lg:pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))]" : ""}`}>
+    <footer data-noprint className={`theme-night relative overflow-hidden ${variant === "member" ? "max-lg:pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))]" : ""}`}>
       <div className="frame grid-12 gap-y-12 pb-10 pt-20 lg:pt-28">
         <div className="col-span-12 lg:col-span-5">
           <Mark size={40} className="text-moon" />

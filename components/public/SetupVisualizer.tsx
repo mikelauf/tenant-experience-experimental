@@ -2,10 +2,12 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { setupLabels } from "@/lib/data/shared";
+import { setupLabels, setupNotes } from "@/lib/data/shared";
 import type { Rect, Setup, SetupSpec, Shell, ViewPhoto } from "@/lib/data/types";
+import { briefHref } from "@/lib/brief";
 import { readSpace, spaceQuery } from "@/lib/setup/share";
 import { shellBounds } from "@/lib/setup/shell";
 import { NumberRoll } from "@/components/motion/NumberRoll";
@@ -15,20 +17,11 @@ import { makeLayout, perFigure } from "@/components/three/setup/layouts";
 import { ButtonLink } from "@/components/ui/Button";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
-import { compass } from "./AnnotatedView";
+import { compass } from "@/lib/format";
 import { PhotoTags } from "./PhotoTags";
 
 const SetupCanvas = dynamic(() => import("@/components/three/setup/SetupCanvas"), { ssr: false });
 
-const setupNotes: Record<Setup, string> = {
-  reception: "Standing, with high-tops and a bar",
-  theater: "Rows facing the stage or screen",
-  banquet: "Rounds of eight for a seated meal",
-  boardroom: "One long table",
-  classroom: "Tables in rows, facing forward",
-  lounge: "Sofa groups for conversation",
-  concert: "A standing crowd facing the stage",
-};
 
 const standing = (s: Setup) => s === "reception" || s === "concert";
 
@@ -298,6 +291,7 @@ export function SetupVisualizer({
   viewBearing,
   north,
   shareable,
+  slug,
 }: {
   shell: Shell;
   setups: Partial<Record<Setup, SetupSpec>>;
@@ -317,6 +311,8 @@ export function SetupVisualizer({
   north?: number;
   /** Keep setup, guests and view in the page's link, and offer to share it */
   shareable?: boolean;
+  /** The venue, for "Make a brief" */
+  slug?: string;
 }) {
   const keys = Object.keys(setups) as Setup[];
   const [inner, setInner] = useState<Setup>(keys[0]);
@@ -613,7 +609,17 @@ export function SetupVisualizer({
           <div className="mt-auto space-y-4">
             {source}
             {cta}
-            {shareable && <ShareButton className="w-full" />}
+            {shareable && (
+              <div className="flex items-center justify-center gap-5">
+                <ShareButton />
+                {slug && (
+                  <Link href={briefHref({ venues: [slug], setup, guests: shown })} className="flex items-center gap-1.5 text-[0.875rem] font-medium text-stone transition-colors hover:text-ink">
+                    <Icon name="print" size={16} />
+                    Make a brief
+                  </Link>
+                )}
+              </div>
+            )}
             <p className="t-meta">{footnote}</p>
           </div>
         </div>

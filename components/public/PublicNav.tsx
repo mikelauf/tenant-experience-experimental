@@ -26,6 +26,7 @@ export function PublicNav() {
 
   return (
     <header
+      data-noprint
       className={cn(
         "fixed inset-x-0 top-0 z-50 [view-transition-name:public-nav] transition-[background-color,color,box-shadow] duration-500",
         light ? "text-white" : "text-ink",

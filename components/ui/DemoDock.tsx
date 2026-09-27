@@ -56,6 +56,7 @@ export function DemoDock() {
 
   return (
     <div
+      data-noprint
       ref={ref}
       className={cn(
         "fixed left-3 z-[70] lg:left-5 lg:bottom-5",
