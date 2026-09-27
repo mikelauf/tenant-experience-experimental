@@ -36,6 +36,26 @@ export default async function VenuesHome() {
     { n: "04", title: "Plan it together", body: "Setup, catering and services, agreed with you. Nothing is reserved until you say so." },
   ];
 
+  // Getting here: the heading and address, beside the plan of the block (or the site map, or the tower)
+  const hereIntro = (
+    <>
+      <h2 id="here-h" className="t-h1">
+        Getting here
+      </h2>
+      <dl className="mt-8 space-y-5">
+        {pub.gettingHere.map((x) => (
+          <div key={x.k} className="grid grid-cols-[96px_1fr] gap-4 lg:grid-cols-[88px_1fr]">
+            <dt className="t-meta pt-0.5">{x.k}</dt>
+            <dd>
+              <span className="block font-medium">{x.v}</span>
+              <span className="t-small mt-0.5 block text-stone">{x.d}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </>
+  );
+
   return (
     <>
       {/* Hero: full-bleed, the building first */}
@@ -117,7 +137,7 @@ export default async function VenuesHome() {
             <div className="col-span-12 lg:col-span-4">
               <div className="lg:sticky lg:top-[calc(var(--nav-h)+32px)]">
                 <p className="t-meta">À la carte</p>
-                <h2 id="alacarte-h" className="t-h2 mt-3 lg:max-w-[14ch]">
+                <h2 id="alacarte-h" className="t-h1 mt-3 lg:max-w-[12ch]">
                   Tailor the experience.
                 </h2>
                 <p className="t-body mt-4 max-w-[36ch] text-stone">{pub.alaCarte.lead}</p>
@@ -278,40 +298,28 @@ export default async function VenuesHome() {
         </div>
       </section>
 
-      {/* Getting here */}
+      {/* Getting here: the address and the ways in beside a plan of the block */}
       <section className="frame pb-32 lg:pb-36" aria-labelledby="here-h">
-        <div className="grid-12 gap-y-10 border-t hairline pt-12 lg:pt-16">
-          <div className="col-span-12 lg:col-span-4">
-            <h2 id="here-h" className="t-h1">
-              Getting here
-            </h2>
-            <dl className="mt-10 space-y-8">
-              {pub.gettingHere.map((x) => (
-                <div key={x.k} className="grid grid-cols-[96px_1fr] gap-4 lg:grid-cols-[88px_1fr]">
-                  <dt className="t-meta pt-0.5">{x.k}</dt>
-                  <dd>
-                    <span className="block font-medium">{x.v}</span>
-                    <span className="t-small mt-1 block text-stone">{x.d}</span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <Reveal className="col-span-12 lg:col-span-7 lg:col-start-6">
-            {t.tower.pois?.length ? (
-              // The block drawn from the real streets, with every way in numbered
-              <ArrivalPlan />
-            ) : pub.siteMap ? (
-              <div className="relative aspect-square overflow-hidden rounded-[var(--radius-media)] bg-white shadow-[var(--shadow-ring)]">
-                <Image src={pub.siteMap.src} alt={pub.siteMap.alt} fill sizes="(min-width:1024px) 45vw, 100vw" className="object-contain p-6 sm:p-10" />
-              </div>
-            ) : (
-              // No site plan yet: the building itself, turning slowly
-              <div className="theme-night relative aspect-square overflow-hidden rounded-[var(--radius-media)] bg-night">
-                <TowerHero className="absolute inset-0" framing="plaza" />
-              </div>
-            )}
-          </Reveal>
+        <div className="border-t hairline pt-12 lg:pt-16">
+          {t.tower.pois?.length ? (
+            <ArrivalPlan intro={hereIntro} />
+          ) : (
+            <div className="grid-12 gap-y-10">
+              <div className="col-span-12 lg:col-span-4">{hereIntro}</div>
+              <Reveal className="col-span-12 lg:col-span-7 lg:col-start-6">
+                {pub.siteMap ? (
+                  <div className="relative aspect-square overflow-hidden rounded-[var(--radius-media)] bg-white shadow-[var(--shadow-ring)]">
+                    <Image src={pub.siteMap.src} alt={pub.siteMap.alt} fill sizes="(min-width:1024px) 45vw, 100vw" className="object-contain p-6 sm:p-10" />
+                  </div>
+                ) : (
+                  // No site plan yet: the building itself, turning slowly
+                  <div className="theme-night relative aspect-square overflow-hidden rounded-[var(--radius-media)] bg-night">
+                    <TowerHero className="absolute inset-0" framing="plaza" />
+                  </div>
+                )}
+              </Reveal>
+            </div>
+          )}
         </div>
       </section>
     </>
