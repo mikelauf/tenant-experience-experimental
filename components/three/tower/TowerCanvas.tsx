@@ -4,108 +4,11 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
-import { levelY, neighborsFor, sceneLandmarks, topOf, treesFor, trueNorth, type Landmark, type SceneLandmark, type TowerProfile } from "@/lib/tower";
+import { levelY, neighborsFor, sceneLandmarks, topOf, treesFor, trueNorth, type TowerProfile } from "@/lib/tower";
 
-/* ------------------------------------------------------------------ light */
+import { makeEnv, mixEnv, type Env } from "./env";
+import { Landmarks, landmarkTop } from "./landmarks";
 
-/**
- * Three keyframes of light. `sun` runs 0 (night) → 0.5 (dusk) → 1 (day) and
- * everything in the scene blends between them, so a time scrubber can relight the city.
- */
-type Key = {
-  slab: string;
-  wing: string;
-  tree: string;
-  ground: string;
-  neighbor: string;
-  water: string;
-  fog: string;
-  sky: string;
-  skyGround: string;
-  sun: string;
-  hemi: number;
-  sunI: number;
-  lit: number;
-  shadow: number;
-  sunPos: [number, number, number];
-};
-
-const KEYS: Record<"night" | "dusk" | "day", Key> = {
-  night: {
-    slab: "#c3c6ca",
-    wing: "#8d9296",
-    tree: "#121a15",
-    ground: "#0e1317",
-    neighbor: "#1b222a",
-    water: "#0b151d",
-    fog: "#0a0e12",
-    sky: "#40506a",
-    skyGround: "#161c24",
-    sun: "#b9c9ea",
-    hemi: 0.75,
-    sunI: 0.5,
-    lit: 1.8,
-    shadow: 0.55,
-    sunPos: [-6, 10, -8],
-  },
-  dusk: {
-    slab: "#e4e2dd",
-    wing: "#c4c3c0",
-    tree: "#1d2a22",
-    ground: "#1b2126",
-    neighbor: "#303a44",
-    water: "#233444",
-    fog: "#151b21",
-    sky: "#7890ad",
-    skyGround: "#3a4450",
-    sun: "#f6d8c2",
-    hemi: 1.5,
-    sunI: 1.15,
-    lit: 1.5,
-    shadow: 0.5,
-    sunPos: [-10, 5, 6],
-  },
-  day: {
-    slab: "#efece5",
-    wing: "#e4e0d7",
-    tree: "#33443a",
-    ground: "#e2e0d9",
-    neighbor: "#d9d7d0",
-    water: "#b7c7cd",
-    fog: "#e9e8e3",
-    sky: "#dfe7ea",
-    skyGround: "#e2e0d9",
-    sun: "#fff3e2",
-    hemi: 1.1,
-    sunI: 2.2,
-    lit: 0,
-    shadow: 0.35,
-    sunPos: [8, 14, 6],
-  },
-};
-
-const COLORS = ["slab", "wing", "tree", "ground", "neighbor", "water", "fog", "sky", "skyGround", "sun"] as const;
-const NUMS = ["hemi", "sunI", "lit", "shadow"] as const;
-type Env = Record<(typeof COLORS)[number], THREE.Color> & Record<(typeof NUMS)[number], number> & { sunPos: THREE.Vector3; value: number };
-
-const _a = new THREE.Color();
-const _b = new THREE.Color();
-const _v = new THREE.Vector3();
-function mixEnv(sun: number, out: Env) {
-  const [a, b, t] = sun < 0.5 ? [KEYS.night, KEYS.dusk, sun / 0.5] : [KEYS.dusk, KEYS.day, (sun - 0.5) / 0.5];
-  for (const k of COLORS) out[k].copy(_a.set(a[k])).lerp(_b.set(b[k]), t);
-  for (const k of NUMS) out[k] = a[k] + (b[k] - a[k]) * t;
-  out.sunPos.set(...a.sunPos).lerp(_v.set(...b.sunPos), t);
-  out.value = sun;
-  return out;
-}
-const makeEnv = (sun: number): Env =>
-  mixEnv(sun, {
-    ...(Object.fromEntries(COLORS.map((k) => [k, new THREE.Color()])) as Record<(typeof COLORS)[number], THREE.Color>),
-    ...(Object.fromEntries(NUMS.map((k) => [k, 0])) as Record<(typeof NUMS)[number], number>),
-    sunPos: new THREE.Vector3(),
-    value: sun,
-  });
 
 /** Eases the light toward the requested sun and applies it to the fog and lights. */
 function Sky({ sun, env }: { sun: number; env: Env }) {
@@ -715,323 +618,6 @@ function RealCity({ p, env, focus, flat, clearPark }: { p: TowerProfile; env: En
   );
 }
 
-/* ------------------------------------------------------------------ landmarks */
-
-const GG_RED = "#b5432f";
-
-/* Salesforce Tower, from its published dimensions at the scene's scale (1 unit ≈ 62 ft, the Pyramid's 853 ft = 13.7):
-   1,070 ft overall, 901 ft to the top floor, a rounded-square plan roughly as wide as the Pyramid's base, straight
-   sides to about floor 26, then every face curving in to a slender top and an open lattice crown lit at night. */
-const SF = { top: 14.5, crown: 2.7, half: 1.35, corner: 0.42, straight: 0.43, narrow: 0.72, crownNarrow: 0.62 };
-
-function roundedSquare(half: number, r: number, hole?: number) {
-  const outline = (h: number, c: number, path: THREE.Shape | THREE.Path) => {
-    path.moveTo(-h + c, -h);
-    path.lineTo(h - c, -h);
-    path.quadraticCurveTo(h, -h, h, -h + c);
-    path.lineTo(h, h - c);
-    path.quadraticCurveTo(h, h, h - c, h);
-    path.lineTo(-h + c, h);
-    path.quadraticCurveTo(-h, h, -h, h - c);
-    path.lineTo(-h, -h + c);
-    path.quadraticCurveTo(-h, -h, -h + c, -h);
-    return path;
-  };
-  const s = outline(half, r, new THREE.Shape()) as THREE.Shape;
-  if (hole) s.holes.push(outline(hole, r * (hole / half), new THREE.Path()) as THREE.Path);
-  return s;
-}
-
-/** An upright rounded-square prism whose faces run straight to `from` (share of its height), then curve in to `narrow` */
-function taperedPrism(half: number, corner: number, h: number, from: number, narrow: number, steps: number) {
-  const g = new THREE.ExtrudeGeometry(roundedSquare(half, corner), { depth: h, steps, bevelEnabled: false, curveSegments: 5 });
-  g.rotateX(-Math.PI / 2);
-  const p = g.attributes.position;
-  for (let i = 0; i < p.count; i++) {
-    const t = p.getY(i) / h;
-    const k = t <= from ? 1 : 1 - (1 - narrow) * ((t - from) / (1 - from)) ** 1.5;
-    p.setX(i, p.getX(i) * k);
-    p.setZ(i, p.getZ(i) * k);
-  }
-  g.computeVertexNormals();
-  return g;
-}
-
-/** Pale metal fins and glass by day; a scatter of lit floors after dark. One tile is one scene unit, about four floors. */
-function useSalesforceSkin() {
-  return useMemo(() => {
-    const make = (lit: boolean) => {
-      const c = document.createElement("canvas");
-      c.width = c.height = 64;
-      const g = c.getContext("2d")!;
-      g.fillStyle = lit ? "#000" : "#b7bdc2";
-      g.fillRect(0, 0, 64, 64);
-      let s = 7;
-      for (let row = 0; row < 4; row++)
-        for (let col = 0; col < 8; col++) {
-          const x = col * 8 + 2;
-          const y = row * 16 + 3;
-          if (lit) {
-            s = (s * 16807) % 2147483647;
-            if (s % 10 < 3) {
-              g.fillStyle = `rgba(255,${200 + (s % 40)},${150 + (s % 50)},0.85)`;
-              g.fillRect(x, y, 6, 11);
-            }
-          } else {
-            g.fillStyle = "#7d868d";
-            g.fillRect(x, y, 6, 11);
-          }
-        }
-      const t = new THREE.CanvasTexture(c);
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
-      return t;
-    };
-    return { map: make(false), emissive: make(true) };
-  }, []);
-}
-
-function SalesforceTower({ env }: { env: Env }) {
-  const skin = useSalesforceSkin();
-  const body = useMemo(() => taperedPrism(SF.half, SF.corner, SF.top, SF.straight, SF.narrow, 24), []);
-  const crownHalf = SF.half * SF.narrow;
-  const crown = useMemo(() => taperedPrism(crownHalf, SF.corner * SF.narrow, SF.crown, 0, SF.crownNarrow / SF.narrow, 6), [crownHalf]);
-  // The lattice: open rings stepping up the crown, each a little narrower
-  const rings = useMemo(
-    () =>
-      [0, 0.25, 0.5, 0.75, 1].map((t) => {
-        const k = 1 - (1 - SF.crownNarrow / SF.narrow) * t ** 1.5;
-        const h = crownHalf * k;
-        const g = new THREE.ExtrudeGeometry(roundedSquare(h + 0.04, SF.corner * SF.narrow * k, h - 0.05), {
-          depth: 0.07,
-          bevelEnabled: false,
-          curveSegments: 5,
-        });
-        g.rotateX(-Math.PI / 2);
-        return { g, y: SF.top + t * SF.crown - 0.035 };
-      }),
-    [crownHalf],
-  );
-  const bodyMat = useRef<THREE.MeshStandardMaterial>(null);
-  const glowMat = useRef<THREE.MeshStandardMaterial>(null);
-  useFrame(() => {
-    if (bodyMat.current) bodyMat.current.emissiveIntensity = env.lit * 0.55;
-    if (glowMat.current) glowMat.current.emissiveIntensity = 0.15 + env.lit * 0.5;
-  });
-  return (
-    // Square to the South of Market grid, which runs about 45° off the Financial District's (and the Pyramid's)
-    <group rotation={[0, Math.PI / 4, 0]}>
-      <mesh geometry={body} castShadow receiveShadow>
-        <meshStandardMaterial
-          ref={bodyMat}
-          color="#d9dde0"
-          map={skin.map}
-          emissive="#ffffff"
-          emissiveMap={skin.emissive}
-          emissiveIntensity={0}
-          roughness={0.4}
-          metalness={0.35}
-        />
-      </mesh>
-      {/* The crown: see-through, with a soft glow from the light sculpture inside it */}
-      <mesh geometry={crown} position={[0, SF.top, 0]}>
-        <meshStandardMaterial
-          ref={glowMat}
-          color="#c9d1d6"
-          emissive="#dfe8f0"
-          emissiveIntensity={0.2}
-          transparent
-          opacity={0.22}
-          depthWrite={false}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-      {rings.map(({ g, y }) => (
-        <mesh key={y} geometry={g} position={[0, y, 0]} castShadow>
-          <meshStandardMaterial color="#d5dadd" roughness={0.45} metalness={0.4} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-/** One stylized landmark, built from a few primitives in the same language as the tower. */
-function LandmarkModel({ l, mat, treeMat, env }: { l: SceneLandmark; mat: THREE.Material; treeMat: THREE.Material; env: Env }) {
-  const { x, z } = l;
-  const heading = ((l.heading ?? 0) * Math.PI) / 180;
-  switch (l.kind) {
-    case "coit":
-      // Telegraph Hill, then the fluted column on top
-      return (
-        <group position={[x, 0, z]}>
-          <mesh scale={[2.6, 1.5, 2.6]} material={treeMat} castShadow receiveShadow>
-            <sphereGeometry args={[1, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          </mesh>
-          <mesh position={[0, 1.5 + 1.5, 0]} material={mat} castShadow>
-            <cylinderGeometry args={[0.28, 0.32, 3, 16]} />
-          </mesh>
-          <mesh position={[0, 4.55, 0]} material={mat} castShadow>
-            <cylinderGeometry args={[0.36, 0.3, 0.2, 16]} />
-          </mesh>
-        </group>
-      );
-    case "skyscraper":
-      // Salesforce Tower: taller than the Pyramid, tapering to an open crown
-      return (
-        <group position={[x, 0, z]}>
-          <SalesforceTower env={env} />
-        </group>
-      );
-    case "ferry":
-      return (
-        <group position={[x, 0, z]} rotation={[0, heading || 0.35, 0]}>
-          <mesh position={[0, 0.4, 0]} material={mat} castShadow receiveShadow>
-            <boxGeometry args={[0.9, 0.8, 3.4]} />
-          </mesh>
-          <mesh position={[0, 1.6, 0]} material={mat} castShadow>
-            <boxGeometry args={[0.36, 3.2, 0.36]} />
-          </mesh>
-          <mesh position={[0, 3.35, 0]} material={mat}>
-            <coneGeometry args={[0.2, 0.4, 4]} />
-          </mesh>
-        </group>
-      );
-    case "church":
-      return (
-        <group position={[x, 0, z]} rotation={[0, 0.6, 0]}>
-          <mesh position={[0, 0.5, 0]} material={mat} castShadow receiveShadow>
-            <boxGeometry args={[1, 1, 1.7]} />
-          </mesh>
-          {[-0.28, 0.28].map((dx) => (
-            <group key={dx} position={[dx, 0, 0.72]}>
-              <mesh position={[0, 1.2, 0]} material={mat} castShadow>
-                <boxGeometry args={[0.3, 2.4, 0.3]} />
-              </mesh>
-              <mesh position={[0, 2.75, 0]} material={mat} castShadow>
-                <coneGeometry args={[0.18, 0.7, 6]} />
-              </mesh>
-            </group>
-          ))}
-        </group>
-      );
-    case "island":
-      // Alcatraz: a rock, the cellhouse, the lighthouse
-      return (
-        <group position={[x, 0, z]} rotation={[0, 0.5, 0]}>
-          <mesh scale={[2.1, 0.7, 1.1]} material={treeMat} receiveShadow castShadow>
-            <sphereGeometry args={[1, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          </mesh>
-          <mesh position={[0.1, 0.85, 0]} material={mat} castShadow>
-            <boxGeometry args={[1.5, 0.4, 0.5]} />
-          </mesh>
-          <mesh position={[-0.7, 1.15, 0.2]} material={mat} castShadow>
-            <cylinderGeometry args={[0.07, 0.09, 1, 8]} />
-          </mesh>
-        </group>
-      );
-    case "bay-bridge":
-    case "golden-gate": {
-      const gg = l.kind === "golden-gate";
-      const len = gg ? 16 : 22;
-      const towerH = gg ? 6.2 : 4.6;
-      const deckY = gg ? 1.4 : 1.1;
-      const towers = gg ? [-3.6, 3.6] : [-6.5, -2.2, 2.2, 6.5];
-      const color = gg ? GG_RED : undefined;
-      const m = color ? undefined : mat;
-      return (
-        <group position={[x, 0, z]} rotation={[0, -heading, 0]}>
-          <mesh position={[0, deckY, 0]} material={m} castShadow>
-            <boxGeometry args={[0.34, 0.14, len]} />
-            {color && <meshStandardMaterial color={color} roughness={0.6} />}
-          </mesh>
-          {towers.map((tz) => (
-            <group key={tz} position={[0, 0, tz]}>
-              {[-0.18, 0.18].map((tx) => (
-                <mesh key={tx} position={[tx, towerH / 2, 0]} material={m} castShadow>
-                  <boxGeometry args={[0.1, towerH, 0.12]} />
-                  {color && <meshStandardMaterial color={color} roughness={0.6} />}
-                </mesh>
-              ))}
-            </group>
-          ))}
-          {/* Main cables as straight runs between tower tops and the deck's ends: enough to read as suspension */}
-          {towers.slice(0, -1).map((tz, i) => {
-            const nz = towers[i + 1];
-            const dz = nz - tz;
-            const sag = towerH - deckY - 0.3;
-            const half = dz / 2;
-            const seg = Math.hypot(half, sag);
-            const ang = Math.atan2(sag, half);
-            return [
-              <mesh key={`${tz}a`} position={[0, deckY + 0.3 + sag / 2, tz + half / 2]} rotation={[ang, 0, 0]} material={m}>
-                <boxGeometry args={[0.04, 0.04, seg]} />
-                {color && <meshStandardMaterial color={color} />}
-              </mesh>,
-              <mesh key={`${tz}b`} position={[0, deckY + 0.3 + sag / 2, nz - half / 2]} rotation={[-ang, 0, 0]} material={m}>
-                <boxGeometry args={[0.04, 0.04, seg]} />
-                {color && <meshStandardMaterial color={color} />}
-              </mesh>,
-            ];
-          })}
-        </group>
-      );
-    }
-  }
-}
-
-/** Where a landmark's label floats: just above its highest point */
-function landmarkTop(l: SceneLandmark) {
-  const { x, z } = l;
-  const h = { coit: 5, skyscraper: SF.top + SF.crown, ferry: 3.8, church: 3.3, island: 1.8, "bay-bridge": 5, "golden-gate": 6.6 }[l.kind];
-  return new THREE.Vector3(x, h + 0.35, z);
-}
-
-/** Half-width of each landmark's footprint, for the "get out of the way" test */
-const REACH: Record<Landmark["kind"], number> = { coit: 2.6, skyscraper: SF.half, ferry: 1.8, church: 1.1, island: 2.2, "bay-bridge": 0, "golden-gate": 0 };
-
-/** The landmarks. Like the city blocks, one standing between the camera and the focus sinks out of the way. */
-function Landmarks({ p, env, focus, sink = true }: { p: TowerProfile; env: Env; focus: RefObject<THREE.Vector3>; sink?: boolean }) {
-  const mat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 }), []);
-  const treeMat = useMemo(() => new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true }), []);
-  const list = useMemo(() => sceneLandmarks(p), [p]);
-  const groups = useRef<(THREE.Group | null)[]>([]);
-  const k = useRef(list.map(() => 1));
-  useFrame(({ camera }, dt) => {
-    mat.color.copy(env.slab).multiplyScalar(0.92);
-    treeMat.color.copy(env.tree);
-    const f = focus.current;
-    const dist = camera.position.distanceTo(f);
-    _ray.set(camera.position, _dir.subVectors(f, camera.position).normalize());
-    list.forEach((l, i) => {
-      const g = groups.current[i];
-      const reach = REACH[l.kind];
-      if (!g || !reach) return;
-      const { x, z } = l;
-      _box.min.set(x - reach, 0, z - reach);
-      _box.max.set(x + reach, landmarkTop(l).y, z + reach);
-      const hit = _ray.intersectBox(_box, _hit);
-      // When looking out from a floor, the landmarks in front of you are the point: never sink them.
-      const blocking = sink && !!hit && camera.position.distanceTo(hit) < dist;
-      k.current[i] = THREE.MathUtils.damp(k.current[i], blocking ? 0.03 : 1, blocking ? 5 : 2.5, dt);
-      g.scale.y = k.current[i];
-    });
-  });
-  return (
-    <>
-      {list.map((l, i) => (
-        <group
-          key={l.name}
-          ref={(el) => {
-            groups.current[i] = el;
-          }}
-        >
-          <LandmarkModel l={l} mat={mat} treeMat={treeMat} env={env} />
-        </group>
-      ))}
-    </>
-  );
-}
 
 /** Distant hills across the bay (Marin, Angel Island, the East Bay): silhouettes for depth, bearing in degrees */
 const HILLS: [bearing: number, r: number, w: number, h: number][] = [
@@ -1469,6 +1055,17 @@ export type TowerCanvasProps = {
   compass?: string;
 };
 
+/** Ready means the first frame has actually been drawn, not just that the context exists. */
+function FirstFrame({ onReady }: { onReady?: () => void }) {
+  const done = useRef(false);
+  useFrame(() => {
+    if (done.current) return;
+    done.current = true;
+    requestAnimationFrame(() => onReady?.());
+  });
+  return null;
+}
+
 export default function TowerCanvas({
   profile: p,
   level,
@@ -1532,15 +1129,16 @@ export default function TowerCanvas({
       <Canvas
         shadows
         dpr={[1, dpr]}
-        frameloop={active ? "always" : "never"}
+        // Off-screen scenes still draw on demand, so a scene mounted early is compiled and painted before it's seen
+        frameloop={active ? "always" : "demand"}
         camera={{ position: [20, 12, 20], fov: 32, near: 0.5, far: 120 }}
         gl={{ antialias: true, alpha: true }}
-        onCreated={() => onReady?.()}
         onPointerMissed={() => setHover(null)}
         aria-hidden
       >
         {/* Weak GPUs step down to a lighter pixel ratio instead of dropping frames */}
         <PerformanceMonitor onDecline={() => setDpr(1.25)} />
+        <FirstFrame onReady={onReady} />
         <Sky sun={sun} env={env} />
         <Rig p={p} level={level} auto={auto} focus={focus} onInteract={onInteract} shift={shift} zoom={zoom} street={pois} spot={spot} />
         <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} />

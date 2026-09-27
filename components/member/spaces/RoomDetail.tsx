@@ -6,6 +6,7 @@ import { ViewTransition, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { roomCapacity, roomHours, setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
+import { shellFromPlate, specsFromCapacities } from "@/lib/setup/shell";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { dayKey, fmtTime, week } from "@/lib/time";
@@ -48,7 +49,11 @@ export function RoomDetail({ slug }: { slug: string }) {
   const next = `/spaces/${r.slug}/book?${q}`;
   const signedOut = hydrated && s.persona === "signed-out";
 
-  const capacities = Object.fromEntries(r.setups.map((x) => [x, roomCapacity(r, x)])) as Partial<Record<Setup, number>>;
+  const shell = useMemo(() => shellFromPlate(r.plate), [r.plate]);
+  const specs = useMemo(
+    () => specsFromCapacities(Object.fromEntries(r.setups.map((x) => [x, roomCapacity(r, x)])) as Partial<Record<Setup, number>>),
+    [r],
+  );
 
   return (
     <div className="pb-[calc(var(--tab-h)+env(safe-area-inset-bottom)+96px)] lg:pb-28">
@@ -101,8 +106,8 @@ export function RoomDetail({ slug }: { slug: string }) {
               <h2 className="t-h2">How it sets</h2>
               <SetupVisualizer
                 className="mt-6"
-                plate={r.plate}
-                capacities={capacities}
+                shell={shell}
+                setups={specs}
                 value={setup}
                 onChange={setSetup}
                 title={`${r.name} · Level ${r.level}`}

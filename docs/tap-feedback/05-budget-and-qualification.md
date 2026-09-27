@@ -14,6 +14,7 @@ Leads keep coming in below what a space can rent for ("I want Redwood Park and I
 - Add `minBudget` to each venue in the tenant bundle. All TAP venues start at $10,000, **marked as placeholders** until Chad and OS provide the real figures. Nothing about minimums is shown publicly.
 - Budget options gain numeric ranges, so they can be compared to minimums. "Not sure yet" always passes.
 - With several venues selected, the check uses the lowest minimum among them. If any one venue fits, the lead is worth having.
+- **Changed (2026-09-26):** instead of the "is your budget flexible?" prompt and the "no lead" page, ranges below the floor aren't offered at all. With every venue at $10k, the list starts at $10k–$25k; "Under $10k" comes back by itself for a cheaper space (for example, meeting rooms). No minimum is stated anywhere, and there's nothing to click through.
 - The comparison is a pure function (`lib/core/inquiry/budget.ts`) with tests.
 - **Later, with Chad:** move minimums into OS per space, so the events team can manage them.
 

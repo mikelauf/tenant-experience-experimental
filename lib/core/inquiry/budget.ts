@@ -1,8 +1,8 @@
 /**
  * Budget qualification for public inquiries. The building doesn't publish rates, but every space has a
  * floor below which an event can't work (Transamerica: $10k for event spaces, around $2k for future
- * meeting rooms). Before an inquiry is sent, a budget below that floor prompts "is your budget flexible?"
- * rather than becoming a lead the team has to turn down.
+ * meeting rooms). Ranges below the floor simply aren't offered, so a lead the team would turn down
+ * can't be sent, and no minimum is ever stated.
  *
  * Pure and framework-free, so the form and the tests share it.
  */
@@ -19,16 +19,12 @@ export const BUDGETS: BudgetOption[] = [
   { label: "Not sure yet" },
 ];
 
-export const budgetByLabel = (label: string | undefined) => BUDGETS.find((b) => b.label === label);
-
 /**
- * Whether a budget falls below every selected space's minimum. With several spaces the lowest minimum
- * counts: if any one of them could work, the lead is worth having. Spaces without a minimum, and
- * "not sure yet", always pass.
+ * The ranges worth offering for these spaces: every one whose top reaches the floor, plus "not sure yet".
+ * With several spaces the lowest minimum is the floor (if any one of them could work, the lead is worth
+ * having). A space without a minimum, or no spaces at all, means no floor.
  */
-export function budgetCheck(budget: BudgetOption | undefined, minimums: readonly (number | undefined)[]): { ok: true } | { ok: false; floor: number } {
-  if (!budget || budget.max === undefined) return { ok: true };
-  if (!minimums.length || minimums.some((m) => m === undefined)) return { ok: true };
-  const floor = Math.min(...(minimums as number[]));
-  return budget.max >= floor ? { ok: true } : { ok: false, floor };
+export function budgetOptions(minimums: readonly (number | undefined)[]): BudgetOption[] {
+  const floor = !minimums.length || minimums.some((m) => m === undefined) ? 0 : Math.min(...(minimums as number[]));
+  return BUDGETS.filter((b) => b.max === undefined || b.max >= floor);
 }

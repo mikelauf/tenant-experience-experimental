@@ -49,9 +49,10 @@ function useStage() {
 }
 
 /**
- * Version C, "3D": the procedural tower with the real landmarks around it. Hover a floor (its marker, the lit
- * slab, or the rail) to peek; keep hovering or click and the camera flies in, sliding the tower aside for a
- * panel with the space's photos, floor plan and tagged views. Arrow keys ride the floors; Escape comes back out.
+ * Version C, "3D": the procedural tower with the real landmarks around it. Hover a floor (its marker or the lit
+ * slab) to peek; keep hovering or click and the camera flies in, sliding the tower aside for a panel
+ * with the space's photos, floor plan and tagged views. The rail only highlights on hover and changes floors
+ * on click, so a stray pointer can't send the camera off. Arrow keys ride the floors; Escape comes back out.
  */
 export function BuildingExplorer() {
   const t = useTenant();
@@ -120,13 +121,18 @@ export function BuildingExplorer() {
     setHot(null);
     setPeek(false);
   }, []);
-  const startDwell = (slug: string) => {
+  /** `open: false` highlights only (the rail): a floor there changes on click, never on a stray hover. */
+  const startDwell = (slug: string, open = true) => {
     if (hotRef.current === slug || down.current || touring) return;
     endDwell();
     hotRef.current = slug;
     setHot(slug);
     if (slug === id) return;
     const venue = byLevel.find((x) => x.slug === slug);
+    if (!open) {
+      if (venue) preloadHero(venue);
+      return;
+    }
     timers.current.push(
       window.setTimeout(() => {
         setPeek(true);
@@ -153,7 +159,10 @@ export function BuildingExplorer() {
     if (slug) startDwell(slug);
     else if (hotRef.current) endDwell();
   };
-  const onMouse = (slug: string) => (e: React.PointerEvent) => e.pointerType === "mouse" && startDwell(slug);
+  const onMouse =
+    (slug: string, open = true) =>
+    (e: React.PointerEvent) =>
+      e.pointerType === "mouse" && startDwell(slug, open);
 
   // Desktop: opening a floor while the stage is partly off screen glides the whole stage into view under the nav
   const wide = useRef(stage.wide);
@@ -280,6 +289,9 @@ export function BuildingExplorer() {
               setDragged(true);
             }}
             className="absolute inset-0"
+            // Drawn while the page is idle, so it's already there on scroll; the photo is only the no-3D fallback
+            eager
+            placeholder={null}
             poster={
               <Image src={pub.towerPoster.src} alt="" fill sizes="100vw" className="object-cover opacity-80" style={{ objectPosition: pub.towerPoster.pos }} />
             }
@@ -327,8 +339,11 @@ export function BuildingExplorer() {
                   return (
                     <li key={s.id}>
                       <button
-                        onClick={() => toggle(s.id)}
-                        onPointerEnter={s.venue ? onMouse(s.id) : undefined}
+                        onClick={() => {
+                          endDwell();
+                          toggle(s.id);
+                        }}
+                        onPointerEnter={s.venue ? onMouse(s.id, false) : undefined}
                         onPointerLeave={s.venue ? endDwell : undefined}
                         aria-current={on ? "true" : undefined}
                         className={cn(

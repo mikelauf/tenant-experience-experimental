@@ -17,14 +17,15 @@ export function Setting() {
   // 0 as the row's top enters near the bottom of the screen, 1 once it has risen most of the way up.
   const { scrollYProgress } = useScroll({ target: row, offset: ["start 0.95", "start 0.15"] });
   const inset = useTransform(scrollYProgress, [0, 1], [7, 0]);
-  const radius = useTransform(scrollYProgress, [0, 1], [22, 0]);
-  const clipPath = useTransform([inset, radius], ([i, r]) => `inset(0 ${i}% round ${r}px)`);
+  // Corners shrink with the inset. The radius comes from CSS so the flat style can square it.
+  const round = useTransform(scrollYProgress, [0, 1], [1, 0]);
+  const clipPath = useTransform([inset, round], ([i, k]) => `inset(0 ${i}% round calc(${k} * var(--radius-clip)))`);
   const scale = useTransform(scrollYProgress, [0, 1], [1.08, 1]);
 
   if (!setting) return null;
 
   return (
-    <section className="pt-20 lg:pt-32" aria-labelledby="setting-h">
+    <section className="pb-24 pt-20 lg:pb-36 lg:pt-32" aria-labelledby="setting-h">
       <div className="frame grid-12 items-end gap-y-6">
         <div className="col-span-12 lg:col-span-7">
           <p className="t-meta">The setting</p>

@@ -95,7 +95,7 @@ Ask Spencer about:
 - **Top:** a large, clean hero image, like TE's Sky Bar hero. Drop the "Dinners & receptions" category label.
 - **Gallery:** then PT's `Mosaic.tsx` with its "Show all photos" full-screen gallery. This replaces TE's clunkier carousel.
 - **Body:** keep PT's overview, "good for", story and host. This is the "additional information" Spencer wanted brought over.
-- **Flagged for V2:** "What this venue offers" (amenities) and the 3D `SetupVisualizer` go behind a per-venue content flag. They're hidden at launch and come back once real floor plans and amenities exist.
+- **Flagged for V2:** "What this venue offers" (amenities) goes behind a content flag, hidden at launch until confirmed amenities exist. (The 3D `SetupVisualizer` was flagged too, and shipped once the plans were traced.)
 - **Sticky inquiry:** keep PT's `InquireCard.tsx` (the mobile bottom bar too) and "Also at the Pyramid".
 
 **Inquiry page:** PT's `app/(public)/venues/inquire/page.tsx` and `components/public/InquiryForm.tsx`, as they are, with the real venue picker.
@@ -183,7 +183,7 @@ Ask Spencer about:
 ---
 
 ## Status checklist
-_Update as work lands. Last updated: 2026-09-25._
+_Update as work lands. Last updated: 2026-09-26._
 
 - [x] Review: notes, TE codebase, PT codebase, both live sites
 - [x] Roadmap recorded (this file)
@@ -203,8 +203,11 @@ _Update as work lands. Last updated: 2026-09-25._
 
 ### Transamerica feedback, round 1 (Sep 25) — see `tap-feedback/`
 - [x] Booklet content: five venues incl. **Legacy Gallery (L36)**, booklet facts, floor plans on every venue page (real, shown in production), "The view from here", à la carte services, real booklet photos (AI renders excluded)
-- [x] Inquiry: 4 steps with contact details last, several venues per inquiry, date + guests required, new date picker, typeable guest count, all-in budget hint, budget-minimum check ("flexible?" yes → adjust, no → nothing sent), editable summary card
+- [x] Inquiry: 4 steps with contact details last, several venues per inquiry, date + guests required, new date picker, typeable guest count, all-in budget hint, budget floor (ranges below the lowest selected venue's minimum aren't offered; changed from the "flexible?" prompt on Sep 26, pending Spencer's OK), editable summary card
 - [x] FAQ page (`/venues/faq`) + nav link + "While you wait" on the confirmation page
+- [x] "The space" section: every venue traced into 3D from its booklet plan (incl. Redwood Park), with setups and a live guest-count slider, shipped in production
+- [x] The space, round 2: one control rail (setup list with sketches, guests, inquiry). The 3D room turns by drag and drifts when idle, like the tower. Each setup frames itself: Overview, Close-up and Top-down. Walls, cores and trees clear out of the camera's way. Floor finishes, clothed tables, guests who walk in from the elevators. Floor plan and view sit below.
+- [ ] **Later (agreed Sep 26):** tap a label to fly to it with a note; "Look out from here" (eye level at the window, cross-fading to the view photo); a shareable link holding setup, guests and camera view
 - [x] 3D explorer replaces the scroll-driven tower: click floors or the jump list, real landmarks by true bearing, "Look out from here" per venue, arrival pins with Google Maps links
 - [ ] Real per-space budget minimums from Chad / OS (all venues use a $10k placeholder)
 - [ ] Loading dock location and street diagrams from Oscar
@@ -214,6 +217,6 @@ _Update as work lands. Last updated: 2026-09-25._
 ### Decisions made while building
 - **Invented content stays out of production.** The fictional host (Inés), the 555 phone number, "moments" from sample events, the spire "crown" stop (Sky Bar is on Level 48) and sample policies are no longer on the Pyramid's public site. The host section, public contact and moments return automatically once real ones are added to the bundle (`publicHostId`, `copy.public.contact`, `copy.public.moments`).
 - **Sky Bar has no single capacity** (sources say 50–75, 65–80, 75). It shows "Varies by setup", as TE did, until Spencer confirms.
-- **3D setups are illustrative.** Per-setup seat counts are estimates from floor area, labeled as such, and only appear in the demo. They go live once Ryan's floor plans arrive.
+- **3D setups are traced, but their capacities are mostly estimates.** Each room is traced from the booklet plan and ships in production at the top of the venue page ("The space"). Seat counts are labeled as estimates, except The Sandbox's two setups and Bay Lounge's boardroom, which come from the booklet. The list for Spencer is in `tap-feedback/02-floor-plans-and-detail.md`.
 - **No contact details in the browser.** The sent page's URL carries only Core's reference and the venue slug. The demo still keeps a local copy for the member app's Plans.
 - **Privacy link** is Playbook's policy (`https://www.playbookexp.com/privacy.html`), the one the TAP inquiry draft uses.

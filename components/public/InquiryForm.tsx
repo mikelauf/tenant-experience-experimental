@@ -2,11 +2,10 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { BUDGETS, budgetByLabel, budgetCheck } from "@/lib/core/inquiry/budget";
+import { budgetOptions } from "@/lib/core/inquiry/budget";
 import { MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/contract";
 import { getPublicCampaign } from "@/lib/core/inquiry/campaign";
 import { INQUIRY_CLIENT_TIMEOUT_MS } from "@/lib/core/inquiry/timeouts";
@@ -23,7 +22,7 @@ import { LineReveal } from "@/components/motion/Reveal";
  * The public inquiry, OpenTable-style: the event first, contact details last, no account
  * (inquiries stay profile-free per the Wayfinder decisions). Four steps on one page:
  * when → where → the event → your details. The summary card beside the form can jump back to any step.
- * A budget below every chosen space's minimum asks "is your budget flexible?" before anything is sent.
+ * Budget ranges below the chosen spaces' minimum aren't offered, so an inquiry can't go out below the floor.
  */
 
 type Values = {
@@ -178,7 +177,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const hydrated = useHydrated();
   const uid = useId();
   const top = useRef<HTMLFormElement>(null);
-  const budgetRef = useRef<HTMLDivElement>(null);
 
   const initialVenue = initial.venue && (all.some((x) => x.slug === initial.venue) || initial.venue === NOT_SURE) ? [initial.venue] : [];
   const [v, setV] = useState<Values>({
@@ -197,12 +195,11 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     privacy: false,
     news: false,
   });
-  const [layout, setLayout] = useState<InquiryLayout>(isLayout(initial.layout) ? initial.layout : "split");
+  // Focused is the inquiry; ?layout= still opens the other explorations.
+  const layout: InquiryLayout = isLayout(initial.layout) ? initial.layout : "focused";
   const [step, setStep] = useState(0);
   const [reached, setReached] = useState(0);
   const [errors, setErrors] = useState<Errors>({});
-  const [gate, setGate] = useState<null | { names: string[] }>(null);
-  const [declined, setDeclined] = useState(false);
   const [sending, setSending] = useState(false);
   const [netError, setNetError] = useState(false);
   const [serverMessage, setServerMessage] = useState("");
@@ -221,7 +218,10 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const shortlist = hydrated ? s.shortlist.filter((x) => all.some((a) => a.slug === x)) : [];
   const venues = touchedVenues ? v.venues : v.venues.length ? v.venues : shortlist.slice(0, MAX_VENUES);
   const chosen = all.filter((x) => venues.includes(x.slug));
-  const values = { ...v, venues };
+  // Only ranges that can work for these spaces are offered; a pick that no longer fits (the venues changed) clears.
+  const budgets = budgetOptions((chosen.length ? chosen : all).map((x) => x.minBudget)).map((b) => b.label);
+  const budget = budgets.includes(v.budget) ? v.budget : "";
+  const values = { ...v, venues, budget };
   const largest = chosen.reduce<(typeof chosen)[number] | undefined>((a, x) => ((x.capacity ?? 0) > (a?.capacity ?? 0) ? x : a), undefined);
 
   // The sentence layout folds the first three steps into one sentence: its steps are 0 (the event) and 3 (you).
@@ -231,7 +231,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     guests: !!v.guests,
     date: !!v.date,
     venue: venues.length > 0,
-    budget: !!v.budget,
+    budget: !!budget,
     note: !!v.message.trim(),
   };
   /** The next blank after this one that still needs an answer, or none. */
@@ -241,11 +241,9 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const set = <K extends keyof Values>(k: K, val: Values[K]) => {
     setV((x) => ({ ...x, [k]: val }));
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
-    if (k === "budget") setGate(null);
   };
   const toggleVenue = (slug: string) => {
     setTouchedVenues(true);
-    setGate(null);
     const cur = venues;
     const next =
       slug === NOT_SURE
@@ -257,17 +255,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
           : [...cur.filter((x) => x !== NOT_SURE), slug].slice(0, MAX_VENUES);
     setV((x) => ({ ...x, venues: next }));
     if (errors.venues) setErrors((e) => ({ ...e, venues: undefined }));
-  };
-
-  const pickLayout = (l: InquiryLayout) => {
-    setLayout(l);
-    setErrors({});
-    setGate(null);
-    // Leaving the sentence mid-way lands on its first step; entering it from a middle step lands on the sentence.
-    if (l !== "sentence" && layout === "sentence" && step < 3) setStep(0);
-    const u = new URL(window.location.href);
-    u.searchParams.set("layout", l);
-    window.history.replaceState(null, "", u);
   };
 
   const go = (to: number) => {
@@ -284,15 +271,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
       if (sentence) setBlank(BLANKS.find((b) => BLANK_KEY[b] === first) ?? null);
       requestAnimationFrame(() => document.getElementById(`${uid}-${first}`)?.focus());
       return;
-    }
-    if (step === 2 || sentence) {
-      // Budget below what every chosen space needs? Ask before it becomes a lead.
-      const check = budgetCheck(budgetByLabel(values.budget), venues.includes(NOT_SURE) ? [] : chosen.map((x) => x.minBudget));
-      if (!check.ok) {
-        setGate({ names: chosen.map((x) => x.name) });
-        if (sentence) setBlank("budget");
-        return;
-      }
     }
     const to = sentence ? 3 : step + 1;
     setReached((r) => Math.max(r, to));
@@ -323,7 +301,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
       date: `${v.date}${v.flexible ? " (flexible)" : ""}`,
       guests: v.guests,
       eventType: v.eventType,
-      budget: v.budget,
+      budget,
       details: v.message.trim(),
       privacy: v.privacy,
       marketing: v.news,
@@ -395,44 +373,10 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     { k: "When", s: 0, val: v.date ? `${formatDate(v.date)}${v.flexible ? " · flexible" : ""}` : "" },
     { k: "Guests", s: 0, val: v.guests ? `${Number(v.guests).toLocaleString("en-US")} guests` : "" },
     { k: "Where", s: 1, val: venues.includes(NOT_SURE) ? "Not sure yet" : chosen.map((x) => x.name).join(", ") },
-    { k: "Budget", s: 2, val: v.budget },
+    { k: "Budget", s: 2, val: budget },
   ];
 
-  if (declined)
-    return (
-      <NotAFit
-        onBack={() => {
-          setDeclined(false);
-          setGate(null);
-          go(layout === "sentence" ? 0 : 2);
-        }}
-      />
-    );
-
   /* ---------- Shared pieces: every layout arranges the same controls ---------- */
-
-  const toggle = isDemo && (
-    <div className="mb-8 flex items-center justify-center gap-3 lg:justify-end">
-      <span className="t-meta">Layout preview</span>
-      <div role="radiogroup" aria-label="Layout preview" className="flex rounded-full bg-fog p-1">
-        {LAYOUTS.map((l) => (
-          <button
-            key={l.key}
-            type="button"
-            role="radio"
-            aria-checked={layout === l.key}
-            onClick={() => pickLayout(l.key)}
-            className={cn(
-              "h-8 rounded-full px-3.5 text-[0.8125rem] font-medium transition-colors",
-              layout === l.key ? "bg-paper text-ink shadow-[var(--shadow-soft)]" : "text-stone hover:text-ink",
-            )}
-          >
-            {l.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
 
   const progressSteps = layout === "sentence" ? [{ i: 0, short: "Your event" }, { i: 3, short: "Your details" }] : STEPS.map((st, i) => ({ i, short: st.short }));
   const progress = (
@@ -556,15 +500,15 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   );
 
   const budgetControl = (
-    <div ref={budgetRef}>
+    <div>
       <p className="mb-1 text-[0.9375rem] font-medium outline-none" id={id("budget")} tabIndex={-1}>
         Budget range
       </p>
       <p className="t-small mb-3 text-stone">Your all-in event budget: the space, furniture and rentals, and catering and drinks together.</p>
       <Chips
         name="Budget range"
-        options={BUDGETS.map((b) => b.label)}
-        value={v.budget}
+        options={budgets}
+        value={budget}
         onChange={(x) => {
           set("budget", x);
           if (x) advance("budget");
@@ -577,41 +521,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
           {errors.budget}
         </p>
       )}
-      <AnimatePresence>
-        {gate && (
-          <motion.div role="alert" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-            <div className="mt-5 rounded-[var(--radius-card)] bg-hold-soft p-5 text-ink">
-              <p className="font-medium">That&apos;s below the typical budget for {gate.names.length > 1 ? "these venues" : gate.names[0]}.</p>
-              <p className="t-small mt-1 text-ink-2">Is your budget flexible? If it is, choose the range you could work with.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setGate(null);
-                    set("budget", "");
-                    if (layout === "sentence") setBlank("budget");
-                    requestAnimationFrame(() => budgetRef.current?.querySelector<HTMLButtonElement>("[role=radio]")?.focus());
-                  }}
-                  className="h-10 rounded-full bg-ink px-4 text-[0.875rem] font-medium text-paper"
-                >
-                  Yes, I can adjust it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeclined(true);
-                    // The page swaps to a short message; bring its top into view.
-                    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
-                  }}
-                  className="h-10 rounded-full px-4 text-[0.875rem] font-medium shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:bg-paper"
-                >
-                  No, not right now
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 
@@ -753,7 +662,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
       : chosen.length
         ? new Intl.ListFormat("en", { type: "disjunction" }).format(chosen.map((x) => x.name))
         : "which venue",
-    budget: v.budget === "Not sure yet" ? "TBD" : v.budget || "how much",
+    budget: budget === "Not sure yet" ? "TBD" : budget || "how much",
     note: "",
   };
   const B = (b: Blank) => {
@@ -819,7 +728,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   /* ---------- Steps, and the buttons that move between them ---------- */
 
   const stacked = layout !== "split";
-  const legendClass = { split: "t-h1", focused: "t-h1 w-full text-center", card: "t-h2", sentence: "t-h1" }[layout];
+  const legendClass = { split: "t-h1", focused: "t-h2", card: "t-h2", sentence: "t-h1" }[layout];
   const fieldset = (
     <AnimatePresence mode="wait" initial={false}>
       <motion.fieldset
@@ -830,7 +739,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       >
         <legend className={sentence ? "sr-only" : legendClass}>{sentence ? "Your event" : STEPS[step].title}</legend>
-        {layout === "focused" && step === 0 && <p className="t-lead mx-auto mt-4 max-w-[40ch] text-center text-stone">{LEAD}</p>}
+        {layout === "focused" && step === 0 && <p className="t-small mt-2 max-w-[48ch] text-stone">{LEAD}</p>}
 
         {sentence ? (
           sentenceStep
@@ -870,7 +779,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     <div className="flex flex-col items-stretch gap-3 sm:items-end">
       <button
         type="submit"
-        disabled={sending || !!gate}
+        disabled={sending}
         className="flex h-14 items-center justify-center gap-2 rounded-full bg-accent px-8 font-medium text-paper transition-colors hover:bg-accent-deep disabled:opacity-60"
       >
         {sending ? (
@@ -910,59 +819,153 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
 
   /* ---------- Layouts ---------- */
 
-  if (layout === "focused")
+  if (layout === "focused") {
+    const answered = rows.filter((r) => r.val && r.s !== step);
     return (
-      <>
-        {toggle}
-        <form {...formProps} className="mx-auto max-w-[640px] scroll-mt-[calc(var(--nav-h)+16px)] pb-32">
-          {/* Answers so far, as small pills; each one jumps back to its step */}
-          <div className="mb-8 flex min-h-9 flex-wrap justify-center gap-2">
-            {rows
-              .filter((r) => r.val && r.s !== step)
-              .map((r) => (
-                <button
-                  key={r.k}
-                  type="button"
-                  onClick={() => go(r.s)}
-                  title={`Edit ${r.k.toLowerCase()}`}
-                  className="t-small inline-flex h-9 items-center gap-1.5 rounded-full bg-fog px-3.5 font-medium text-ink-2 transition-colors hover:bg-fog-2"
-                >
-                  {r.val}
-                </button>
-              ))}
-          </div>
-          <h1 className="t-meta mb-3 text-center">
-            Event inquiry · Step {step + 1} of {STEPS.length}
-          </h1>
-          {fieldset}
-        </form>
-        {/* Pinned bar: progress along its top edge, Back and Continue beneath */}
-        <div className="fixed inset-x-0 bottom-0 z-40 bg-paper/92 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur-xl">
-          <div className="flex gap-1">
-            {STEPS.map((st, k) => (
-              <span key={st.short} className={cn("h-[3px] flex-1 transition-colors duration-500", k <= step ? "bg-ink" : "bg-line-2")} />
-            ))}
-          </div>
-          <div className="mx-auto flex max-w-[640px] items-center justify-between gap-4 px-4 pl-[52px] pt-3 sm:pl-[88px] lg:px-0">
-            {backButton}
-            <button
-              type="button"
-              onClick={() => top.current?.requestSubmit()}
-              disabled={sending || !!gate}
-              className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper transition-colors hover:bg-accent-deep disabled:opacity-60"
+      <div className="relative isolate">
+        {/* The chosen space, blurred wide behind everything, so the card sits in its light */}
+        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={hero.src}
+              className="absolute -inset-16"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.55 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
             >
-              {sending ? "Sending…" : step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
-              {!sending && <Icon name="arrow-right" size={18} />}
-            </button>
-          </div>
+              <Image src={hero.src} alt="" fill sizes="40vw" className="scale-110 object-cover blur-[72px] saturate-[1.3]" />
+            </motion.div>
+          </AnimatePresence>
+          <div className="absolute inset-0 bg-gradient-to-b from-quartz/40 via-quartz/70 to-quartz" />
         </div>
-      </>
+
+        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
+          <form
+            {...formProps}
+            className="relative mx-auto max-w-[580px] lg:max-w-[720px] scroll-mt-[calc(var(--nav-h)+16px)] rounded-[28px] bg-paper shadow-[var(--shadow-float),var(--shadow-ring)]"
+          >
+            {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
+            <div className="theme-night relative h-[208px] overflow-hidden rounded-t-[28px] bg-night sm:h-[232px]">
+              <AnimatePresence initial={false}>
+                <motion.div
+                  key={hero.src}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0, scale: 1.08 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <Image src={hero.src} alt="" fill sizes="(min-width:1024px) 720px, 580px" className="object-cover" style={{ objectPosition: hero.pos }} />
+                </motion.div>
+              </AnimatePresence>
+              <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
+              <div className="absolute inset-x-0 top-0 flex items-center justify-between p-5 sm:px-8">
+                <h1 className="t-meta !text-moon/85">Event inquiry</h1>
+                <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
+                  {step + 1} / {STEPS.length}
+                </span>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.p
+                    key={title}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    className="t-h2 text-moon"
+                  >
+                    {title}
+                  </motion.p>
+                </AnimatePresence>
+                <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
+                  {answered.map((r) => (
+                      <button
+                        key={r.k}
+                        type="button"
+                        onClick={() => go(r.s)}
+                        title={`Edit ${r.k.toLowerCase()}`}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25"
+                      >
+                        {r.val}
+                      </button>
+                    ))}
+                  {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
+                </div>
+              </div>
+            </div>
+
+            {/* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */}
+            <ol className="grid grid-cols-4 gap-2 px-5 pt-6 sm:px-8" aria-label="Inquiry steps">
+              {STEPS.map((st, k) => (
+                <li key={st.short}>
+                  <button
+                    type="button"
+                    onClick={() => k <= reached && go(k)}
+                    disabled={k > reached}
+                    aria-current={k === step ? "step" : undefined}
+                    className="group w-full text-left disabled:cursor-default"
+                  >
+                    <span className="relative block h-1 overflow-hidden rounded-full bg-fog">
+                      <motion.span
+                        className={cn("absolute inset-0 origin-left rounded-full", k === step ? "bg-accent" : "bg-ink")}
+                        initial={false}
+                        animate={{ scaleX: k <= step ? 1 : k <= reached ? 0.35 : 0 }}
+                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                      />
+                    </span>
+                    <span
+                      className={cn(
+                        "mt-2 block text-[0.8125rem] font-medium transition-colors",
+                        k === step ? "text-accent" : k <= reached ? "text-ink-2 group-hover:text-ink" : "text-stone-2",
+                      )}
+                    >
+                      {st.short}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ol>
+
+            <div className="px-5 pb-8 pt-7 sm:px-8">{fieldset}</div>
+
+            {/* Actions live in the card; on long steps they stick to the bottom of the screen */}
+            <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 rounded-b-[28px] border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5">
+              {backButton}
+              <button
+                type="submit"
+                disabled={sending}
+                className="group flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper shadow-[0_8px_24px_-8px_var(--color-accent)] transition-[background-color,transform] hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60"
+              >
+                {sending ? (
+                  <>
+                    <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+                    Sending…
+                  </>
+                ) : (
+                  <>
+                    {step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
+                    <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+        {isDemo && step === 3 && (
+          <label className="t-meta mx-auto mt-4 flex max-w-[580px] lg:max-w-[720px] cursor-pointer items-center justify-end gap-2">
+            <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
+            Demo: simulate a connection error
+          </label>
+        )}
+      </div>
     );
+  }
 
   if (layout === "card")
     return (
       <>
-        {toggle}
         <div className="relative grid min-h-[calc(100svh-var(--nav-h)-48px)] place-items-center overflow-hidden rounded-[var(--radius-media)] bg-night px-3 py-12 sm:px-8 lg:py-20">
           <AnimatePresence initial={false}>
             <motion.div
@@ -998,7 +1001,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   if (layout === "sentence")
     return (
       <>
-        {toggle}
         <form {...formProps} className="mx-auto max-w-[920px] scroll-mt-[calc(var(--nav-h)+16px)]">
           <div className="mb-10 flex items-end justify-between gap-6">
             <h1 className="t-meta">Tell us about your event</h1>
@@ -1013,7 +1015,6 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
 
   return (
     <>
-      {toggle}
       {/* Phones: the headline leads. Wide screens: it moves into the sticky panel beside the form. */}
       <div className="mb-12 lg:hidden">
         <LineReveal as="h1" className="t-hero" lines={["Tell us about", "your event."]} />
@@ -1076,45 +1077,5 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
         </form>
       </div>
     </>
-  );
-}
-
-/** Shown when someone says their budget can't flex. Nothing is sent; point them to answers instead. */
-function NotAFit({ onBack }: { onBack: () => void }) {
-  const { copy } = useTenant();
-  const faq = copy.public.faq?.filter((f) => f.tags?.some((t) => t === "budget" || t === "planning")).slice(0, 3) ?? [];
-  return (
-    <div className="grid-12 gap-y-10">
-      <div className="col-span-12 lg:col-span-7">
-        <p className="t-meta">Nothing was sent</p>
-        <h2 className="t-hero mt-3">Thanks for being upfront.</h2>
-        <p className="t-lead mt-5 max-w-[48ch] text-stone">
-          These spaces aren&apos;t likely to work at that budget, so we haven&apos;t sent an inquiry. If your plans change, come back any time. Your answers are still
-          here.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <button type="button" onClick={onBack} className="inline-flex h-12 items-center gap-2 rounded-full bg-ink px-6 font-medium text-paper">
-            <Icon name="arrow-left" size={18} />
-            Change my budget
-          </button>
-          <Link href="/venues/faq" className="inline-flex h-12 items-center rounded-full px-6 font-medium shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:bg-paper">
-            Read the FAQ
-          </Link>
-        </div>
-      </div>
-      {faq.length > 0 && (
-        <div className="col-span-12 lg:col-span-4 lg:col-start-9">
-          <p className="t-meta">Common questions</p>
-          <ul className="mt-4 space-y-5">
-            {faq.map((f) => (
-              <li key={f.q} className="border-t hairline pt-4">
-                <p className="font-medium">{f.q}</p>
-                <p className="t-small mt-1 text-stone">{f.a}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
   );
 }

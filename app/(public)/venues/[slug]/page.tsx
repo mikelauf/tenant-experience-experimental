@@ -9,8 +9,7 @@ import { Pill } from "@/components/ui/Pill";
 import { Photo } from "@/components/ui/Photo";
 import { FloorPlan } from "@/components/public/FloorPlan";
 import { InquireCard } from "@/components/public/InquireCard";
-import { AnnotatedView } from "@/components/public/AnnotatedView";
-import { SetupVisualizer } from "@/components/public/SetupVisualizer";
+import { VenueSpace } from "@/components/public/VenueSpace";
 import { PhotoRow, VenueHero } from "@/components/public/VenuePhotos";
 
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
@@ -29,20 +28,17 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
   if (!v) notFound();
   const host = t.publicHost;
   const others = t.venues.filter((x) => x.slug !== v.slug);
-  const layout = showV2 ? v.layout : undefined;
   const features = showV2 ? v.features : [];
+  const plan = v.floorPlans?.length ? <FloorPlan plans={v.floorPlans} venue={v.name} compact /> : null;
 
   return (
     <div className="pb-24 lg:pb-0">
       <VenueHero v={v} />
 
-      <div id="details" className="frame grid-12 mt-16 scroll-mt-[calc(var(--nav-h)+24px)] gap-y-16 lg:mt-24">
-        <div className="col-span-12 lg:col-span-7">
-          <Reveal>
-            <p className="t-h2 max-w-[24ch]">{v.tagline}</p>
-            <p className="t-lead mt-6 max-w-[58ch] text-stone">{v.summary}</p>
-          </Reveal>
-
+      <div id="details" className="frame grid-12 mt-16 scroll-mt-[calc(var(--nav-h)+24px)] lg:mt-24">
+        <Reveal className="col-span-12 lg:col-span-8">
+          <p className="t-h2 max-w-[24ch]">{v.tagline}</p>
+          <p className="t-lead mt-6 max-w-[58ch] text-stone">{v.summary}</p>
           {v.goodFor.length > 0 && (
             <div className="mt-8">
               <p className="t-meta">Suited to</p>
@@ -53,9 +49,16 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
               </div>
             </div>
           )}
+        </Reveal>
+      </div>
 
+      <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout }} />
+
+      <div className="frame grid-12 mt-16 gap-y-16 lg:mt-24">
+        <div className="col-span-12 flex flex-col gap-16 lg:col-span-7">
+          {plan && <div className="lg:hidden">{plan}</div>}
           {v.story.length > 0 && (
-            <div className="mt-14 space-y-5 border-t hairline pt-10">
+            <div className="space-y-5 border-t hairline pt-10">
               {v.story.map((p) => (
                 <p key={p.slice(0, 20)} className="t-body max-w-[62ch] text-ink-2">
                   {p}
@@ -65,7 +68,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           )}
 
           {v.facts.length > 0 && (
-            <section className="mt-16" aria-labelledby="facts">
+            <section aria-labelledby="facts">
               <h2 id="facts" className="sr-only">
                 At a glance
               </h2>
@@ -81,34 +84,8 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
             </section>
           )}
 
-          {v.floorPlans && v.floorPlans.length > 0 && (
-            <section className="mt-16" aria-labelledby="plan">
-              <h2 id="plan" className="t-h2">
-                Floor plan
-              </h2>
-              <p className="t-body mt-3 max-w-[56ch] text-stone">
-                {v.floorPlans.length > 1 ? "The building's own plans for each setup." : "The building's own plan of the space."} Tap to enlarge.
-              </p>
-              <div className="mt-8">
-                <FloorPlan plans={v.floorPlans} venue={v.name} />
-              </div>
-            </section>
-          )}
-
-          {v.views && v.views.length > 0 && (
-            <section className="mt-16" aria-labelledby="views">
-              <h2 id="views" className="t-h2">
-                The view from here
-              </h2>
-              <p className="t-body mt-3 max-w-[56ch] text-stone">Photographs taken from {v.name}, looking out, with the landmarks you can see.</p>
-              <div className="mt-8">
-                <AnnotatedView views={v.views} tone="day" />
-              </div>
-            </section>
-          )}
-
           {features.length > 0 && (
-            <section className="mt-16" aria-labelledby="offers">
+            <section aria-labelledby="offers">
               <div className="flex flex-wrap items-baseline justify-between gap-3">
                 <h2 id="offers" className="t-h2">
                   What this venue offers
@@ -132,7 +109,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           )}
 
           {v.services.length > 0 && (
-            <section className="mt-16" aria-labelledby="services">
+            <section aria-labelledby="services">
               <h2 id="services" className="t-h2">
                 Event services
               </h2>
@@ -155,32 +132,9 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
             </section>
           )}
 
-          {layout && (
-            <section className="mt-20" aria-labelledby="capacity">
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 id="capacity" className="t-h2">
-                  Capacity, by setup
-                </h2>
-                <InProgress />
-              </div>
-              <p className="t-body mt-3 max-w-[56ch] text-stone">Pick a setup to see how {v.name} arranges.</p>
-              <SetupVisualizer
-                className="mt-8"
-                plate={layout.plate}
-                capacities={layout.capacities}
-                title={v.sqft ? `${v.name} · ${v.sqft.toLocaleString("en-US")} sq ft` : v.name}
-                footnote={
-                  layout.illustrative
-                    ? "Illustrative only. Seat counts are estimates until the venue's floor plans are in; the events team confirms every plan."
-                    : undefined
-                }
-              />
-            </section>
-          )}
-
           {host && (
             <section
-              className="mt-20 grid gap-8 rounded-[var(--radius-media)] bg-paper p-6 shadow-[var(--shadow-ring)] sm:grid-cols-[180px_1fr] sm:p-8"
+              className="grid gap-8 rounded-[var(--radius-media)] bg-paper p-6 shadow-[var(--shadow-ring)] sm:grid-cols-[180px_1fr] sm:p-8"
               aria-labelledby="host"
             >
               {host.image ? (
@@ -209,7 +163,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           )}
 
           {v.policies.length > 0 && (
-            <section className="mt-16" aria-labelledby="know">
+            <section aria-labelledby="know">
               <h2 id="know" className="t-h2">
                 Good to know
               </h2>
@@ -224,8 +178,12 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
           )}
         </div>
 
+        {/* The inquiry card and a small floor plan stay in view together while you read */}
         <div className="col-span-12 lg:col-span-4 lg:col-start-9">
-          <InquireCard v={v} />
+          <div className="space-y-4 lg:sticky lg:top-[calc(var(--nav-h)+20px)]">
+            <InquireCard v={v} />
+            {plan && <div className="hidden lg:block">{plan}</div>}
+          </div>
         </div>
       </div>
 

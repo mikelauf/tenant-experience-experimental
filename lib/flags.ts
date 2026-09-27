@@ -8,8 +8,9 @@
 export const isDemo = process.env.NEXT_PUBLIC_SITE_MODE !== "production";
 
 /**
- * Sections Spencer asked to keep but hide at launch until they're backed by real data
- * (floor plans from Ryan, confirmed facilities). Always on in the demo, labeled as in progress.
- * Turn them on in production with `NEXT_PUBLIC_V2_SECTIONS=1`.
+ * Sections Spencer asked to keep but hide at launch until they're backed by real data: today, the
+ * "What this venue offers" facilities list. Always on in the demo, labeled as in progress.
+ * Turn them on in production with `NEXT_PUBLIC_V2_SECTIONS=1`. (The 3D setups graduated: they're traced
+ * from the booklet plans and ship everywhere, labeled as estimates.)
  */
 export const showV2 = isDemo || process.env.NEXT_PUBLIC_V2_SECTIONS === "1";

@@ -9,6 +9,7 @@ export const setupLabels: Record<Setup, string> = {
   boardroom: "Boardroom",
   classroom: "Classroom",
   lounge: "Lounge",
+  concert: "Concert",
 };
 
 /** The most guests a venue holds, or undefined while it isn't confirmed. */
@@ -25,7 +26,7 @@ export const budgets = ["Under $10k", "$10k–$25k", "$25k–$50k", "$50k+", "No
 
 /** Rough seat count for a setup in a member room. */
 export const roomCapacity = (r: Room, s: Setup) => {
-  const f: Record<Setup, number> = { boardroom: 1, theater: 1, classroom: 0.6, reception: 1.4, banquet: 0.8, lounge: 0.8 };
+  const f: Record<Setup, number> = { boardroom: 1, theater: 1, classroom: 0.6, reception: 1.4, banquet: 0.8, lounge: 0.8, concert: 1.6 };
   return s === "boardroom" && r.capacity > 14 ? 24 : Math.round(r.capacity * f[s]);
 };
 

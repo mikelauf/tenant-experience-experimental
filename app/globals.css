@@ -336,10 +336,36 @@
  * Flat shape (Demo → Style): every corner goes square, including pills, media,
  * cards and fields. `.keep-round` opts out where a circle does a job (spinners).
  */
+/* Corners drawn by clip-path, which the border-radius rule below can't reach */
+:root {
+  --radius-clip: var(--radius-media);
+}
+:root[data-shape="flat"] {
+  --radius-clip: 0px;
+}
 :root[data-shape="flat"] *:not(.keep-round),
 :root[data-shape="flat"] *::before,
 :root[data-shape="flat"] *::after {
   border-radius: 0 !important;
+}
+
+/* A card whose photo has no match on the next page vanishes with the old page, instead of lingering over it */
+::view-transition-old(.morph):only-child {
+  animation: none;
+  opacity: 0;
+}
+/* The venue hero's name and buttons, landing on the photo as its morph settles */
+.vt-hero-copy {
+  view-transition-class: hero-copy;
+}
+::view-transition-new(.hero-copy) {
+  animation: hero-copy 480ms var(--ease-out-expo) 180ms both;
+}
+@keyframes hero-copy {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 ::view-transition-old(root),
@@ -379,9 +405,7 @@ html.lenis body {
 /* Drafting paper, for the cutaway explorer (after playbookexp.com) */
 .grid-paper {
   background-color: #fbfaf2;
-  background-image:
-    linear-gradient(to right, rgb(17 19 21 / 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(17 19 21 / 0.05) 1px, transparent 1px);
+  background-image: linear-gradient(to right, rgb(17 19 21 / 0.05) 1px, transparent 1px), linear-gradient(to bottom, rgb(17 19 21 / 0.05) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 
@@ -422,6 +446,37 @@ html.lenis body {
   box-shadow:
     0 0 0 4px rgb(0 0 0 / 0.25),
     0 4px 12px rgb(0 0 0 / 0.4);
+}
+
+/* The same slider on paper: accent fill, a white thumb with a hairline ring */
+.scrub-day::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, var(--color-accent) var(--p), var(--color-fog) var(--p));
+}
+.scrub-day::-moz-range-track {
+  background: linear-gradient(to right, var(--color-accent) var(--p), var(--color-fog) var(--p));
+}
+.scrub-day::-webkit-slider-thumb {
+  background: var(--color-paper);
+  box-shadow:
+    0 0 0 1px rgb(17 19 21 / 0.12),
+    0 4px 12px -2px rgb(17 19 21 / 0.25);
+}
+.scrub-day::-moz-range-thumb {
+  background: var(--color-paper);
+  box-shadow:
+    0 0 0 1px rgb(17 19 21 / 0.12),
+    0 4px 12px -2px rgb(17 19 21 / 0.25);
+}
+.scrub-day:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.scrub-day:focus-visible {
+  outline: none;
+}
+.scrub-day:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 3px var(--color-accent-soft),
+    0 0 0 4px var(--color-accent);
 }
 .scrub:active::-webkit-slider-thumb {
   transform: scale(1.15);

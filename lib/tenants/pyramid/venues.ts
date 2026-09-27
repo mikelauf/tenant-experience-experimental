@@ -1,3 +1,4 @@
+import { layouts } from "./shells";
 import { tap } from "./tap";
 import type { Img, Venue } from "@/lib/data/types";
 
@@ -12,6 +13,12 @@ import type { Img, Venue } from "@/lib/data/types";
  */
 
 const shot = (id: keyof typeof tap, caption: string): Img => ({ ...tap[id], caption });
+/** A shot with what's in it pointed out. `ratio` is the file's width / height, so tags stay put when the photo is cropped. */
+const tagged = (id: keyof typeof tap, caption: string, ratio: number, tags: [string, number, number][]): Img => ({
+  ...shot(id, caption),
+  ratio,
+  tags: tags.map(([label, x, y]) => ({ label, x, y })),
+});
 
 const indoorRequired = { title: "Required services", items: ["Janitorial service", "HVAC"], note: "Listed separately from venue facilities." };
 const PLACEHOLDER_MIN_BUDGET = 10_000;
@@ -24,35 +31,116 @@ const plan = (file: string, label: string, alt: string, guests?: number) => ({
 const indoorAvailable = ["Catering partners", "DJ or live music", "Additional security", "Furniture rental", "Podium or lectern"];
 
 const skyBar = [
-  shot("tap-7344408fc8", "Meet me at the bar."),
-  shot("tap-267559de18", "Gather around the table."),
-  shot("tap-8125719fc3", "Your table above the city."),
-  shot("tap-77243742bc", "Settle in by the skyline."),
-  shot("tap-c7f3eb45d2", "Make an evening of it."),
-  shot("booklet-skybar-lounge", "Window-side seating."),
+  tagged("tap-7344408fc8", "Meet me at the bar.", 4 / 3, [
+    ["Velvet bar stools", 30, 64],
+    ["Coffered ceiling", 50, 9],
+  ]),
+  tagged("tap-267559de18", "Gather around the table.", 16 / 9, [
+    ["The bar", 55, 61],
+    ["Set for dinner", 80, 86],
+  ]),
+  tagged("tap-8125719fc3", "Your table above the city.", 16 / 9, [["Banquette seating", 44, 74]]),
+  // Cropped a little right so Salesforce Tower stays in a portrait tile
+  {
+    ...tagged("tap-77243742bc", "Settle in by the skyline.", 4 / 3, [
+      ["Salesforce Tower", 78.5, 30],
+      ["Bay Bridge", 15, 52],
+    ]),
+    pos: "70% 50%",
+  },
+  tagged("tap-c7f3eb45d2", "Make an evening of it.", 4 / 3, [
+    ["The bar", 22, 64],
+    ["The bay", 62, 47],
+    ["Lounge seating", 84, 72],
+  ]),
+  tagged("booklet-skybar-lounge", "Window-side seating.", 1547 / 2000, [
+    ["Velvet lounge chairs", 32, 56],
+    ["Set tables", 78, 42],
+  ]),
+  tagged("booklet-skybar-bar-view", "Alcatraz from the bar.", 1548 / 2000, [
+    ["Alcatraz", 39, 61],
+    ["Angel Island", 74, 56],
+  ]),
 ];
 const bayLounge = [
-  shot("tap-2ef8d72b6d", "Bring everyone together."),
-  shot("tap-7c5a65183f", "Take a seat by the bay."),
-  shot("tap-e1c1d016c2", "Start with a coffee."),
-  shot("tap-23e01879b4", "Gather, then break into groups."),
-  shot("tap-4ee89c2c17", "Find a corner for conversation."),
+  tagged("tap-2ef8d72b6d", "Bring everyone together.", 2000 / 1331, [
+    ["Coit Tower", 34, 46],
+    ["Alcatraz", 22.5, 50],
+  ]),
+  tagged("tap-7c5a65183f", "Take a seat by the bay.", 4 / 3, [
+    ["Coit Tower", 33.4, 33],
+    ["Alcatraz", 15.5, 38],
+  ]),
+  tagged("tap-e1c1d016c2", "Start with a coffee.", 2000 / 1331, [
+    ["Coffee bar", 22, 56],
+    ["City views", 64, 40],
+  ]),
+  tagged("tap-23e01879b4", "Gather, then break into groups.", 4 / 3, [
+    ["Modular sofas", 50, 54],
+    ["City views", 40, 33],
+  ]),
+  tagged("tap-4ee89c2c17", "Find a corner for conversation.", 2000 / 1334, [["Coffee bar", 55, 47]]),
 ];
 const sandbox = [
-  shot("tap-ebffdd1c2d", "Put your ideas on the table."),
-  shot("tap-f1cfbe5b90", "Give your next idea a stage."),
-  shot("tap-8f918747d5", "Make room for something new."),
-  shot("tap-45267c1d07", "Keep the conversation going."),
-  shot("tap-1fd88aa5c1", "Behind every gathering."),
-  shot("booklet-sandbox-floor", "An open floor, ready for anything."),
+  tagged("tap-ebffdd1c2d", "Put your ideas on the table.", 2000 / 1334, [
+    ["Banquet rounds", 40, 58],
+    ["Pyramid mural", 6, 42],
+  ]),
+  tagged("tap-f1cfbe5b90", "Give your next idea a stage.", 2000 / 1334, [
+    ["86-inch screens", 37, 36],
+    ["Podium & lectern", 57, 44],
+  ]),
+  tagged("tap-8f918747d5", "Make room for something new.", 2000 / 1334, [
+    ["The Pyramid's diagonal columns", 9, 44],
+    ["Open floor", 32, 64],
+  ]),
+  tagged("tap-45267c1d07", "Keep the conversation going.", 2000 / 1334, [
+    ["Lounge seating", 72, 62],
+    ["Diagonal columns", 58, 30],
+  ]),
+  tagged("tap-1fd88aa5c1", "Behind every gathering.", 2000 / 1334, [
+    ["Refrigerator", 32, 58],
+    ["Catering prep", 58, 66],
+  ]),
+  tagged("booklet-sandbox-floor", "An open floor, ready for anything.", 1536 / 2000, [
+    ["Open floor", 40, 72],
+    ["Windows to the trees", 52, 45],
+  ]),
 ];
-const legacyGallery = [shot("booklet-legacy-gallery", "A window into history."), shot("booklet-legacy-models", "The designs that came before.")];
+const legacyGallery = [
+  tagged("booklet-legacy-gallery", "A window into history.", 1547 / 2000, [
+    ["Pyramid scale model", 48, 38],
+    ["Archival photographs", 24, 40],
+    ["Study models", 88, 55],
+  ]),
+  tagged("booklet-legacy-models", "The designs that came before.", 1547 / 2000, [
+    ["Early design studies", 38, 24],
+    ["Archival exhibit wall", 70, 42],
+  ]),
+];
 const redwoodPark = [
-  shot("tap-3fd70cd176", "Gather beneath the redwoods."),
-  shot("tap-22f669475f", "Take the conversation outside."),
-  shot("tap-dd2bfca670", "Step into the trees."),
-  shot("tap-8038adf795", "Set the stage outdoors."),
-  shot("tap-1c47164e32", "A pause by the fountain."),
+  tagged("tap-3fd70cd176", "Gather beneath the redwoods.", 4 / 3, [
+    ["Fountain", 12, 54],
+    ["Coastal redwoods", 60, 22],
+    ["Benches", 48, 80],
+  ]),
+  tagged("tap-22f669475f", "Take the conversation outside.", 4 / 3, [
+    ["Kiosk bar", 47, 62],
+    ["String lights", 34, 7],
+    ["Lounge seating", 70, 80],
+  ]),
+  tagged("tap-dd2bfca670", "Step into the trees.", 2000 / 1554, [
+    ["The Pyramid's base", 88, 42],
+    ["Fountain", 52, 62],
+  ]),
+  tagged("tap-8038adf795", "Set the stage outdoors.", 4 / 3, [
+    ["Redwood stage", 60, 80],
+    ["Fountain", 66, 70],
+  ]),
+  tagged("tap-1c47164e32", "A pause by the fountain.", 2000 / 1535, [
+    ["Fountain", 48, 70],
+    ["The Pyramid's base", 45, 44],
+  ]),
 ];
 
 export const venues: Venue[] = [
@@ -114,7 +202,7 @@ export const venues: Venue[] = [
     viewBearing: 335,
     floorPlans: [plan("sky-bar", "Lounge", "Sky Bar floor plan: a central bar with lounge seating along the Washington and Clay Street windows, pantry and restrooms at either end.", 80)],
     minBudget: PLACEHOLDER_MIN_BUDGET,
-    layout: { plate: { w: 16.8, d: 11.6, windows: "wrap" }, capacities: { reception: 80, banquet: 48, lounge: 50 }, illustrative: true },
+    layout: layouts["sky-bar"],
   },
   {
     slug: "bay-lounge",
@@ -177,7 +265,7 @@ export const venues: Venue[] = [
       ),
     ],
     minBudget: PLACEHOLDER_MIN_BUDGET,
-    layout: { plate: { w: 21.5, d: 13.05, windows: "wrap" }, capacities: { reception: 130, banquet: 72, theater: 90, lounge: 60 }, illustrative: true },
+    layout: layouts["bay-lounge"],
   },
   {
     slug: "sandbox",
@@ -216,7 +304,7 @@ export const venues: Venue[] = [
       plan("sandbox-cocktail", "Cocktail", "The Sandbox set for a cocktail reception of 200, with two bars along Washington Street.", 200),
     ],
     minBudget: PLACEHOLDER_MIN_BUDGET,
-    layout: { plate: { w: 30, d: 18, windows: "east" }, capacities: { theater: 100, reception: 200 } },
+    layout: layouts.sandbox,
   },
   {
     slug: "redwood-park",
@@ -262,6 +350,7 @@ export const venues: Venue[] = [
       ),
     ],
     minBudget: PLACEHOLDER_MIN_BUDGET,
+    layout: layouts["redwood-park"],
   },
   {
     slug: "legacy-gallery",
@@ -305,6 +394,6 @@ export const venues: Venue[] = [
       ),
     ],
     minBudget: PLACEHOLDER_MIN_BUDGET,
-    layout: { plate: { w: 26, d: 20.7, windows: "wrap" }, capacities: { reception: 120, banquet: 80, theater: 110 }, illustrative: true },
+    layout: layouts["legacy-gallery"],
   },
 ];

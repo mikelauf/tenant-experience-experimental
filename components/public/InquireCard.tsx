@@ -17,7 +17,7 @@ function href(v: Venue, guests: string, date: string) {
   return `/venues/inquire?${q}`;
 }
 
-/** Sticky side card on desktop; a bottom bar on phones. Hands its values to the inquiry form. */
+/** Side card on desktop (the page's column keeps it in view); a bottom bar on phones. Hands its values to the inquiry form. */
 export function InquireCard({ v }: { v: Venue }) {
   const cap = maxCap(v);
   const [guests, setGuests] = useState(String(cap ? Math.max(10, Math.round((cap * 0.6) / 10) * 10) : 40));
@@ -27,7 +27,7 @@ export function InquireCard({ v }: { v: Venue }) {
 
   return (
     <>
-      <aside className="card sticky top-[calc(var(--nav-h)+20px)] hidden p-6 shadow-[var(--shadow-soft)] lg:block" aria-label={`Inquire about ${v.name}`}>
+      <aside className="card hidden p-6 shadow-[var(--shadow-soft)] lg:block" aria-label={`Inquire about ${v.name}`}>
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="t-h3">Inquire about {v.name}</p>

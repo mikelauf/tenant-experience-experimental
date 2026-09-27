@@ -85,12 +85,14 @@ const data: TenantData = {
     // Bearings and distances from 600 Montgomery Street, from each landmark's coordinates.
     landmarks: [
       { name: "Coit Tower", kind: "coit", bearing: 342, km: 0.84 },
-      { name: "Saints Peter and Paul Church", kind: "church", bearing: 317, km: 0.98 },
-      { name: "Ferry Building", kind: "ferry", bearing: 88, km: 0.8 },
+      { name: "Saints Peter and Paul Church", kind: "church", bearing: 317, km: 0.98, heading: 180 },
+      { name: "Ferry Building", kind: "ferry", bearing: 88, km: 0.8, heading: 320 },
       { name: "Salesforce Tower", kind: "skyscraper", bearing: 141, km: 0.78 },
       { name: "Bay Bridge", kind: "bay-bridge", bearing: 82, km: 2.3, heading: 52 },
       { name: "Alcatraz", kind: "island", bearing: 333, km: 3.9 },
       { name: "Golden Gate Bridge", kind: "golden-gate", bearing: 292, km: 7.2, heading: 12 },
+      { name: "Oracle Park", kind: "ballpark", bearing: 147, km: 2.2, heading: 50 },
+      { name: "City Hall", kind: "city-hall", bearing: 219, km: 2.3, heading: 90 },
     ],
     // From the booklet's site plan, placed on the real streets (OpenStreetMap): Montgomery St runs at x −2.17,
     // Washington at z −2.54, Clay at z 2.5, Sansome at x 5.58, and Mark Twain Place crosses the park at z 0.
@@ -373,7 +375,7 @@ const data: TenantData = {
       privacyUrl: "https://www.playbookexp.com/privacy.html",
       floorIntro: {
         title: "853 feet. 48 floors. Five places to gather.",
-        body: "Scroll up the tower, from the redwoods at street level to Sky Bar on the 48th floor.",
+        body: "Click a floor, or jump straight to a venue, from the redwoods at street level to Sky Bar on the 48th floor.",
       },
     },
   },

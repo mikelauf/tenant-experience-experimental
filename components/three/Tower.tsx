@@ -15,6 +15,8 @@ export function Tower({
   sun,
   className,
   poster,
+  placeholder,
+  eager,
   auto,
   onInteract,
   bands,
@@ -40,6 +42,10 @@ export function Tower({
   sun?: number;
   className?: string;
   poster: React.ReactNode;
+  /** Shown instead of the poster while the scene loads */
+  placeholder?: React.ReactNode;
+  /** Load when the page is idle rather than when scrolled near */
+  eager?: boolean;
   auto?: boolean;
   onInteract?: () => void;
   bands?: Band[];
@@ -62,7 +68,7 @@ export function Tower({
 }) {
   const { tower, theme } = useTenant();
   return (
-    <Lazy3D className={className} poster={poster}>
+    <Lazy3D className={className} poster={poster} placeholder={placeholder} eager={eager}>
       {({ active, onReady }) => (
         <TowerCanvas
           profile={tower}

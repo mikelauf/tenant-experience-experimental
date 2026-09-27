@@ -81,19 +81,19 @@ export default async function VenuesHome() {
         </div>
       </section>
 
-      <Setting />
-
       <VenueCollection />
-
-      <CloserLook />
 
       <Suspense>
         <ExplorerSection />
       </Suspense>
 
+      <Setting />
+
+      <CloserLook />
+
       {/* À la carte: what the building can add */}
       {pub.alaCarte && (
-        <section className="frame pt-24 lg:pt-36" aria-labelledby="alacarte-h">
+        <section className="frame py-24 lg:py-36" aria-labelledby="alacarte-h">
           <div className="grid-12 items-end gap-y-6">
             <h2 id="alacarte-h" className="t-h1 col-span-12 lg:col-span-6">
               À la carte.
@@ -104,7 +104,7 @@ export default async function VenuesHome() {
           </div>
           <div className="mt-12 grid gap-px overflow-hidden rounded-[var(--radius-media)] bg-line md:grid-cols-3">
             {pub.alaCarte.groups.map((g, i) => (
-              <Reveal key={g.title} delay={i * 0.06} className="bg-quartz">
+              <Reveal key={g.title} delay={i * 0.06} className="bg-paper">
                 <div className="h-full p-6 lg:p-8">
                   <p className="t-h3">{g.title}</p>
                   <ul className="t-body mt-5 space-y-2 text-ink-2">
@@ -119,24 +119,29 @@ export default async function VenuesHome() {
         </section>
       )}
 
-      {/* How an inquiry works */}
-      <section className="frame py-24 lg:py-36">
+      {/* How an inquiry works: a dark band, so the ask stands apart from the light sections around it */}
+      <section className="theme-night frame py-24 lg:py-36">
         <div className="grid-12 gap-y-8">
           <div className="col-span-12 lg:col-span-5">
             <LineReveal className="t-h1" lines={["An inquiry starts", "a conversation."]} />
             <Reveal delay={0.1}>
-              <p className="t-lead mt-6 max-w-[40ch] text-stone">
+              <p className="t-lead mt-6 max-w-[40ch] text-moon-2">
                 There&apos;s no checkout here. Every event is a little different, so the events team reads every inquiry and follows up. Nothing is reserved until you agree it together.
               </p>
+              <div className="mt-9">
+                <ButtonLink href="/venues/inquire" variant="light" size="lg" icon="arrow-right">
+                  Start an inquiry
+                </ButtonLink>
+              </div>
             </Reveal>
           </div>
-          <ol className="col-span-12 grid gap-px overflow-hidden rounded-[var(--radius-media)] bg-line sm:grid-cols-2 lg:col-span-7">
+          <ol className="col-span-12 grid gap-px overflow-hidden rounded-[var(--radius-media)] bg-night-line sm:grid-cols-2 lg:col-span-7">
             {steps.map((s, i) => (
-              <Reveal key={s.n} delay={i * 0.06} className="bg-quartz">
+              <Reveal key={s.n} delay={i * 0.06} className="bg-night-2">
                 <li className="flex h-full flex-col p-6 lg:p-8">
-                  <span className="t-num text-[0.9375rem] font-medium text-accent">{s.n}</span>
+                  <span className="t-num text-[0.9375rem] font-medium text-accent-glow">{s.n}</span>
                   <h3 className="t-h3 mt-10 lg:mt-16">{s.title}</h3>
-                  <p className="t-body mt-2 text-stone">{s.body}</p>
+                  <p className="t-body mt-2 text-moon-2">{s.body}</p>
                 </li>
               </Reveal>
             ))}
@@ -190,7 +195,7 @@ export default async function VenuesHome() {
 
       {/* Moments: a swipe rail, only with real photography to show */}
       {pub.moments && (
-        <section className="py-24 lg:py-36">
+        <section className="pt-24 lg:pt-36">
           <div className="frame flex items-end justify-between gap-6">
             <LineReveal className="t-h1" lines={["What people", "have made here"]} />
             <p className="t-meta hidden max-w-[30ch] text-right md:block">Illustrative moments from sample events. Scroll sideways.</p>
@@ -218,7 +223,7 @@ export default async function VenuesHome() {
       )}
 
       {/* Around the building */}
-      <section className="frame pb-24 lg:pb-36" aria-labelledby="around-h">
+      <section className="frame py-24 lg:py-36" aria-labelledby="around-h">
         <div className="grid-12 items-end gap-y-6">
           <h2 id="around-h" className="t-h1 col-span-12 lg:col-span-6">
             More than a room

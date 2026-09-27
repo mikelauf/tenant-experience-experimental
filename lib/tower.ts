@@ -60,12 +60,12 @@ export type TowerProfile = {
 
 export type Landmark = {
   name: string;
-  kind: "coit" | "skyscraper" | "ferry" | "church" | "island" | "bay-bridge" | "golden-gate";
+  kind: "coit" | "skyscraper" | "ferry" | "church" | "island" | "bay-bridge" | "golden-gate" | "ballpark" | "city-hall";
   /** Degrees clockwise from north, as seen from the building */
   bearing: number;
   /** Real distance in km; the scene compresses it (see `sceneLandmarks`) */
   km: number;
-  /** For bridges: the deck's direction, degrees clockwise from north */
+  /** Degrees clockwise from north: a bridge's deck or the Ferry Building's length, or the way a building faces (for a ballpark, toward center field) */
   heading?: number;
 };
 
@@ -93,6 +93,8 @@ export const LANDMARK_REACH: Record<Landmark["kind"], number> = {
   island: 2.2,
   "bay-bridge": 0,
   "golden-gate": 0,
+  ballpark: 3,
+  "city-hall": 2.5,
 };
 
 /** A landmark as placed in the scene: bearings turned onto the street grid, and its position */

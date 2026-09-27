@@ -1,3 +1,4 @@
+import { plateLayout } from "@/lib/setup/shell";
 import { at } from "@/lib/time";
 import { makeTenant } from "../make";
 import type { TenantData } from "../types";
@@ -115,7 +116,7 @@ const data: TenantData = {
       goodFor: ["Receptions", "Client dinners", "Launches", "Holiday parties"],
       hero: images.lanternBar,
       gallery: [images.lanternBar, images.lanternLounge, images.lanternRound, images.lanternCoffee, images.talk],
-      layout: { plate: { w: 17, d: 15.3, windows: "wrap" }, capacities: { reception: 110, banquet: 60, lounge: 50 } },
+      layout: plateLayout({ w: 17, d: 15.3, windows: "wrap" }, { reception: 110, banquet: 60, lounge: 50 }),
     },
     {
       slug: "great-hall",
@@ -149,7 +150,7 @@ const data: TenantData = {
       goodFor: ["Town halls", "Galas", "Conferences", "Markets"],
       hero: images.hallColonnade,
       gallery: [images.hallColonnade, images.hallTheater, images.hallLounge, images.hallDesk, images.hallCoffee],
-      layout: { plate: { w: 32, d: 18, windows: "north" }, capacities: { reception: 260, theater: 180, banquet: 140, classroom: 90 } },
+      layout: plateLayout({ w: 32, d: 18, windows: "north" }, { reception: 260, theater: 180, banquet: 140, classroom: 90 }),
     },
   ],
   rooms: [

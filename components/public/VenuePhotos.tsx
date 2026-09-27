@@ -7,6 +7,7 @@ import type { Venue } from "@/lib/data/types";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Gallery } from "./Gallery";
+import { PhotoTags } from "./PhotoTags";
 import { HeartButton } from "./VenueCard";
 
 /**
@@ -21,22 +22,16 @@ export function VenueHero({ v }: { v: Venue }) {
     <section data-nav-over className="theme-night relative flex h-[95svh] min-h-[560px] flex-col justify-end overflow-hidden">
       <ViewTransition name={`venue-${v.slug}`} share="morph" default="none">
         <div className="absolute inset-0">
-          <Image
-            src={hero.src}
-            alt={hero.alt}
-            fill
-            priority
-            quality={90}
-            sizes="100vw"
-            className="object-cover"
-            style={{ objectPosition: hero.pos }}
-          />
+          <Image src={hero.src} alt={hero.alt} fill priority quality={90} sizes="100vw" className="object-cover" style={{ objectPosition: hero.pos }} />
+          <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-night/60 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-night/90 via-night/40 to-transparent" />
         </div>
       </ViewTransition>
-      <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-night/60 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-night/90 via-night/40 to-transparent" />
 
-      <div className="frame relative grid-12 items-end gap-y-8 pb-10 lg:pb-14">
+      {/* Named in CSS so it's drawn above the morphing photo, not hidden under it until the morph ends.
+          Not a <ViewTransition>: React skips names it thinks are off-screen, and it checks before the
+          page has scrolled back to the top. */}
+      <div className="vt-hero-copy frame relative grid-12 items-end gap-y-8 pb-10 lg:pb-14" style={{ viewTransitionName: `venue-copy-${v.slug}` }}>
         <div className="col-span-12 lg:col-span-8">
           <h1 className="t-mega animate-rise">{v.name}</h1>
           {/* Everything else in one quiet row under the name. The row sits 17px left inside a clipping
@@ -69,8 +64,9 @@ export function VenueHero({ v }: { v: Venue }) {
       {/* Scroll cue: tells people there's more below the photo, and takes them there */}
       <a
         href="#details"
+        style={{ viewTransitionName: `venue-cue-${v.slug}` }}
         aria-label={`Scroll to details about ${v.name}`}
-        className="group absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 text-[0.75rem] font-medium text-moon/75 transition-colors hover:text-moon sm:flex"
+        className="vt-hero-copy group absolute bottom-3 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 text-[0.75rem] font-medium text-moon/75 transition-colors hover:text-moon sm:flex"
       >
         <span>Scroll</span>
         <span className="grid size-8 place-items-center rounded-full bg-black/25 backdrop-blur-md">
@@ -82,7 +78,7 @@ export function VenueHero({ v }: { v: Venue }) {
   );
 }
 
-/** The rest of the photographs, each opening the gallery at that photo. */
+/** The rest of the photographs, with what's in them pointed out; each opens the gallery at that photo. */
 export function PhotoRow({ v }: { v: Venue }) {
   const [open, setOpen] = useState<number | null>(null);
   const rest = v.gallery.slice(1, 5);
@@ -106,6 +102,7 @@ export function PhotoRow({ v }: { v: Venue }) {
               className="object-cover transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-[1.03]"
               style={{ objectPosition: img.pos }}
             />
+            <PhotoTags img={img} frame={4 / 5} max={2} small delay={k * 0.1} />
             {img.caption && (
               <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12 text-[0.875rem] font-medium text-white">
                 {img.caption}

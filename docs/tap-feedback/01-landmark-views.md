@@ -27,6 +27,13 @@
    - Selecting one moves the camera and opens a panel: venue photos, **"The view from here"**, and a link to the venue.
 4. **Ground pins** for entrances, guest check-in and food trucks, each linking to Google Maps. The loading dock is listed as "coming" until Oscar's diagrams arrive.
 
+## Landmark pass (Sep 26)
+Models live in `components/three/tower/landmarks.tsx`, placed from `landmarks` in the tenant profile.
+- **Detailed:** Coit Tower (fluted column, arched gallery, wooded Telegraph Hill), the Ferry Building (arcaded shed, Giralda-style clock tower with lit faces), Saints Peter and Paul (twin staged spires, rose window), Alcatraz (cellhouse, lighthouse, water tower), the Bay Bridge (both western suspension spans, the mid-bay anchorage, Yerba Buena Island, the white eastern span, and the Bay Lights shimmering on the hangers after dark), and the Golden Gate (stepped Art Deco towers, portal struts, hanging cables, beacons).
+- **Added** to fill the south and southwest, where only Salesforce Tower stood: **Oracle Park** (brick bowl, light towers, clock tower, the Coke bottle and glove) and **City Hall** (colonnaded front, dome, gilded lantern). Both are drawn larger than life so they clear the city blocks.
+- Everything floodlights at night, in step with the scene's light.
+- **Candidates for later:** Sutro Tower on the southwest horizon (needs land to stand on, since the scene's ground ends at the city's edge), Pier 39 / Fisherman's Wharf, Embarcadero Center, and Chinatown's Dragon Gate at street level. Worth asking the TAP team which ones their guests mention.
+
 ## Needs
 - **Oscar:** raw files, street-view, parking and loading diagrams, and the Redwood Park aerial. Send him the booklet link.
 - **More view photos per floor**, especially Legacy Gallery (L36).

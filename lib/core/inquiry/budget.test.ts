@@ -1,27 +1,26 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { BUDGETS, budgetByLabel, budgetCheck } from "./budget.ts";
+import { BUDGETS, budgetOptions } from "./budget.ts";
 
-const under10 = budgetByLabel("Under $10k");
-const tenTo25 = budgetByLabel("$10k–$25k");
+const labels = (minimums: (number | undefined)[]) => budgetOptions(minimums).map((b) => b.label);
 
-test("a budget below a space's minimum is caught", () => {
-  assert.deepEqual(budgetCheck(under10, [10_000]), { ok: false, floor: 10_000 });
-  assert.deepEqual(budgetCheck(tenTo25, [20_000]), { ok: true });
-  assert.deepEqual(budgetCheck(tenTo25, [30_000]), { ok: false, floor: 30_000 });
+test("ranges below a space's minimum aren't offered", () => {
+  assert.deepEqual(labels([10_000]), ["$10k–$25k", "$25k–$50k", "$50k–$100k", "$100k+", "Not sure yet"]);
+  // A $20k room can still take $10k–$25k: the range reaches the floor.
+  assert.deepEqual(labels([20_000])[0], "$10k–$25k");
+  assert.deepEqual(labels([30_000])[0], "$25k–$50k");
 });
 
 test("with several spaces, the cheapest one decides", () => {
   // Redwood Park at $10k and a meeting room at $2k: under $10k still fits the meeting room.
-  assert.deepEqual(budgetCheck(under10, [10_000, 2_000]), { ok: true });
-  assert.deepEqual(budgetCheck(under10, [10_000, 20_000]), { ok: false, floor: 10_000 });
+  assert.equal(labels([10_000, 2_000])[0], "Under $10k");
+  assert.equal(labels([10_000, 20_000])[0], "$10k–$25k");
 });
 
-test("not sure, no budget, no spaces, or a space without a minimum always pass", () => {
-  assert.deepEqual(budgetCheck(budgetByLabel("Not sure yet"), [10_000]), { ok: true });
-  assert.deepEqual(budgetCheck(undefined, [10_000]), { ok: true });
-  assert.deepEqual(budgetCheck(under10, []), { ok: true });
-  assert.deepEqual(budgetCheck(under10, [10_000, undefined]), { ok: true });
+test("no spaces, or a space without a minimum, offers everything; not sure is always there", () => {
+  assert.equal(budgetOptions([]).length, BUDGETS.length);
+  assert.equal(budgetOptions([10_000, undefined]).length, BUDGETS.length);
+  assert.equal(labels([1_000_000]).at(-1), "Not sure yet");
 });
 
 test("options are ordered, with not sure last", () => {
