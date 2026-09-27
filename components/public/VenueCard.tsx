@@ -9,6 +9,7 @@ import type { Venue } from "@/lib/data/types";
 import { fits, guestsLabel } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { Icon } from "@/components/ui/Icon";
+import { keepTail } from "@/lib/format";
 
 export function HeartButton({ slug, name, className, tone = "glass" }: { slug: string; name: string; className?: string; tone?: "glass" | "plain" }) {
   const s = useDemo();
@@ -148,7 +149,7 @@ export function VenueCard({
                 ))}
               </div>
               <div className="flex items-end justify-between gap-4">
-                <h3 className="t-h1">{v.name}</h3>
+                <h3 className="t-h1">{keepTail(v.name)}</h3>
                 <Icon name="arrow-up-right" size={26} className="mb-1 shrink-0 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
               </div>
             </div>

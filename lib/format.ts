@@ -9,3 +9,9 @@ export const formatDate = (s: string) => {
 const POINTS = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
 /** The 16-point compass name for a bearing: 335 → "NNW". */
 export const compass = (deg: number) => POINTS[Math.round((((deg % 360) + 360) % 360) / 22.5) % 16];
+
+/** A title that keeps its last two words together when it wraps, so "Transamerica Redwood Park" breaks before "Redwood Park". Two-word names are left free to wrap. */
+export const keepTail = (s: string) => {
+  const w = s.split(" ");
+  return w.length < 3 ? s : `${w.slice(0, -2).join(" ")} ${w.slice(-2).join(" ")}`;
+};

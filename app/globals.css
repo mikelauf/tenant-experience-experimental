@@ -302,6 +302,26 @@
   .field[aria-invalid="true"] {
     box-shadow: inset 0 0 0 2px var(--color-accent);
   }
+  /* Soft fields (the inquiry page): filled, no outline until focus, like a native form */
+  .soft .field {
+    background: var(--color-quartz);
+    box-shadow: none;
+    transition:
+      background-color 0.2s var(--ease-out-quart),
+      box-shadow 0.2s var(--ease-out-quart);
+  }
+  .soft .field:hover {
+    background: color-mix(in oklab, var(--color-quartz), var(--color-fog) 50%);
+  }
+  .soft .field:focus,
+  .soft .field:focus-within {
+    background: var(--color-paper);
+    box-shadow: inset 0 0 0 1.5px var(--color-ink);
+  }
+  .soft .field[aria-invalid="true"],
+  .soft .field:has([aria-invalid="true"]) {
+    box-shadow: inset 0 0 0 1.5px var(--color-accent);
+  }
 }
 
 @layer utilities {

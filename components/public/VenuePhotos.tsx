@@ -10,6 +10,7 @@ import { Gallery } from "./Gallery";
 import { PhotoTags } from "./PhotoTags";
 import { useInquire } from "./InquiryModal";
 import { HeartButton } from "./VenueCard";
+import { keepTail } from "@/lib/format";
 
 /**
  * The venue's first impression: one large, clean photograph with the name over it.
@@ -35,7 +36,7 @@ export function VenueHero({ v }: { v: Venue }) {
           page has scrolled back to the top. */}
       <div className="vt-hero-copy frame relative grid-12 items-end gap-y-8 pb-10 lg:pb-14" style={{ viewTransitionName: `venue-copy-${v.slug}` }}>
         <div className="col-span-12 lg:col-span-8">
-          <h1 className="t-mega animate-rise">{v.name}</h1>
+          <h1 className="t-mega animate-rise">{keepTail(v.name)}</h1>
           {/* Everything else in one quiet row under the name. The row sits 17px left inside a clipping
               box, so when it wraps, the divider that would start the new line is cut off. */}
           <div className="mt-8 overflow-hidden lg:mt-10">
