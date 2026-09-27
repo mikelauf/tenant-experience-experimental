@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef } from "react";
 import { cn } from "@/lib/cn";
 import { briefHref } from "@/lib/brief";
+import { lightBackdrop, type LightKeys } from "@/lib/light";
 import { LIGHT_LABEL, clock, type Light } from "@/lib/sun";
 import { Icon } from "@/components/ui/Icon";
 
@@ -168,11 +169,13 @@ export function SkyControl({
   );
 }
 
-/** The stage's backdrop for a light level, so the sky behind the model matches the light on it. */
-export function skyBackdrop(level: number, light: Light) {
+/**
+ * The stage's backdrop for a light level, so the sky behind the model matches the light on it. By day it comes from
+ * the scene's own keyframes, so its horizon meets the haze on the bay; `keys` carries a profile's light.
+ */
+export function skyBackdrop(level: number, light: Light, keys?: LightKeys) {
   if (light === "golden") return "linear-gradient(180deg,#3b4f6c 0%,#8a7a8c 55%,#e8a877 100%)";
   if (light === "dusk") return "linear-gradient(180deg,#1f2a40 0%,#4a4a6a 60%,#9a7486 100%)";
-  if (light === "day" && level > 0.8) return "linear-gradient(180deg,#9fb8cc 0%,#d8e2e6 70%,#eceee9 100%)";
-  if (light === "day") return "linear-gradient(180deg,#56708e 0%,#a8b8c4 70%,#e0c3a4 100%)";
+  if (light === "day") return lightBackdrop(level, keys);
   return "radial-gradient(120% 80% at 50% 0%,#2a3a4c 0%,#10151b 62%)";
 }

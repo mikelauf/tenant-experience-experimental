@@ -3,10 +3,11 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { getImageProps } from "next/image";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { preload } from "react-dom";
 import Image from "@/components/ui/SmoothImage";
 import { cn } from "@/lib/cn";
+import { withLight } from "@/lib/light";
 import { guestsLabel } from "@/lib/data/shared";
 import type { Venue } from "@/lib/data/types";
 import { clock, eveningOf, lightAt, nowIn, sunLevel, sunPosition, zonedTime } from "@/lib/sun";
@@ -109,6 +110,7 @@ export function BuildingExplorer() {
   const evening = geo && date ? eveningOf(date, geo) : null;
   const light = sunSky ? lightAt(sunSky.elevation) : "dusk";
   const sunValue = sunSky ? sunLevel(sunSky.elevation) : 0.55;
+  const lightKeys = useMemo(() => withLight(tower.light), [tower.light]);
 
   const show = (next: string) => {
     setId(next);
@@ -378,7 +380,7 @@ export function BuildingExplorer() {
         >
           {/* The sky behind the model, matched to the light on it; the default is the original dusk */}
           <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#33475a_0%,#151b21_62%)]" />
-          <div className="absolute inset-0 transition-opacity duration-1000" style={{ background: sunSky ? skyBackdrop(sunValue, light) : undefined, opacity: sunSky ? 1 : 0 }} />
+          <div className="absolute inset-0 transition-opacity duration-1000" style={{ background: sunSky ? skyBackdrop(sunValue, light, lightKeys) : undefined, opacity: sunSky ? 1 : 0 }} />
           <Tower
             level={stop.arrive ? null : stop.level}
             sun={sunValue}
@@ -594,7 +596,7 @@ export function BuildingExplorer() {
             </button>
             {touring ? (
               <>
-                <p className="t-meta rounded-full bg-black/40 px-3 py-2 backdrop-blur-md">Keep scrolling to ride the building</p>
+                <p className="t-meta rounded-full bg-black/40 px-3 py-2 backdrop-blur-md">Scroll to see the whole building</p>
                 <button
                   onClick={() => endTour(true)}
                   className="inline-flex h-9 items-center gap-1.5 rounded-full bg-moon pl-3.5 pr-3 text-[0.8125rem] font-medium text-night transition-colors hover:bg-white"
@@ -643,7 +645,7 @@ export function BuildingExplorer() {
 
       {/* Under the stage: what's around it */}
       {!!tower.landmarks?.length && (
-        <div className="frame mt-4 lg:mt-7">
+        <div className="frame mt-10 pb-6 lg:mt-13">
           <p className="t-small max-w-[80ch] text-moon-2">Around it: {tower.landmarks.map((l) => l.name).join(", ")}.</p>
         </div>
       )}

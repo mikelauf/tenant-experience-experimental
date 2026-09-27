@@ -5,6 +5,7 @@ import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { sceneLandmarks, topOf, trueNorth, type TowerProfile } from "@/lib/tower";
+import { withLight } from "@/lib/light";
 import { makeEnv, type Env } from "./env";
 import { Landmarks, landmarkTop } from "./landmarks";
 import { Sky, SunDisc, type SunSky } from "./sky";
@@ -225,6 +226,8 @@ export type TowerCanvasProps = {
   shift?: [x: number, y: number];
   /** Camera distance multiplier while a level is selected */
   zoom?: number;
+  /** Frame the whole building when a high level is selected (it stays lit) */
+  whole?: boolean;
   /** Show the profile's landmarks and their labels */
   landmarks?: boolean;
   /** Arriving: street-level places, street names and a compass; `activePoi` is enlarged */
@@ -280,6 +283,7 @@ export default function TowerCanvas({
   hoverLevel,
   shift,
   zoom,
+  whole,
   landmarks,
   pois,
   activePoi,
@@ -295,7 +299,7 @@ export default function TowerCanvas({
   onParkSpot,
 }: TowerCanvasProps) {
   // One mutable light state per canvas; useFrame blends it every frame
-  const [env] = useState(() => makeEnv(sun));
+  const [env] = useState(() => makeEnv(sun, withLight(p.light)));
   const focus = useRef(new THREE.Vector3(0, topOf(p) * 0.62, 0));
   const [hover, setHoverState] = useState<number | null>(null);
   const [dpr, setDpr] = useState(2);
@@ -361,6 +365,7 @@ export default function TowerCanvas({
           spot={spot}
           parkSpot={parkFocus}
           look={lookBearing}
+          whole={whole}
         />
         <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} />
         <Park p={p} env={env} flat={pois} onPick={onPick ? () => onPick(0) : undefined} />

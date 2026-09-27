@@ -25,15 +25,19 @@ function injectSink(sh: THREE.WebGLProgramParametersWithUniforms, sink: Sink) {
  * Works on instanced blocks and on merged real footprints (with `sink`), at any wall angle.
  */
 function useCityMaterial(env: Env, floor: number, sink?: Sink) {
-  const uniforms = useMemo(() => ({ uLit: { value: 0 }, uFloor: { value: floor } }), [floor]);
+  const uniforms = useMemo(() => ({ uLit: { value: 0 }, uFloor: { value: floor }, uVary: { value: 0 }, uGlass: { value: new THREE.Color() } }), [floor]);
   const mat = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ color: env.neighbor, roughness: 0.92 });
     m.customProgramCacheKey = () => (sink ? "city-sink" : "city");
     m.onBeforeCompile = (sh) => {
       sh.uniforms.uLit = uniforms.uLit;
       sh.uniforms.uFloor = uniforms.uFloor;
+      sh.uniforms.uVary = uniforms.uVary;
+      sh.uniforms.uGlass = uniforms.uGlass;
       if (sink) injectSink(sh, sink);
-      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;").replace(
+      // Each building's seed: its id in merged footprints, where it stands for instanced blocks
+      const seed = sink ? "aId * 0.618" : "dot(cityM[3].xz, vec2(12.9898, 78.233))";
+      sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;\nvarying vec3 vWN;\nvarying float vSeed;").replace(
         "#include <project_vertex>",
         `#include <project_vertex>
           #ifdef USE_INSTANCING
@@ -42,7 +46,8 @@ function useCityMaterial(env: Env, floor: number, sink?: Sink) {
             mat4 cityM = modelMatrix;
           #endif
           vWP = (cityM * vec4(transformed, 1.0)).xyz;
-          vWN = normalize(mat3(cityM) * objectNormal);`,
+          vWN = normalize(mat3(cityM) * objectNormal);
+          vSeed = fract(sin(${seed}) * 43758.5453);`,
       );
       sh.fragmentShader = sh.fragmentShader
         .replace(
@@ -50,8 +55,22 @@ function useCityMaterial(env: Env, floor: number, sink?: Sink) {
           `#include <common>
           varying vec3 vWP;
           varying vec3 vWN;
+          varying float vSeed;
           uniform float uLit;
           uniform float uFloor;
+          uniform float uVary;
+          uniform vec3 uGlass;
+          // By day each building takes one of the city's own colors: cream, sand, pale grey, warm white, blush, sage, slate
+          vec3 cityTint(float s) {
+            int i = int(floor(s * 7.0));
+            if (i == 0) return vec3(1.0, 0.98, 0.93);
+            if (i == 1) return vec3(1.0, 0.9, 0.76);
+            if (i == 2) return vec3(0.93, 0.95, 0.97);
+            if (i == 3) return vec3(1.02, 1.01, 1.0);
+            if (i == 4) return vec3(1.0, 0.89, 0.84);
+            if (i == 5) return vec3(0.9, 0.96, 0.86);
+            return vec3(0.86, 0.91, 0.98);
+          }
           float cityHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           float cityBand(float x, float a, float b) {
             float w = fwidth(x);
@@ -62,6 +81,10 @@ function useCityMaterial(env: Env, floor: number, sink?: Sink) {
         .replace(
           "#include <emissivemap_fragment>",
           `#include <emissivemap_fragment>
+          float jitter = 0.9 + 0.15 * fract(vSeed * 91.7);
+          diffuseColor.rgb *= mix(vec3(1.0), cityTint(vSeed) * jitter, uVary);
+          // Roofs a shade darker, so the blocks read from above
+          if (vWN.y > 0.5) diffuseColor.rgb *= mix(1.0, 0.86, uVary);
           if (abs(vWN.y) < 0.5) {
             // Along the wall, whichever way it faces
             vec2 tn = normalize(vec2(-vWN.z, vWN.x));
@@ -69,7 +92,9 @@ function useCityMaterial(env: Env, floor: number, sink?: Sink) {
             float up = vWP.y / uFloor;
             float win = cityBand(along, 0.28, 0.72) * cityBand(up, 0.22, 0.78);
             float lit = step(0.7, cityHash(vec2(floor(along), floor(up)) + floor(vWP.xz * 0.5)));
-            diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.5, win);
+            // Unlit glass: dark after dark, the sky in it by day
+            vec3 glass = mix(diffuseColor.rgb * 0.5, uGlass, uVary * 0.8);
+            diffuseColor.rgb = mix(diffuseColor.rgb, glass, win);
             totalEmissiveRadiance += uLit * win * lit * vec3(1.0, 0.7, 0.4);
           }`,
         );
@@ -81,6 +106,8 @@ function useCityMaterial(env: Env, floor: number, sink?: Sink) {
   useFrame(() => {
     mat.color.copy(env.neighbor);
     uniforms.uLit.value = env.lit * 0.73;
+    uniforms.uVary.value = env.vary;
+    uniforms.uGlass.value.copy(env.glass);
   });
   return mat;
 }
@@ -375,7 +402,7 @@ export function Water({ env, hills, turn = 0 }: { env: Env; hills?: boolean; tur
     <>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.04, 0]} receiveShadow>
         <circleGeometry args={[110, 64]} />
-        <meshStandardMaterial ref={mat} color={env.water} roughness={0.35} metalness={0.2} />
+        <meshStandardMaterial ref={mat} color={env.water} roughness={0.2} metalness={0.2} />
       </mesh>
       {hills &&
         HILLS.map(([b, r, w, h]) => {

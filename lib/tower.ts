@@ -1,3 +1,5 @@
+import type { LightOverrides } from "./light";
+
 /**
  * A building's silhouette as data. The 3D tower, its park and its city are all
  * generated from one of these, so a new property is a new profile, not new code.
@@ -60,6 +62,8 @@ export type TowerProfile = {
   pois?: Poi[];
   /** Street names shown on the ground while arriving, each at a point along the street. In scene units. */
   streets?: { name: string; x: number; z: number }[];
+  /** The city's own light, laid over the default night, dusk and day keyframes (lib/light.ts) */
+  light?: LightOverrides;
 };
 
 export type Landmark = {

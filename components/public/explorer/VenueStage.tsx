@@ -105,7 +105,22 @@ function Header({ meta, title, tagline, ride, onClose }: { meta: string; title: 
 export type Tab = "photos" | "plan" | "view";
 const TAB_LABEL: Record<Tab, string> = { photos: "Photos", plan: "Floor plan", view: "The view" };
 
-/** A venue: headline, a media frame (photos with an always-visible strip, the floor plan, the tagged view), facts, and the way in. */
+/** The media tabs a venue has something for. */
+const mediaTabs = (v: Venue) => (["photos", "plan", "view"] as const).filter((t) => (t === "photos" ? v.gallery.length : t === "plan" ? v.floorPlans?.length : v.views?.length));
+
+/** Guests, area and floor, as [value, label]. */
+function venueFacts(v: Venue): [string, string][] {
+  return [
+    [v.capacity ? v.capacity.toLocaleString("en-US") : "—", v.capacity ? "Guests, up to" : (v.capacityNote ?? "Guests on request")],
+    [v.sqft ? v.sqft.toLocaleString("en-US") : "—", "Square feet"],
+    [v.level === 0 ? "G" : String(v.level), v.level === 0 ? "Street level" : "Floor"],
+  ];
+}
+
+/**
+ * A venue: the media runs edge to edge across the top of the panel with the name set over it (photos, the floor
+ * plan, the tagged view), and underneath sit the numbers, the floors either side, and the way in.
+ */
 export function VenueStage({
   v,
   ride,
@@ -129,69 +144,133 @@ export function VenueStage({
   photoIndex?: number;
   onPhotoIndex?: (i: number) => void;
 }) {
-  const tabs = (["photos", "plan", "view"] as const).filter((t) => (t === "photos" ? v.gallery.length : t === "plan" ? v.floorPlans?.length : v.views?.length));
-  const setTab = onTab;
-  const facts: [string, string][] = [
-    [v.capacity ? v.capacity.toLocaleString("en-US") : "—", v.capacity ? "Guests, up to" : (v.capacityNote ?? "Guests on request")],
-    [v.sqft ? v.sqft.toLocaleString("en-US") : "—", "Square feet"],
-    [v.level === 0 ? "G" : String(v.level), v.level === 0 ? "Street level" : "Floor"],
-  ];
+  const tabs = mediaTabs(v);
+  const facts = venueFacts(v);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <Header meta={`${v.levelLabel} · ${v.kind}`} title={shortName(v.name)} tagline={v.tagline} ride={ride} onClose={onClose} />
+      {/* The media, full bleed, with its tabs and the close button floating over it */}
+      <div className="relative flex min-h-0 flex-col lg:flex-1">
+        {tab === "photos" && <Photos gallery={v.gallery} i={photoIndex} onI={onPhotoIndex} overlay={<Title v={v} />} />}
+        {tab !== "photos" && (
+          <div className="flex min-h-0 flex-1 flex-col gap-4 bg-night/40 px-5 pb-5 pt-16">
+            {tab === "plan" && v.floorPlans?.[0] && <Plan plan={v.floorPlans[0]} title={v.name} />}
+            {tab === "view" && v.views && <Views views={v.views} i={Math.min(viewIndex, v.views.length - 1)} onI={onViewIndex} />}
+            <Title v={v} className="mb-0 shrink-0 px-1" />
+          </div>
+        )}
 
-      {tabs.length > 1 && (
-        <div role="tablist" aria-label={`${v.name} media`} className="mx-5 mt-4 flex shrink-0 gap-1 rounded-full bg-white/6 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t}
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              className={cn("flex-1 rounded-full py-1.5 text-[0.8125rem] font-medium transition-colors", tab === t ? "bg-moon text-night" : "text-moon-2 hover:text-moon")}
-            >
-              {TAB_LABEL[t]}
-              {t === "photos" && <span className="t-num ml-1 opacity-50">{v.gallery.length}</span>}
-            </button>
-          ))}
+        <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-gradient-to-b from-black/45 to-transparent p-4 pb-10">
+          {tabs.length > 1 ? (
+            <div role="tablist" aria-label={`${v.name} media`} className="pointer-events-auto flex gap-0.5 rounded-full bg-black/35 p-1 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)] backdrop-blur-md">
+              {tabs.map((t) => (
+                <button
+                  key={t}
+                  role="tab"
+                  aria-selected={tab === t}
+                  onClick={() => onTab(t)}
+                  className={cn(
+                    "h-8 rounded-full px-3.5 text-[0.8125rem] font-medium transition-colors",
+                    tab === t ? "bg-moon text-night" : "text-white/80 hover:bg-white/10 hover:text-white",
+                  )}
+                >
+                  {TAB_LABEL[t]}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span />
+          )}
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="pointer-events-auto grid size-10 shrink-0 place-items-center rounded-full bg-black/35 text-white/85 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)] backdrop-blur-md transition-colors hover:bg-black/55 hover:text-white"
+          >
+            <Icon name="close" size={16} />
+          </button>
         </div>
-      )}
-
-      <div className="mx-5 mt-3 flex min-h-0 flex-1 flex-col">
-        {tab === "photos" && <Photos gallery={v.gallery} i={photoIndex} onI={onPhotoIndex} />}
-        {tab === "plan" && v.floorPlans?.[0] && <Plan plan={v.floorPlans[0]} title={v.name} />}
-        {tab === "view" && v.views && <Views views={v.views} i={Math.min(viewIndex, v.views.length - 1)} onI={onViewIndex} />}
       </div>
 
-      <dl className="mx-5 mt-4 grid shrink-0 grid-cols-3 border-t border-white/10 pt-3">
-        {facts.map(([value, label]) => (
-          <div key={label} className="min-w-0 pr-2">
-            <dt className="sr-only">{label}</dt>
-            <dd className="t-num text-[1.375rem] font-medium leading-none">{value}</dd>
-            <dd className="t-meta mt-1 truncate">{label}</dd>
-          </div>
-        ))}
-      </dl>
+      {/* The calm band: numbers, the floors either side, the way in */}
+      <div className="shrink-0 px-6 pb-6 pt-5">
+        <dl className="grid grid-cols-3 gap-4">
+          {facts.map(([value, label]) => (
+            <div key={label} className="min-w-0">
+              <dt className="sr-only">{label}</dt>
+              <dd className="t-num text-[1.625rem] font-medium leading-none tracking-[-0.02em] lg:text-[2.125rem]">{value}</dd>
+              <dd className="t-meta mt-1.5 truncate">{label}</dd>
+            </div>
+          ))}
+        </dl>
 
-      <div className="flex shrink-0 gap-2 p-5 pt-4">
-        <Link href={`/venues/${v.slug}`} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-moon text-[0.9375rem] font-medium text-night transition-colors hover:bg-white">
-          Explore {shortName(v.name)}
-          <Icon name="arrow-right" size={16} />
-        </Link>
-        <Link
-          href={`/venues/inquire?venue=${v.slug}`}
-          className="flex h-11 items-center rounded-full px-4 text-[0.9375rem] font-medium shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18)] transition-colors hover:bg-white/8"
-        >
-          Inquire
-        </Link>
+        <Floors ride={ride} />
+
+        <div className="mt-4 flex gap-2">
+          <Link href={`/venues/${v.slug}`} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-moon text-[0.9375rem] font-medium text-night transition-colors hover:bg-white">
+            Explore {shortName(v.name)}
+            <Icon name="arrow-right" size={16} />
+          </Link>
+          <Link
+            href={`/venues/inquire?venue=${v.slug}`}
+            className="flex h-12 items-center rounded-full px-5 text-[0.9375rem] font-medium shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18)] transition-colors hover:bg-white/8"
+          >
+            Inquire
+          </Link>
+        </div>
       </div>
     </div>
   );
 }
 
-/** One big photo that crossfades, with every photo as a thumbnail underneath. Advances on its own until you touch it. */
-function Photos({ gallery, i: shown, onI }: { gallery: Img[]; i?: number; onI?: (i: number) => void }) {
+function Title({ v, className }: { v: Venue; className?: string }) {
+  return (
+    <div className={cn("mb-3", className)}>
+      <p className="t-meta truncate !text-white/70">
+        {v.levelLabel} · {v.kind}
+      </p>
+      {/* Tight leading puts descenders below the line box, where truncate's overflow would cut them; the padding
+          gives them room and the negative margin takes it back out of the layout */}
+      <h3 className="-mb-[0.16em] mt-1 truncate pb-[0.16em] text-[2.25rem] font-[540] leading-[0.98] tracking-[-0.035em] text-white lg:text-[3.25rem]">{shortName(v.name)}</h3>
+    </div>
+  );
+}
+
+/** The floors either side, drawn like the rail's rows so it reads as the same elevator. */
+function Floors({ ride }: { ride: Ride }) {
+  return (
+    <div className="mt-5 grid gap-1 border-t sm:grid-cols-2 sm:gap-2 border-white/10 pt-4">
+      {([-1, 1] as const).map((d) => {
+        const to = d < 0 ? ride.up : ride.down;
+        return (
+          <button
+            key={d}
+            onClick={() => ride.go(d)}
+            disabled={!to}
+            aria-label={to ? `${d < 0 ? "Up" : "Down"} to ${to.label}` : undefined}
+            className="group flex min-w-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-white/[0.06] disabled:cursor-default disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <Icon name="chevron-down" size={14} className={cn("shrink-0 text-moon-2 transition-colors group-enabled:group-hover:text-accent-glow", d < 0 && "rotate-180")} />
+            {to && (
+              <>
+                <span className="t-num w-5 shrink-0 text-right text-[0.8125rem] text-accent-glow">{to.num}</span>
+                <span aria-hidden className="h-px w-3 shrink-0 bg-white/30 transition-[width,background-color] duration-500 group-hover:w-5 group-hover:bg-accent-glow" />
+              </>
+            )}
+            <span className="min-w-0 truncate text-[0.9375rem] font-medium">{to ? to.label : d < 0 ? "Top floor" : "Street level"}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const PHOTO_MS = 5200;
+
+/**
+ * One big photo, edge to edge, that crossfades and advances on its own until you touch it. Story-style progress
+ * bars along its foot show where you are and jump to a photo; `overlay` (the venue's name) sits just above them.
+ */
+function Photos({ gallery, i: shown, onI, overlay }: { gallery: Img[]; i?: number; onI?: (i: number) => void; overlay?: React.ReactNode }) {
   const [own, setOwn] = useState(0);
   const i = Math.min(shown ?? own, gallery.length - 1);
   const tell = useRef(onI);
@@ -205,47 +284,47 @@ function Photos({ gallery, i: shown, onI }: { gallery: Img[]; i?: number; onI?: 
   const [held, setHeld] = useState(false);
   const reduce = useReducedMotion();
   const n = gallery.length;
-  // Each photo gets its full turn, however it came up (a thumbnail, the auto-advance, a place picked in the 3D)
+  // Each photo gets its full turn, however it came up (a bar, the auto-advance, a place picked in the 3D)
   useEffect(() => {
     if (held || reduce || n < 2) return;
-    const t = setTimeout(() => setI((i + 1) % n), 5200);
+    const t = setTimeout(() => setI((i + 1) % n), PHOTO_MS);
     return () => clearTimeout(t);
   }, [held, reduce, n, i, setI]);
   const img = gallery[i];
+  // While held the bar sits full; letting go restarts it from empty, as the timer does
+  const running = !held && !reduce;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2" onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}>
-      <figure className="relative aspect-[4/3] overflow-hidden rounded-xl bg-night lg:aspect-auto lg:min-h-0 lg:flex-1">
+    <div className="flex min-h-0 flex-1 flex-col" onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}>
+      <figure className="relative aspect-[4/5] overflow-hidden bg-night sm:aspect-[16/11] lg:aspect-auto lg:min-h-0 lg:flex-1">
         <AnimatePresence initial={false}>
           <motion.div key={img.src} className="absolute inset-0" initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.9, ease: EASE }}>
             <Image src={img.src} alt={img.alt} fill sizes={STAGE_PHOTO_SIZES} className="object-cover" style={{ objectPosition: img.pos }} />
           </motion.div>
         </AnimatePresence>
-        <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/60 to-transparent px-3.5 pb-3 pt-10">
-          <span className="truncate text-[0.875rem] font-medium">{img.caption}</span>
-          <span className="t-num shrink-0 text-[0.75rem] text-white/70">
-            {i + 1} / {n}
-          </span>
-        </figcaption>
-      </figure>
-      {n > 1 && (
-        <div className="flex shrink-0 gap-1.5">
-          {gallery.map((g, k) => (
-            <button
-              key={g.src}
-              onClick={() => setI(k)}
-              aria-label={`Photo ${k + 1}: ${g.caption ?? g.alt}`}
-              aria-current={k === i}
-              className={cn(
-                "relative h-11 min-w-0 flex-1 overflow-hidden rounded-md transition-[opacity,box-shadow] duration-300 lg:h-14 xl:h-16",
-                k === i ? "opacity-100 shadow-[0_0_0_2px_var(--color-accent-glow)]" : "opacity-55 hover:opacity-90",
-              )}
-            >
-              <Image src={g.src} alt="" fill sizes="104px" quality={75} className="object-cover" style={{ objectPosition: g.pos }} />
-            </button>
-          ))}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-6 pb-5 pt-28">
+          {overlay}
+          {n > 1 && (
+            <div className="pointer-events-auto mt-1 flex gap-1.5">
+              {gallery.map((g, k) => (
+                <button key={g.src} onClick={() => setI(k)} aria-label={`Photo ${k + 1}: ${g.caption ?? g.alt}`} aria-current={k === i} className="group flex h-4 min-w-0 flex-1 items-center">
+                  <span className="relative block h-[3px] w-full overflow-hidden rounded-full bg-white/25 transition-[height] group-hover:h-[5px]">
+                    <span
+                      key={k === i ? `${i}-${running}` : undefined}
+                      className="absolute inset-0 origin-left rounded-full bg-white"
+                      style={
+                        k === i && running
+                          ? { animationName: "progress-fill", animationDuration: `${PHOTO_MS}ms`, animationTimingFunction: "linear", animationFillMode: "both" }
+                          : { transform: `scaleX(${k <= i ? 1 : 0})` }
+                      }
+                    />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </figure>
     </div>
   );
 }

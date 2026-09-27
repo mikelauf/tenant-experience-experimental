@@ -129,7 +129,7 @@ export function SalesforceTower({ env }: { env: Env }) {
       <mesh geometry={body} castShadow receiveShadow>
         <meshStandardMaterial
           ref={bodyMat}
-          color="#d9dde0"
+          color="#cdd7de"
           map={skin.map}
           emissive="#ffffff"
           emissiveMap={skin.emissive}

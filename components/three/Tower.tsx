@@ -16,6 +16,7 @@ export function Tower({
   poster,
   placeholder,
   eager,
+  paused,
   ...scene
 }: Omit<TowerCanvasProps, "profile" | "accent" | "active" | "onReady"> & {
   className?: string;
@@ -24,11 +25,13 @@ export function Tower({
   placeholder?: React.ReactNode;
   /** Load when the page is idle rather than when scrolled near */
   eager?: boolean;
+  /** Stop drawing frames while it's on the page but not on show (behind another view) */
+  paused?: boolean;
 }) {
   const { tower, theme } = useTenant();
   return (
     <Lazy3D className={className} poster={poster} placeholder={placeholder} eager={eager}>
-      {({ active, onReady }) => <TowerCanvas {...scene} profile={tower} accent={theme.glow} active={active} onReady={onReady} />}
+      {({ active, onReady }) => <TowerCanvas {...scene} profile={tower} accent={theme.glow} active={active && !paused} onReady={onReady} />}
     </Lazy3D>
   );
 }
