@@ -65,13 +65,18 @@ export default async function VenuesHome() {
             </Reveal>
           </div>
 
-          <Reveal delay={0.6} className="col-span-12 lg:col-span-4 lg:self-end">
+          {/* Wide screens: anchored to the hero's bottom edge, level with the slideshow controls on the left */}
+          <Reveal
+            delay={0.6}
+            animate={{ opacity: 1, y: 0 }}
+            className="col-span-12 lg:absolute lg:bottom-10 lg:right-[var(--gutter)] lg:w-[calc((100%-2*var(--gutter)-2*var(--col-gap))/3)]"
+          >
             <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-[20px] bg-white/10 backdrop-blur-md">
               {[{ k: "Venues", v: venues.length }, ...(total ? [{ k: "Up to", v: total, s: " guests" }] : []), { k: "Floors", v: building.floors }].map((x) => (
                 <div key={x.k} className="bg-night/30 p-4">
                   <dt className="t-meta">{x.k}</dt>
                   <dd className="t-num mt-1 text-[1.75rem] font-medium leading-none">
-                    <NumberRoll value={x.v} fromZero />
+                    <NumberRoll value={x.v} fromZero onLoad delay={0.7} duration={1.2} />
                     {x.s && <span className="ml-1 text-[0.8125rem] font-normal tracking-normal text-moon-2">{x.s.trim()}</span>}
                   </dd>
                 </div>

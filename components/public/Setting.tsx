@@ -25,7 +25,7 @@ export function Setting() {
   if (!setting) return null;
 
   return (
-    <section className="pb-24 pt-20 lg:pb-36 lg:pt-32" aria-labelledby="setting-h">
+    <section className="pb-2 pt-20 lg:pb-3 lg:pt-32" aria-labelledby="setting-h">
       <div className="frame grid-12 items-end gap-y-6">
         <div className="col-span-12 lg:col-span-7">
           <p className="t-meta">The setting</p>

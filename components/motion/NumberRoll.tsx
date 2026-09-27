@@ -10,13 +10,17 @@ type Props = {
   suffix?: string;
   /** Start from 0 when first scrolled into view. */
   fromZero?: boolean;
+  /** With `fromZero`: roll up on load instead of waiting to be scrolled to (first-screen numbers). */
+  onLoad?: boolean;
+  /** Seconds to wait before rolling. */
+  delay?: number;
   duration?: number;
   className?: string;
   format?: (n: number) => string;
 };
 
 /** Eases between numbers. Tabular figures keep the width steady while it moves. */
-export function NumberRoll({ value, decimals = 0, prefix = "", suffix = "", fromZero, duration = 0.9, className, format }: Props) {
+export function NumberRoll({ value, decimals = 0, prefix = "", suffix = "", fromZero, onLoad, delay = 0, duration = 0.9, className, format }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const inView = useInView(ref, { once: true, margin: "-10% 0px" });
   const reduce = useReducedMotion();
@@ -34,14 +38,14 @@ export function NumberRoll({ value, decimals = 0, prefix = "", suffix = "", from
   }, [mv, decimals, prefix, suffix, format]);
 
   useEffect(() => {
-    if (fromZero && !inView) return;
+    if (fromZero && !onLoad && !inView) return;
     if (reduce) {
       mv.set(value);
       return;
     }
-    const c = animate(mv, value, { duration, ease: [0.16, 1, 0.3, 1] });
+    const c = animate(mv, value, { duration, delay, ease: [0.16, 1, 0.3, 1] });
     return () => c.stop();
-  }, [value, inView, fromZero, reduce, duration, mv]);
+  }, [value, inView, fromZero, onLoad, reduce, delay, duration, mv]);
 
   return (
     <span ref={ref} className={className} style={{ fontVariantNumeric: "tabular-nums" }}>
