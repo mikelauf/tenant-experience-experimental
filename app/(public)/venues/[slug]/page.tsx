@@ -23,6 +23,8 @@ function InProgress() {
   return isDemo ? <Pill tone="hold">In progress · hidden at launch</Pill> : null;
 }
 
+const IN_HERO = new Set(["Capacity", "Area", "Setting"]);
+
 export default async function VenuePage({ params }: PageProps<"/venues/[slug]">) {
   const t = await getTenant();
   const v = t.venue((await params).slug);
@@ -30,6 +32,8 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
   const host = t.publicHost;
   const others = t.venues.filter((x) => x.slug !== v.slug);
   const features = showV2 ? v.features : [];
+  // The hero already reads out capacity, area and setting; here they only add their fine print
+  const facts = v.facts.flatMap((f) => (!IN_HERO.has(f.label) ? [{ ...f, fine: false }] : f.note ? [{ label: f.label, value: f.note, fine: true }] : []));
   const plan = v.floorPlans?.length ? <FloorPlan plans={v.floorPlans} venue={v.name} compact /> : null;
 
   return (
@@ -69,17 +73,17 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
               </div>
             )}
 
-            {v.facts.length > 0 && (
+            {facts.length > 0 && (
               <section aria-labelledby="facts">
                 <h2 id="facts" className="sr-only">
                   At a glance
                 </h2>
-                <dl className="grid border-t hairline sm:grid-cols-3">
-                  {v.facts.map((f) => (
+                <dl className={`grid border-t hairline ${facts.length > 2 ? "sm:grid-cols-3" : "sm:grid-cols-2"}`}>
+                  {facts.map((f) => (
                     <div key={f.label} className="border-b hairline py-5 sm:pr-6">
                       <dt className="t-meta">{f.label}</dt>
-                      <dd className="mt-1.5 font-medium">{f.value}</dd>
-                      {f.note && <dd className="t-small mt-1 text-stone">{f.note}</dd>}
+                      <dd className={f.fine ? "t-small mt-1.5 text-ink-2" : "mt-1.5 font-medium"}>{f.value}</dd>
+                      {!f.fine && f.note && <dd className="t-small mt-1 text-stone">{f.note}</dd>}
                     </div>
                   ))}
                 </dl>
