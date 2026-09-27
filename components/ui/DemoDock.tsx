@@ -59,8 +59,10 @@ export function DemoDock() {
       data-noprint
       ref={ref}
       className={cn(
-        "fixed left-3 z-[70] lg:left-5 lg:bottom-5",
-        isPublic ? "bottom-3" : "bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom)+10px)]",
+        "fixed z-[70]",
+        // Public pages keep their own controls in the bottom corners (slideshows, the explorer, sticky inquiry bars),
+        // so there the dock is a small tab on the left edge
+        isPublic ? "left-0 top-[42%]" : "left-3 bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom)+10px)] lg:left-5 lg:bottom-5",
       )}
     >
       <AnimatePresence>
@@ -70,8 +72,12 @@ export function DemoDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-
-            className="theme-night absolute bottom-12 left-0 w-[min(340px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]"
+            data-lenis-prevent
+            className={cn(
+              "theme-night absolute w-[min(340px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]",
+              // Public: opens below the edge tab, scrolling if the screen is short
+              isPublic ? "left-3 top-12 max-h-[calc(58svh-56px)] overflow-y-auto" : "bottom-12 left-0",
+            )}
             role="dialog"
             aria-label="Demo controls"
           >
@@ -245,13 +251,17 @@ export function DemoDock() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label="Demo controls"
-        className="flex h-10 items-center gap-2 rounded-full bg-night p-1.5 sm:pr-3.5 text-[0.8125rem] font-medium text-moon shadow-[var(--shadow-float)] transition-transform active:scale-95"
+        className={cn(
+          "group flex h-10 items-center gap-2 bg-night p-1.5 text-[0.8125rem] font-medium text-moon shadow-[var(--shadow-float)] transition-transform active:scale-95",
+          isPublic ? "rounded-r-[999px] pl-2" : "rounded-full sm:pr-3.5",
+        )}
       >
         <span className="grid size-7 place-items-center rounded-full bg-accent-glow/20 text-accent-glow">
           <Icon name="sliders" size={15} />
         </span>
-        <span className="hidden sm:inline">Demo</span>
-        <span className="hidden text-moon-2 sm:inline">
+        {/* The tab stays just the icon on public pages; its label shows on hover */}
+        <span className={cn("hidden sm:inline", isPublic && "sm:hidden sm:group-hover:inline")}>Demo</span>
+        <span className={cn("hidden text-moon-2 sm:inline", isPublic && "sm:hidden sm:group-hover:inline sm:pr-2")}>
           · {tenant.copy.The} · {isPublic ? "Public" : personas.find((p) => p.id === s.persona)?.label}
         </span>
       </button>
