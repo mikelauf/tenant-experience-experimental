@@ -12,6 +12,8 @@ export type DemoState = {
   fitnessMember: boolean;
   commitments: Commitment[];
   shortlist: string[];
+  /** The guest count someone is planning for, set once and carried across the venue pages */
+  guests?: number;
   inquiries: Inquiry[];
   /** Services a returning member has used, for "book again" */
   history: string[];
@@ -159,7 +161,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 export const actions = {
   setPersona(p: Persona) {
-    setState((s) => ({ ...seed(p), shortlist: s.shortlist, inquiries: s.inquiries }));
+    setState((s) => ({ ...seed(p), shortlist: s.shortlist, guests: s.guests, inquiries: s.inquiries }));
   },
   signIn() {
     setState((s) => (s.persona === "signed-out" ? { ...s, persona: "new" } : s));
@@ -202,6 +204,9 @@ export const actions = {
   toggleShortlist(slug: string) {
     setState((s) => ({ ...s, shortlist: s.shortlist.includes(slug) ? s.shortlist.filter((x) => x !== slug) : [...s.shortlist, slug] }));
   },
+  setGuests(n: number | undefined) {
+    setState((s) => (s.guests === n ? s : { ...s, guests: n && n > 0 ? n : undefined }));
+  },
   addInquiry(i: Omit<Inquiry, "id" | "createdAt">) {
     const id = `inq-${uid()}`;
     setState((s) => ({ ...s, inquiries: [...s.inquiries, { ...i, id, createdAt: new Date().toISOString() }] }));
@@ -214,6 +219,16 @@ export const actions = {
     setState((s) => ({ ...s, notify: { ...s.notify, [k]: on } }));
   },
 };
+
+/**
+ * The shared guest count as a field value ("" when unset), and a setter that takes one. Every guest field on the
+ * public site reads and writes it, so a count typed once follows people from the venue grid to the inquiry.
+ */
+export function useSharedGuests(): [string, (v: string) => void] {
+  const s = useDemo();
+  const hydrated = useHydrated();
+  return [hydrated && s.guests ? String(s.guests) : "", (v) => actions.setGuests(Number(v) || undefined)];
+}
 
 /** Active (not cancelled) commitment for a ref, if any */
 export const findActive = (s: DemoState, kind: Commitment["kind"], refId: string) =>

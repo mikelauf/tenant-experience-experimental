@@ -227,7 +227,7 @@ _Update as work lands. Last updated: 2026-09-26._
 - [ ] Getting here: the plaza tower with arrival pins in place of the flat site plan
 - [x] Shortlist tray → side-by-side compare (guests, setups, area, views; a guest count marks rooms that fit) → one inquiry or brief (`Shortlist.tsx`)
 - [x] Tower locator on each venue page (`TowerLocator.tsx`): an elevation drawn from the tenant's tower profile, every venue named and linked, this one lit; opens the explorer at that floor (`/venues?floor=`)
-- [ ] Guest count set once, carried across cards, the 3D space and the inquiry
+- [x] Guest count set once (`useSharedGuests`): the grid brings rooms that hold it forward, and it fills the inquire card, the 3D space (until its slider is moved), the comparison, the brief picker and the inquiry
 - [ ] Live hero: the tower as it is now in SF
 - [ ] Split `TowerCanvas`, `InquiryForm`, `landmarks` before handoff
 - [ ] Lighthouse, image budget and mobile 3D pass

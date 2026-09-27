@@ -6,7 +6,7 @@ import Image from "@/components/ui/SmoothImage";
 import { BRIEF_MAX, briefHref } from "@/lib/brief";
 import { cn } from "@/lib/cn";
 import { guestsShort } from "@/lib/data/shared";
-import { useDemo, useHydrated } from "@/lib/store";
+import { useDemo, useHydrated, useSharedGuests } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { Icon } from "@/components/ui/Icon";
 import { GuestStepper } from "../GuestStepper";
@@ -21,7 +21,7 @@ export function BriefPicker() {
   const hydrated = useHydrated();
   const router = useRouter();
   const [picked, setPicked] = useState<string[] | null>(null);
-  const [guests, setGuests] = useState("");
+  const [guests, setGuests] = useSharedGuests();
   // Until someone ticks a card themselves, their saved venues stand in
   const saved = hydrated ? s.shortlist.filter((x) => venues.some((v) => v.slug === x)).slice(0, BRIEF_MAX) : [];
   const chosen = picked ?? saved;

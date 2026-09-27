@@ -9,11 +9,19 @@ import { DatePicker } from "./DatePicker";
 import { GuestStepper } from "./GuestStepper";
 import { InquireLink } from "./InquiryModal";
 import { HeartButton } from "./VenueCard";
+import { useSharedGuests } from "@/lib/store";
 
 /** Side card on desktop (the page's column keeps it in view); a bottom bar on phones. Hands its values to the inquiry, which opens over the page. */
 export function InquireCard({ v }: { v: Venue }) {
   const cap = maxCap(v);
-  const [guests, setGuests] = useState(String(cap ? Math.max(10, Math.round((cap * 0.6) / 10) * 10) : 40));
+  // Starts at the count set elsewhere on the site, else a comfortable share of the room; edits here carry on too
+  const [shared, setShared] = useSharedGuests();
+  const [own, setOwn] = useState<string | null>(null);
+  const guests = own ?? (shared || String(cap ? Math.max(10, Math.round((cap * 0.6) / 10) * 10) : 40));
+  const setGuests = (x: string) => {
+    setOwn(x);
+    setShared(x);
+  };
   const [date, setDate] = useState("");
   const count = Number(guests) || 0;
   const over = cap != null && count > cap;

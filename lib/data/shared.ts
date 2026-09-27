@@ -26,6 +26,15 @@ export const setupNotes: Record<Setup, string> = {
 /** The most guests a venue holds, or undefined while it isn't confirmed. */
 export const maxCap = (v: Venue): number | undefined => v.capacity;
 
+/**
+ * Whether a venue holds this many guests: by its capacity, or its largest setup when that's all there is.
+ * Undefined when neither is known, so the site can say "ask" instead of guessing.
+ */
+export function fits(v: Venue, guests: number): boolean | undefined {
+  const most = v.capacity ?? (v.layout ? Math.max(...Object.values(v.layout.setups).map((x) => x?.max ?? 0)) : undefined);
+  return most ? guests <= most : undefined;
+}
+
 /** The venue's qualified wording when it has one, else "Up to 1,000 guests". */
 export const guestsLabel = (v: Venue) => v.capacityNote ?? (v.capacity ? `Up to ${v.capacity.toLocaleString("en-US")} guests` : "Capacity on request");
 

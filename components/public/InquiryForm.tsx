@@ -259,8 +259,16 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   const after = (b: Blank) => BLANKS.slice(BLANKS.indexOf(b) + 1).find((x) => !filled[x]) ?? null;
   const advance = (b: Blank) => layout === "sentence" && setBlank(after(b));
 
+  // A headcount set elsewhere on the site fills in here when the link didn't bring one (read once the browser's store is up)
+  const [seeded, setSeeded] = useState(false);
+  if (hydrated && !seeded) {
+    setSeeded(true);
+    if (!v.guests && s.guests) setV((x) => ({ ...x, guests: String(s.guests) }));
+  }
+
   const set = <K extends keyof Values>(k: K, val: Values[K]) => {
     setV((x) => ({ ...x, [k]: val }));
+    if (k === "guests") actions.setGuests(Number(val) || undefined);
     if (errors[k]) setErrors((e) => ({ ...e, [k]: undefined }));
   };
   const toggleVenue = (slug: string) => {

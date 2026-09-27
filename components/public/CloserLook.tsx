@@ -129,7 +129,7 @@ export function CloserLook() {
                       className="absolute inset-0 origin-left bg-moon"
                       style={
                         autoplay
-                          ? { animation: `progress-fill ${SCENE_MS}ms linear both`, animationPlayState: running ? "running" : "paused" }
+                          ? { animationName: "progress-fill", animationDuration: `${SCENE_MS}ms`, animationTimingFunction: "linear", animationFillMode: "both", animationPlayState: running ? "running" : "paused" }
                           : undefined
                       }
                       onAnimationEnd={() => setI((i + 1) % count)}

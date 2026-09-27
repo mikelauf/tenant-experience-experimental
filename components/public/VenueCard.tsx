@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ViewTransition, useState } from "react";
 import { cn } from "@/lib/cn";
 import type { Venue } from "@/lib/data/types";
-import { guestsLabel } from "@/lib/data/shared";
+import { fits, guestsLabel } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { Icon } from "@/components/ui/Icon";
 
@@ -51,6 +51,7 @@ export function VenueCard({
   priority,
   play,
   delay = 0,
+  guests,
 }: {
   v: Venue;
   className?: string;
@@ -59,6 +60,8 @@ export function VenueCard({
   play: boolean;
   /** ms after the grid starts before this card's first photo begins to advance */
   delay?: number;
+  /** The headcount being planned for: the card says whether it fits, and steps back when it doesn't */
+  guests?: number;
 }) {
   const [i, setI] = useState(0);
   const [started, setStarted] = useState(false);
@@ -71,8 +74,11 @@ export function VenueCard({
     setI((k) => (k + 1) % pics.length);
   };
 
+  const fit = guests ? fits(v, guests) : undefined;
+  const count = guests?.toLocaleString("en-US");
+
   return (
-    <article className={cn("group relative flex flex-col", className)}>
+    <article className={cn("group relative flex flex-col transition-[opacity,filter] duration-500", fit === false && "opacity-45 saturate-[0.35]", className)}>
       <div className="relative">
         <Link href={`/venues/${v.slug}`} className="relative block outline-none" aria-label={`${v.name}, ${v.levelLabel}, ${guestsLabel(v).toLowerCase()}`}>
           <div className="media relative aspect-[5/4] sm:aspect-[1.6]">
@@ -125,7 +131,12 @@ export function VenueCard({
                         style={
                           autoplay
                             ? {
-                                animation: `progress-fill ${SLIDE_MS}ms linear ${started ? 0 : delay}ms both`,
+                                // Longhands only: React warns when a shorthand and one of its parts change together
+                                animationName: "progress-fill",
+                                animationDuration: `${SLIDE_MS}ms`,
+                                animationTimingFunction: "linear",
+                                animationDelay: `${started ? 0 : delay}ms`,
+                                animationFillMode: "both",
                                 animationPlayState: running ? "running" : "paused",
                               }
                             : undefined
@@ -153,6 +164,11 @@ export function VenueCard({
         <div>
           <dt className="t-meta">Capacity</dt>
           <dd className="mt-1 text-[0.9375rem]">{guestsLabel(v)}</dd>
+          {guests != null && (
+            <dd className={cn("t-meta mt-0.5", fit ? "!text-accent" : "")}>
+              {fit ? `Fits ${count}` : fit === false ? `Too small for ${count}` : `Ask about ${count}`}
+            </dd>
+          )}
         </div>
       </dl>
     </article>

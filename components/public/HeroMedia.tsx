@@ -126,7 +126,7 @@ export function HeroMedia({ slides, video, className }: { slides: Slide[]; video
                     <span
                       key={i}
                       className="absolute inset-0 origin-left rounded-full bg-white"
-                      style={{ animation: `progress-fill ${PHOTO_MS}ms linear both`, animationPlayState: running ? "running" : "paused" }}
+                      style={{ animationName: "progress-fill", animationDuration: `${PHOTO_MS}ms`, animationTimingFunction: "linear", animationFillMode: "both", animationPlayState: running ? "running" : "paused" }}
                       onAnimationEnd={() => go(i + 1)}
                     />
                   )}

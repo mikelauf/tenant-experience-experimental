@@ -294,6 +294,7 @@ export function SetupVisualizer({
   variant = "stacked",
   inquireHref,
   onInquire,
+  seedGuests,
   views,
   viewBearing,
   north,
@@ -312,6 +313,8 @@ export function SetupVisualizer({
   inquireHref?: string;
   /** Opens the inquiry in place with the guest count and setup; wins over `inquireHref` */
   onInquire?: (q: { guests: number; setup: Setup }) => void;
+  /** The headcount set elsewhere on the page or site: the room follows it until the slider is moved here */
+  seedGuests?: number;
   /** The venue's view photos, for "Look out from here" */
   views?: ViewPhoto[];
   /** Which way the best view faces (degrees from true north), to pick the window */
@@ -358,6 +361,12 @@ export function SetupVisualizer({
 
   // Shared links: read the state once on arrival, then keep the link current as people change it
   const [changed, setChanged] = useState(false);
+  const [seededWith, setSeededWith] = useState<number | undefined>();
+  const [slid, setSlid] = useState(false);
+  if (seedGuests && seedGuests !== seededWith && !slid) {
+    setSeededWith(seedGuests);
+    setGuests(Math.max(spec.min ?? Math.min(10, spec.max), Math.min(seedGuests, spec.max)));
+  }
   const setPreset = (p: Preset) => {
     setPresetRaw(p);
     setLooking(false);
@@ -503,6 +512,7 @@ export function SetupVisualizer({
         onChange={(e) => {
           setGuests(Number(e.target.value));
           setChanged(true);
+          setSlid(true);
         }}
         aria-valuetext={`${shown} guests, ${setupLabels[setup].toLowerCase()}`}
         className="scrub scrub-day w-full"

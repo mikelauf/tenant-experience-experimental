@@ -10,7 +10,7 @@ import { BRIEF_MAX, briefHref } from "@/lib/brief";
 import { cn } from "@/lib/cn";
 import { guestsShort, setupLabels } from "@/lib/data/shared";
 import type { Setup, Venue } from "@/lib/data/types";
-import { useDemo, useHydrated } from "@/lib/store";
+import { useDemo, useHydrated, useSharedGuests } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -97,7 +97,7 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
   const reduce = useReducedMotion();
   const hydrated = useHydrated();
   const panel = useRef<HTMLDivElement>(null);
-  const [guests, setGuests] = useState("");
+  const [guests, setGuests] = useSharedGuests();
   const n = Number(guests) || 0;
 
   useEffect(() => {
