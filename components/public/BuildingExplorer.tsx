@@ -252,22 +252,38 @@ export function BuildingExplorer() {
     wide.current = stage.wide;
     touringRef.current = touring;
   }, [stage.wide, touring]);
-  // Arriving by a floor link: once the stage is measured, jump it into view (no glide down the whole page)
+  // Arriving by a floor link: once the stage is measured, jump it into view (no glide down the whole page).
+  // A link followed on this same page (Getting here → Arriving) glides instead.
   const rootRef = useRef<HTMLDivElement>(null);
   const arrived = useRef(!linked);
+  const bringIntoView = useCallback(
+    (smooth: boolean) => {
+      const el = stage.wide ? stageRef.current : rootRef.current;
+      if (!el) return;
+      const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 68;
+      const r = el.getBoundingClientRect();
+      const want = stage.wide ? Math.min(nav + 16, window.innerHeight - 16 - r.height) : nav + 12;
+      const y = window.scrollY + r.top - want;
+      const lenis = window.__lenis;
+      if (lenis) lenis.scrollTo(y, smooth ? { duration: 1.2 } : { immediate: true, force: true });
+      else window.scrollTo({ top: y, behavior: smooth ? "smooth" : "instant" });
+    },
+    [stage.wide, stageRef],
+  );
   useEffect(() => {
     if (arrived.current || !stage.ready) return;
     arrived.current = true;
-    const el = stage.wide ? stageRef.current : rootRef.current;
-    if (!el) return;
-    const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 68;
-    const r = el.getBoundingClientRect();
-    const want = stage.wide ? Math.min(nav + 16, window.innerHeight - 16 - r.height) : nav + 12;
-    const y = window.scrollY + r.top - want;
-    const lenis = window.__lenis;
-    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
-    else window.scrollTo({ top: y, behavior: "instant" });
-  }, [stage.ready, stage.wide, stageRef]);
+    bringIntoView(false);
+  }, [stage.ready, bringIntoView]);
+  const seenLink = useRef(linked);
+  useEffect(() => {
+    if (!linked || linked === seenLink.current) return;
+    seenLink.current = linked;
+    // The link changed under a page already open: follow it, like a pick of their own
+    go(linked);
+    bringIntoView(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linked]);
   useEffect(() => {
     const el = stageRef.current;
     if (!arrived.current || id === "overview" || !wide.current || touringRef.current || !el) return;

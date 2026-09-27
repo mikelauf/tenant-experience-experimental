@@ -5,6 +5,7 @@ import { NumberRoll } from "@/components/motion/NumberRoll";
 import { ButtonLink } from "@/components/ui/Button";
 import { Pill } from "@/components/ui/Pill";
 import { Photo } from "@/components/ui/Photo";
+import { ArrivalPlan } from "@/components/public/ArrivalPlan";
 import { CloserLook } from "@/components/public/CloserLook";
 import { HeroMedia } from "@/components/public/HeroMedia";
 import { Setting } from "@/components/public/Setting";
@@ -271,13 +272,13 @@ export default async function VenuesHome() {
       {/* Getting here */}
       <section className="frame pb-32 lg:pb-36" aria-labelledby="here-h">
         <div className="grid-12 gap-y-10 border-t hairline pt-12 lg:pt-16">
-          <div className="col-span-12 lg:col-span-5">
+          <div className="col-span-12 lg:col-span-4">
             <h2 id="here-h" className="t-h1">
               Getting here
             </h2>
             <dl className="mt-10 space-y-8">
               {pub.gettingHere.map((x) => (
-                <div key={x.k} className="grid grid-cols-[120px_1fr] gap-4">
+                <div key={x.k} className="grid grid-cols-[96px_1fr] gap-4 lg:grid-cols-[88px_1fr]">
                   <dt className="t-meta pt-0.5">{x.k}</dt>
                   <div>
                     <dd className="font-medium">{x.v}</dd>
@@ -287,8 +288,11 @@ export default async function VenuesHome() {
               ))}
             </dl>
           </div>
-          <Reveal className="col-span-12 lg:col-span-6 lg:col-start-7">
-            {pub.siteMap ? (
+          <Reveal className="col-span-12 lg:col-span-7 lg:col-start-6">
+            {t.tower.pois?.length ? (
+              // The block drawn from the real streets, with every way in numbered
+              <ArrivalPlan />
+            ) : pub.siteMap ? (
               <div className="relative aspect-square overflow-hidden rounded-[var(--radius-media)] bg-white shadow-[var(--shadow-ring)]">
                 <Image src={pub.siteMap.src} alt={pub.siteMap.alt} fill sizes="(min-width:1024px) 45vw, 100vw" className="object-contain p-6 sm:p-10" />
               </div>
