@@ -30,6 +30,8 @@ export type TowerProfile = {
     outline?: [x: number, z: number][];
     /** Camera arc when the park is the stop */
     yaw: [center: number, range: number];
+    /** The park as its plan draws it, in scene units: every tree where it stands, and the places worth pointing at */
+    plan?: { trees: [x: number, z: number][]; spots: ParkSpot[] };
   } | null;
   /** Procedural city ring: inner radius, how many blocks to try, how deep the ring is (default 6.5), and a height scale */
   city: { inner: number; count: number; spread?: number; height?: number };
@@ -82,6 +84,9 @@ export type Poi = {
   /** Known to exist but not yet located on a plan */
   pending?: boolean;
 };
+
+/** A place in the park worth pointing at: the stage, the bar, the fountain. `label` matches the photo tags that show it. */
+export type ParkSpot = { id: string; label: string; kind: "stage" | "bar" | "fountain"; x: number; z: number; w: number; d: number };
 
 /** Half the deck length of each bridge model, in scene units */
 export const BRIDGE_HALF = { "bay-bridge": 11, "golden-gate": 8 } as const;
@@ -151,11 +156,12 @@ const rng = (seed: number) => {
   return () => (s = (s * 16807) % 2147483647) / 2147483647;
 };
 
-/** Trees scattered inside the park rectangle */
+/** Trees from the park's plan when it has one; otherwise scattered inside the park rectangle */
 export function treesFor(p: TowerProfile): [number, number, number][] {
   if (!p.park) return [];
   const { x, z, w, d, trees, outline } = p.park;
   const rnd = rng(p.seed + 11);
+  if (p.park.plan) return p.park.plan.trees.map(([tx, tz]) => [tx, tz, 1.1 + rnd() * 0.55]);
   const out: [number, number, number][] = [];
   // With a real outline, keep a canopy's width from every edge so no tree leans into the buildings around it
   const fits = (tx: number, tz: number) => {

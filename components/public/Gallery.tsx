@@ -54,7 +54,7 @@ export function Gallery({ images, start, onClose, title }: { images: Img[]; star
                 className={cn("relative overflow-hidden rounded-2xl bg-night-3", i % 3 === 0 ? "col-span-2 aspect-[16/9]" : "aspect-[4/5]")}
               >
                 <Image src={img.src} alt={img.alt} fill sizes="(min-width:1024px) 1200px, 100vw" className="object-cover" style={{ objectPosition: img.pos }} />
-                <PhotoTags img={img} frame={i % 3 === 0 ? 16 / 9 : 4 / 5} />
+                <PhotoTags img={img} frame={i % 3 === 0 ? 16 / 9 : 4 / 5} landmarksOnly />
                 {img.caption && (
                   <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-10 text-[0.875rem] text-white/90">
                     {img.caption}

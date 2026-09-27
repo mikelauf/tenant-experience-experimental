@@ -120,6 +120,10 @@ const sandbox: VenueLayout = {
 const rp = tracer(0.075, 1100, 520);
 const stage = { ...rp.r(975, 515, 1075, 590, "Stage"), always: true };
 const kiosk = { ...rp.r(1035, 170, 1110, 212, "Kiosk bar"), always: true };
+/** The plan doesn't draw the fountain. Placed from the photos: east of the stage, with the Pyramid's base across the grove behind it. */
+const fountain = { ...rp.r(1095, 505, 1145, 550, "Fountain"), note: "The fountain and its bronze animals, under the redwoods." };
+/** The Pyramid's east annex, which the grove wraps around */
+const annex = rp.r(700, 375, 845, 655);
 
 /** About fifty redwoods: scattered through the grove as the plan draws them, and a row along Mark Twain Alley. */
 const redwoods = (() => {
@@ -132,7 +136,7 @@ const redwoods = (() => {
     const [x, z] = rp.p(770 + r() * 370, 120 + r() * 800);
     // The lawn in front of the stage stays open
     const lawn = z > stage.z + 3 && z < stage.z + 16 && Math.abs(x - stage.x) < 9;
-    if (lawn || !clearOf(x, z, stage, 3) || !clearOf(x, z, kiosk, 3)) continue;
+    if (lawn || !clearOf(x, z, stage, 3) || !clearOf(x, z, kiosk, 3) || !clearOf(x, z, fountain, 2) || !clearOf(x, z, annex, 1.5)) continue;
     if (out.every(([ox, oz]) => (ox - x) ** 2 + (oz - z) ** 2 > 4.2 ** 2)) out.push([Math.round(x * 100) / 100, Math.round(z * 100) / 100]);
   }
   for (let x = 1185; x <= 1420; x += 58) out.push(rp.p(x, 478), rp.p(x + 29, 552));
@@ -156,7 +160,7 @@ const redwoodPark: VenueLayout = {
     fixed: {
       stage,
       bars: [kiosk],
-      marks: [{ ...rp.r(1392, 500, 1412, 540, "Check-in"), note: "Guest check-in for park events, off Mark Twain Alley by Sansome Street." }, { ...rp.r(1285, 64, 1410, 92, "Food trucks"), note: "Food trucks park along Washington Street." }, { ...rp.r(980, 64, 1190, 92, "Restrooms"), note: "Portable restrooms along Washington Street." }],
+      marks: [fountain, { ...rp.r(1392, 500, 1412, 540, "Check-in"), note: "Guest check-in for park events, off Mark Twain Alley by Sansome Street." }, { ...rp.r(1285, 64, 1410, 92, "Food trucks"), note: "Food trucks park along Washington Street." }, { ...rp.r(980, 64, 1190, 92, "Restrooms"), note: "Portable restrooms along Washington Street." }],
       trees: redwoods,
     },
     streets: { n: "Washington St", s: "Clay St", w: "Transamerica Pyramid", e: "Sansome St" },
@@ -169,6 +173,16 @@ const redwoodPark: VenueLayout = {
     banquet: { max: 400, min: 16, zone: "grove" },
   },
   illustrative: true,
+};
+
+/** The park as the 3D explorer plants it: the redwoods and the places worth pointing at, in plan meters. */
+export const redwoodParkPlan = {
+  trees: redwoods,
+  spots: [
+    { id: "stage", label: "Redwood stage", kind: "stage" as const, x: stage.x, z: stage.z, w: stage.w, d: stage.d },
+    { id: "bar", label: "Kiosk bar", kind: "bar" as const, x: kiosk.x, z: kiosk.z, w: kiosk.w, d: kiosk.d },
+    { id: "fountain", label: "Fountain", kind: "fountain" as const, x: fountain.x, z: fountain.z, w: fountain.w, d: fountain.d },
+  ],
 };
 
 /* ---------- Legacy Gallery, L36 (legacy-gallery.webp, 1468 × 1280). Gallery halls either side of the core. ~5,800 sq ft ---------- */

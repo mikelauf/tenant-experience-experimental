@@ -17,8 +17,8 @@ export type Layout = {
   per: number;
 };
 
-/** Most standing figures drawn; above this each one stands for several guests. */
-export const MAX_FIGURES = 240;
+/** Most standing figures drawn, so the biggest crowd we sell reads one guest per figure; above this each stands for several. */
+export const MAX_FIGURES = 1500;
 
 type Box = { x0: number; x1: number; z0: number; z1: number };
 type XZ = [number, number];

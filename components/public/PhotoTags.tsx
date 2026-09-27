@@ -27,9 +27,25 @@ export function coverPoint(x: number, y: number, ratio: number, frame: number, p
  * Points out what's in a photo (a landmark through the window, the bar, the stage) with a label, a stem
  * and a dot, as in the view photos. Placed for the frame's crop; near the top edge the label hangs below.
  */
-export function PhotoTags({ img, frame, max = 3, small, delay = 0 }: { img: Img; frame: number; max?: number; small?: boolean; delay?: number }) {
+export function PhotoTags({
+  img,
+  frame,
+  max = 3,
+  small,
+  delay = 0,
+  landmarksOnly,
+}: {
+  img: Img;
+  frame: number;
+  max?: number;
+  small?: boolean;
+  delay?: number;
+  /** Name only the landmarks, not every bench and bar */
+  landmarksOnly?: boolean;
+}) {
   if (!img.tags?.length || !img.ratio) return null;
   const shown = img.tags
+    .filter((t) => !landmarksOnly || t.landmark)
     .map((t) => ({ t, at: coverPoint(t.x, t.y, img.ratio!, frame, img.pos) }))
     .filter((p): p is { t: (typeof img.tags)[number]; at: { x: number; y: number } } => !!p.at)
     .slice(0, max);
@@ -61,7 +77,11 @@ export function PhotoTags({ img, frame, max = 3, small, delay = 0 }: { img: Img;
             transition={{ delay: delay + 0.2 + k * 0.08, duration: 0.4 }}
             className={cn(
               "pointer-events-none absolute flex flex-col",
-              edge === "start" ? "-translate-x-[4px] items-start" : edge === "end" ? "translate-x-[calc(-100%+4px)] items-end" : "-translate-x-1/2 items-center",
+              edge === "start"
+                ? "-translate-x-[4px] items-start"
+                : edge === "end"
+                  ? "translate-x-[calc(-100%+4px)] items-end"
+                  : "-translate-x-1/2 items-center",
             )}
             style={below ? { left: `${at.x}%`, top: `${at.y}%` } : { left: `${at.x}%`, bottom: `${100 - at.y}%` }}
           >

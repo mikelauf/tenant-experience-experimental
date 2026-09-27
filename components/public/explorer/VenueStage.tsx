@@ -114,6 +114,8 @@ export function VenueStage({
   onTab,
   viewIndex,
   onViewIndex,
+  photoIndex,
+  onPhotoIndex,
 }: {
   v: Venue;
   ride: Ride;
@@ -123,6 +125,9 @@ export function VenueStage({
   onTab: (t: Tab) => void;
   viewIndex: number;
   onViewIndex: (i: number) => void;
+  /** The photo on show, when the explorer wants to follow it (the park's places answer to it) */
+  photoIndex?: number;
+  onPhotoIndex?: (i: number) => void;
 }) {
   const tabs = (["photos", "plan", "view"] as const).filter((t) => (t === "photos" ? v.gallery.length : t === "plan" ? v.floorPlans?.length : v.views?.length));
   const setTab = onTab;
@@ -154,7 +159,7 @@ export function VenueStage({
       )}
 
       <div className="mx-5 mt-3 flex min-h-0 flex-1 flex-col">
-        {tab === "photos" && <Photos gallery={v.gallery} />}
+        {tab === "photos" && <Photos gallery={v.gallery} i={photoIndex} onI={onPhotoIndex} />}
         {tab === "plan" && v.floorPlans?.[0] && <Plan plan={v.floorPlans[0]} title={v.name} />}
         {tab === "view" && v.views && <Views views={v.views} i={Math.min(viewIndex, v.views.length - 1)} onI={onViewIndex} />}
       </div>
@@ -186,16 +191,26 @@ export function VenueStage({
 }
 
 /** One big photo that crossfades, with every photo as a thumbnail underneath. Advances on its own until you touch it. */
-function Photos({ gallery }: { gallery: Img[] }) {
-  const [i, setI] = useState(0);
+function Photos({ gallery, i: shown, onI }: { gallery: Img[]; i?: number; onI?: (i: number) => void }) {
+  const [own, setOwn] = useState(0);
+  const i = Math.min(shown ?? own, gallery.length - 1);
+  const tell = useRef(onI);
+  useEffect(() => {
+    tell.current = onI;
+  }, [onI]);
+  const setI = useCallback((k: number) => {
+    setOwn(k);
+    tell.current?.(k);
+  }, []);
   const [held, setHeld] = useState(false);
   const reduce = useReducedMotion();
   const n = gallery.length;
+  // Each photo gets its full turn, however it came up (a thumbnail, the auto-advance, a place picked in the 3D)
   useEffect(() => {
     if (held || reduce || n < 2) return;
-    const t = setInterval(() => setI((k) => (k + 1) % n), 5200);
-    return () => clearInterval(t);
-  }, [held, reduce, n]);
+    const t = setTimeout(() => setI((i + 1) % n), 5200);
+    return () => clearTimeout(t);
+  }, [held, reduce, n, i, setI]);
   const img = gallery[i];
 
   return (

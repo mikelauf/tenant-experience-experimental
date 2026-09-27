@@ -10,7 +10,7 @@ import type { Rect, Seg, Setup, SetupSpec, Shell } from "@/lib/data/types";
 import { shellBounds } from "@/lib/setup/shell";
 import { useOrbit } from "../useOrbit";
 import { fitRadius, focusFrame, frameFor, outward, type Box, type Lookout, type Preset } from "./camera";
-import { makeLayout, type P } from "./layouts";
+import { MAX_FIGURES, makeLayout, type P } from "./layouts";
 
 const col = {
   wall: "#faf9f6",
@@ -134,7 +134,7 @@ function Pool({
     const c = cur.current;
     for (let i = 0; i < max; i++) {
       const it = items[i];
-      const started = clock.current - t0.current > i * 0.006;
+      const started = clock.current - t0.current > i * Math.min(0.006, 1.5 / max); // a big crowd still arrives in ~1.5s
       const k = started ? 1 - Math.exp(-dt * rate) : 0;
       const o = i * 4;
       if (it) {
@@ -788,7 +788,7 @@ export default function SetupCanvas({
         <Pool items={coffee} max={40} geometry={geo.coffee} color={col.wood} scaleFromRot="size" />
         <Pool items={layout.longs} max={60} geometry={geo.long} color={col.wood} scaleFromRot="length" />
         <Pool items={layout.highs} max={40} geometry={geo.high} color={col.cloth} />
-        <Pool items={layout.people} max={240} geometry={geo.person} color="#fff" palette={guestColors} from={entry} rate={2.6} sway vary={figure} />
+        <Pool items={layout.people} max={MAX_FIGURES} geometry={geo.person} color="#fff" palette={guestColors} from={entry} rate={2.6} sway vary={figure} />
         <Pool items={layout.sofas} max={40} geometry={geo.sofa} color={col.sofa} />
         {f.stage && <Toggle r={f.stage} h={f.stage.always ? 0.6 : 0.24} on={layout.stage} color={col.stage} />}
         {(f.bars ?? []).map((r, i) => (

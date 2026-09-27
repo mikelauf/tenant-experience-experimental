@@ -4,6 +4,7 @@ import { events } from "./events";
 import { fitness } from "./fitness";
 import { images } from "./images";
 import { rooms } from "./rooms";
+import { parkPlan } from "./park";
 import { tap } from "./tap";
 import { venues } from "./venues";
 
@@ -54,6 +55,7 @@ const data: TenantData = {
       trees: 26,
       shape: "cone",
       yaw: [0.15, 0.85],
+      plan: parkPlan,
       // OpenStreetMap's outline: the park wraps a notch beside the Pyramid's east face
       outline: [
         [3.9, -1.98],
@@ -376,8 +378,8 @@ const data: TenantData = {
       towerPoster: images.pyramidDusk,
       privacyUrl: "https://www.playbookexp.com/privacy.html",
       floorIntro: {
-        title: "853 feet. 48 floors. Five places to gather.",
-        body: "Click a floor, or jump straight to a venue, from the redwoods at street level to Sky Bar on the 48th floor.",
+        title: "Find your floor.",
+        body: "The whole tower in 3D, from the redwoods at its foot to Sky Bar at the top. Step onto any floor to see the venue, its plan and its view.",
       },
     },
   },

@@ -122,6 +122,15 @@ export function BuildingExplorer() {
   const pointedHere = pointed && v && pointed.slug === v.slug && tab !== "view" ? tower.landmarks?.find((l) => l.name === pointed.name) : undefined;
   const lookBearing = shownView ? (shownView.bearing ?? v?.viewBearing ?? null) : (pointedHere?.bearing ?? null);
   const activeLandmarks = shownView ? (shownView.tags ?? []).map((x) => x.label) : pointedHere ? [pointedHere.name] : [];
+  // At street level the park's places answer to the photos: the one in the photo on show lights, and picking one finds its photo
+  const parkSpots = v?.level === 0 ? (tower.park?.plan?.spots ?? []) : [];
+  const shownPhoto = v && tab === "photos" && parkSpots.length ? v.gallery[Math.min(viewIndex, v.gallery.length - 1)] : undefined;
+  const parkSpot = shownPhoto ? (parkSpots.find((s) => shownPhoto.tags?.some((t) => t.label === s.label))?.id ?? null) : null;
+  const findParkSpot = (spotId: string) => {
+    const label = parkSpots.find((s) => s.id === spotId)?.label;
+    const i = v ? v.gallery.findIndex((g) => g.tags?.some((t) => t.label === label)) : -1;
+    if (v && i >= 0) setMedia({ slug: v.slug, tab: "photos", i });
+  };
 
   // Does the sun set inside the open venue's view that day? Worth saying when it does.
   const viewBearing = v?.viewBearing;
@@ -303,6 +312,8 @@ export function BuildingExplorer() {
               }}
               viewIndex={viewIndex}
               onViewIndex={(i) => setMedia({ slug: v.slug, tab: "view", i })}
+              photoIndex={parkSpots.length ? viewIndex : undefined}
+              onPhotoIndex={parkSpots.length ? (i) => setMedia({ slug: v.slug, tab: "photos", i }) : undefined}
             />
           )}
           {stop.arrive && <ArrivalStage pois={pois} active={poi ?? spot} onActive={setPoi} onFocus={setSpot} ride={ride} onClose={() => go("overview")} />}
@@ -314,16 +325,20 @@ export function BuildingExplorer() {
   return (
     <div>
       {/* Phones: floor chips above the stage */}
-      <FloorChips stops={stops} current={stop.id} onPick={toggle} />
+      <div className="frame">
+        <FloorChips stops={stops} current={stop.id} onPick={toggle} />
+      </div>
 
       {/* The tour's runway: extra scroll room the stage stays pinned through */}
       <div ref={runwayRef} style={touring ? { height: stage.h + extra } : undefined}>
-        {/* The stage: the tower, its rail and markers, and the panel all live in one frame that never resizes */}
+        {/* The stage: the tower, its rail and markers, and the panel all live in one frame that never resizes.
+            It runs edge to edge, and each control on it sits as far from the side as from the top or bottom. */}
         <div
           ref={stageRef}
           onKeyDown={onKey}
-          style={{ "--panel": `${stage.panel}px`, ...(touring && { position: "sticky", top: "calc(var(--nav-h) + 16px)" }) } as React.CSSProperties}
-          className="relative h-[64svh] min-h-[440px] overflow-hidden rounded-[26px] lg:h-[min(calc(100svh-var(--nav-h)-32px),880px)] lg:min-h-[560px]"
+          data-nav-pin={touring || undefined}
+          style={{ "--panel": `${stage.panel}px`, ...(touring && { position: "sticky", top: "var(--nav-h)" }) } as React.CSSProperties}
+          className="relative h-[68svh] min-h-[460px] overflow-hidden lg:h-[min(calc(100svh-var(--nav-h)),960px)] lg:min-h-[600px]"
         >
           {/* The sky behind the model, matched to the light on it; the default is the original dusk */}
           <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#33475a_0%,#151b21_62%)]" />
@@ -336,6 +351,8 @@ export function BuildingExplorer() {
             lookBearing={open && !stop.arrive ? lookBearing : null}
             activeLandmarks={open && !stop.arrive ? activeLandmarks : []}
             onLandmark={findLandmark}
+            parkSpot={open ? parkSpot : null}
+            onParkSpot={findParkSpot}
             pois={!!stop.arrive}
             activePoi={poi ?? spot}
             focusPoi={spot}
@@ -348,7 +365,8 @@ export function BuildingExplorer() {
             hoverLevel={hotLevel}
             shift={shift}
             zoom={v ? 0.82 : 1}
-            hotspots={stop.arrive ? undefined : byLevel.map((x) => ({ id: x.slug, level: x.level }))}
+            // In the park, its own places take over from its floor marker
+            hotspots={stop.arrive ? undefined : byLevel.filter((x) => !(parkSpots.length && x.slug === v?.slug)).map((x) => ({ id: x.slug, level: x.level }))}
             renderHotspot={(slug) => {
               const x = byLevel.find((b) => b.slug === slug)!;
               return (
@@ -583,27 +601,16 @@ export function BuildingExplorer() {
       </div>
 
       {/* Phones: the details follow the stage instead of covering it */}
-      <AnimatePresence>{open && !stage.wide && panel}</AnimatePresence>
-
-      {/* Under the stage: what you're looking at */}
-      <div className="mt-6 grid gap-x-10 gap-y-3 lg:mt-8 lg:grid-cols-2">
-        <p className="t-lead text-moon-2">{pub.floorIntro.body}</p>
-        {!!tower.landmarks?.length && (
-          <p className="t-small text-moon-2 lg:pt-1.5">
-            Around it: {tower.landmarks.map((l) => l.name).join(", ")}. True to direction; distances are compressed.
-            {tower.realCity && (
-              <>
-                {" "}
-                The surrounding blocks are the real ones, from{" "}
-                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-moon">
-                  © OpenStreetMap contributors
-                </a>
-                .
-              </>
-            )}
-          </p>
-        )}
+      <div className="frame">
+        <AnimatePresence>{open && !stage.wide && panel}</AnimatePresence>
       </div>
+
+      {/* Under the stage: what's around it */}
+      {!!tower.landmarks?.length && (
+        <div className="frame mt-4 lg:mt-7">
+          <p className="t-small max-w-[80ch] text-moon-2">Around it: {tower.landmarks.map((l) => l.name).join(", ")}.</p>
+        </div>
+      )}
     </div>
   );
 }

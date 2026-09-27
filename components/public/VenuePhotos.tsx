@@ -102,7 +102,7 @@ export function PhotoRow({ v }: { v: Venue }) {
               className="object-cover transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-[1.03]"
               style={{ objectPosition: img.pos }}
             />
-            <PhotoTags img={img} frame={4 / 5} max={2} small delay={k * 0.1} />
+            <PhotoTags img={img} frame={4 / 5} max={2} small delay={k * 0.1} landmarksOnly />
             {img.caption && (
               <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-4 pt-12 text-[0.875rem] font-medium text-white">
                 {img.caption}

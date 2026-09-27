@@ -1,5 +1,6 @@
 /** A labeled point in a photo, in percent of the full frame. */
-export type PhotoTag = { label: string; x: number; y: number };
+/** `landmark`: a building or sight worth naming wherever the photo appears; the rest (the bar, the benches) only feed the explorer */
+export type PhotoTag = { label: string; x: number; y: number; landmark?: boolean };
 
 export type Img = {
   src: string;

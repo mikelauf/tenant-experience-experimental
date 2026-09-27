@@ -28,7 +28,7 @@ const KEYS: Record<"night" | "dusk" | "day", Key> = {
   night: {
     slab: "#c3c6ca",
     wing: "#8d9296",
-    tree: "#121a15",
+    tree: "#1b2a21",
     ground: "#0e1317",
     neighbor: "#1b222a",
     water: "#0b151d",

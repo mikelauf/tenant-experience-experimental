@@ -4,6 +4,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { LANDMARK_REACH, bearingDir, levelY, neighborsFor, sceneLandmarks, topOf, treesFor, trueNorth, yawForBearing, type SceneLandmark, type TowerProfile } from "@/lib/tower";
 
 import { makeEnv, mixEnv, type Env } from "./env";
@@ -324,47 +325,209 @@ function Tower({
   );
 }
 
-function Park({ p, env, glow, color, onPick }: { p: TowerProfile; env: Env; glow: number; color: string; onPick?: () => void }) {
+/** A redwood's crown, one unit tall on a unit-wide base: two stacked tiers, narrowing to a point, over a bare trunk */
+function redwoodCrown() {
+  const low = new THREE.ConeGeometry(0.5, 0.52, 7).translate(0, 0.46, 0);
+  const high = new THREE.ConeGeometry(0.34, 0.46, 7).translate(0, 0.77, 0);
+  return mergeGeometries([low, high])!;
+}
+const TRUNK = new THREE.Color("#4a2f22");
+const GROVE_GLOW = new THREE.Color("#3f5647");
+
+/** `flat`: arriving, the grove settles to its footprint like the blocks around it, so the entrances and paths read */
+function Park({ p, env, flat, onPick }: { p: TowerProfile; env: Env; flat?: boolean; onPick?: () => void }) {
+  const grove = useRef<THREE.Group>(null);
   const ref = useRef<THREE.InstancedMesh>(null);
+  const trunks = useRef<THREE.InstancedMesh>(null);
   const mat = useRef<THREE.MeshStandardMaterial>(null);
   const trees = useMemo(() => treesFor(p), [p]);
   const round = p.park?.shape === "round";
+  // Planted from a plan, the trees are redwoods: tall, slender, on bare trunks
+  const redwoods = !!p.park?.plan;
+  const crown = useMemo(() => (redwoods ? redwoodCrown() : null), [redwoods]);
   useLayoutEffect(() => {
     if (!ref.current) return;
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
     trees.forEach(([x, z, h], i) => {
-      if (round) m.compose(new THREE.Vector3(x, h * 0.42 + 0.1, z), q, new THREE.Vector3(0.5 + h * 0.2, h * 0.62, 0.5 + h * 0.2));
+      if (redwoods) {
+        const w = 0.26 + (h - 1.1) * 0.12;
+        m.compose(new THREE.Vector3(x, 0.02, z), q, new THREE.Vector3(w, h, w));
+        ref.current!.setMatrixAt(i, m);
+        m.compose(new THREE.Vector3(x, h * 0.13, z), q, new THREE.Vector3(1, h * 0.26, 1));
+        trunks.current?.setMatrixAt(i, m);
+      } else if (round) m.compose(new THREE.Vector3(x, h * 0.42 + 0.1, z), q, new THREE.Vector3(0.5 + h * 0.2, h * 0.62, 0.5 + h * 0.2));
       else m.compose(new THREE.Vector3(x, h / 2 + 0.1, z), q, new THREE.Vector3(0.42 + h * 0.08, h, 0.42 + h * 0.08));
-      ref.current!.setMatrixAt(i, m);
+      if (!redwoods) ref.current!.setMatrixAt(i, m);
     });
     ref.current.instanceMatrix.needsUpdate = true;
     ref.current.computeBoundingSphere();
-  }, [trees, round]);
+    if (trunks.current) {
+      trunks.current.instanceMatrix.needsUpdate = true;
+      trunks.current.computeBoundingSphere();
+    }
+  }, [trees, round, redwoods]);
   useFrame((_, dt) => {
+    if (grove.current) grove.current.scale.y = THREE.MathUtils.damp(grove.current.scale.y, flat ? 0.05 : 1, 3, dt);
     if (!mat.current) return;
     mat.current.color.copy(env.tree);
-    mat.current.emissiveIntensity = THREE.MathUtils.damp(mat.current.emissiveIntensity, glow, 4, dt);
+    // After dark the grove catches the string lights and the street, so it still stands out from the ground
+    if (redwoods) mat.current.emissiveIntensity = (env.lit / 1.8) * 0.55;
   });
   if (!trees.length) return null;
-  return (
-    <instancedMesh
-      ref={ref}
-      args={[undefined, undefined, trees.length]}
-      castShadow
-      onClick={
-        onPick
-          ? (e) => {
-              if (e.delta > 8) return;
-              e.stopPropagation();
-              onPick();
-            }
-          : undefined
+  const pick = onPick
+    ? (e: ThreeEvent<MouseEvent>) => {
+        if (e.delta > 8) return;
+        e.stopPropagation();
+        onPick();
       }
-    >
-      {round ? <icosahedronGeometry args={[0.5, 1]} /> : <coneGeometry args={[0.5, 1, 7]} />}
-      <meshStandardMaterial ref={mat} color={env.tree} roughness={0.95} emissive={color} emissiveIntensity={0} flatShading={round} />
-    </instancedMesh>
+    : undefined;
+  return (
+    <group ref={grove}>
+      <instancedMesh ref={ref} args={[crown ?? undefined, undefined, trees.length]} castShadow onClick={pick}>
+        {!crown && (round ? <icosahedronGeometry args={[0.5, 1]} /> : <coneGeometry args={[0.5, 1, 7]} />)}
+        <meshStandardMaterial ref={mat} color={env.tree} roughness={0.95} flatShading={round || redwoods} emissive={GROVE_GLOW} emissiveIntensity={0} />
+      </instancedMesh>
+      {redwoods && (
+        <instancedMesh ref={trunks} args={[undefined, undefined, trees.length]} castShadow onClick={pick}>
+          <cylinderGeometry args={[0.022, 0.034, 1, 6]} />
+          <meshStandardMaterial color={TRUNK} roughness={1} />
+        </instancedMesh>
+      )}
+    </group>
+  );
+}
+
+/** The park's own places, drawn low: the redwood stage, the kiosk bar and the fountain's pool */
+function ParkPlaces({ p, env, active, color }: { p: TowerProfile; env: Env; active: string | null; color: string }) {
+  const spots = p.park?.plan?.spots ?? [];
+  const water = useRef<THREE.MeshStandardMaterial>(null);
+  useFrame(() => water.current?.color.copy(env.water).lerp(env.sky, 0.25));
+  return (
+    <>
+      {spots.map((s) => {
+        const on = s.id === active;
+        if (s.kind === "fountain")
+          return (
+            <group key={s.id} position={[s.x, 0, s.z]}>
+              <mesh position={[0, 0.025, 0]} receiveShadow>
+                <boxGeometry args={[s.w + 0.04, 0.05, s.d + 0.04]} />
+                <meshStandardMaterial color="#b9b4aa" roughness={0.9} />
+              </mesh>
+              <mesh position={[0, 0.052, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[s.w - 0.02, s.d - 0.02]} />
+                <meshStandardMaterial ref={water} color={env.water} roughness={0.15} metalness={0.3} emissive={color} emissiveIntensity={on ? 0.5 : 0} />
+              </mesh>
+            </group>
+          );
+        // The stage is a round redwood deck; the bar a timber kiosk under its roof
+        return s.kind === "stage" ? (
+          <mesh key={s.id} position={[s.x, 0.035, s.z]} castShadow receiveShadow>
+            <cylinderGeometry args={[Math.max(s.w, s.d) / 2, Math.max(s.w, s.d) / 2, 0.07, 24]} />
+            <meshStandardMaterial color="#8a4a2c" roughness={0.7} emissive={color} emissiveIntensity={on ? 0.45 : 0} />
+          </mesh>
+        ) : (
+          <group key={s.id} position={[s.x, 0, s.z]}>
+            <mesh position={[0, 0.05, 0]} castShadow>
+              <boxGeometry args={[s.w, 0.1, s.d]} />
+              <meshStandardMaterial color="#a0623c" roughness={0.7} emissive={color} emissiveIntensity={on ? 0.45 : 0} />
+            </mesh>
+            <mesh position={[0, 0.16, 0]} castShadow>
+              <boxGeometry args={[s.w * 1.5, 0.02, s.d * 1.9]} />
+              <meshStandardMaterial color="#3a332e" roughness={0.8} />
+            </mesh>
+          </group>
+        );
+      })}
+    </>
+  );
+}
+
+/** Evening string lights strung between the redwoods: warm points under the canopy that come up as the sky darkens */
+function StringLights({ p, env, off }: { p: TowerProfile; env: Env; off?: boolean }) {
+  const mat = useRef<THREE.PointsMaterial>(null);
+  const geo = useMemo(() => {
+    const trees = p.park?.plan?.trees ?? [];
+    const pts: number[] = [];
+    // Sag a strand from each tree to its two nearest neighbours
+    trees.forEach(([x, z], i) => {
+      const near = trees
+        .map(([ox, oz], j) => [j, (ox - x) ** 2 + (oz - z) ** 2] as const)
+        .filter(([j, d]) => j > i && d < 0.55 ** 2)
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, 2);
+      for (const [j] of near) {
+        const [bx, bz] = trees[j];
+        for (let k = 1; k < 8; k++) {
+          const t = k / 8;
+          pts.push(x + (bx - x) * t, 0.34 - Math.sin(t * Math.PI) * 0.07, z + (bz - z) * t);
+        }
+      }
+    });
+    return new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+  }, [p]);
+  useFrame((_, dt) => {
+    if (mat.current) mat.current.opacity = THREE.MathUtils.damp(mat.current.opacity, off ? 0 : Math.min(1, env.lit / 1.5), 4, dt);
+  });
+  return (
+    <points geometry={geo}>
+      <pointsMaterial ref={mat} color="#ffc98a" size={3.5} sizeAttenuation={false} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} toneMapped={false} />
+    </points>
+  );
+}
+
+/** Selected at street level: the park's real edge, traced in the accent colour, with a faint wash inside */
+function ParkOutline({ p, on, color }: { p: TowerProfile; on: boolean; color: string }) {
+  const edge = useRef<THREE.MeshBasicMaterial>(null);
+  const wash = useRef<THREE.MeshBasicMaterial>(null);
+  const outline = p.park?.outline;
+  const { strip, fill } = useMemo(() => {
+    if (!outline) return { strip: null, fill: null };
+    // A flat ribbon along each edge; shape space is (x, −z) so it lies flat once turned onto the ground
+    const pieces = outline.map(([ax, az], i) => {
+      const [bx, bz] = outline[(i + 1) % outline.length];
+      const len = Math.hypot(bx - ax, bz - az);
+      return new THREE.PlaneGeometry(len + 0.05, 0.05)
+        .rotateZ(Math.atan2(-(bz - az), bx - ax))
+        .translate((ax + bx) / 2, -(az + bz) / 2, 0);
+    });
+    const shape = new THREE.Shape(outline.map(([x, z]) => new THREE.Vector2(x, -z)));
+    return { strip: mergeGeometries(pieces), fill: new THREE.ShapeGeometry(shape) };
+  }, [outline]);
+  useFrame((_, dt) => {
+    if (edge.current) edge.current.opacity = THREE.MathUtils.damp(edge.current.opacity, on ? 0.95 : 0, 4, dt);
+    if (wash.current) wash.current.opacity = THREE.MathUtils.damp(wash.current.opacity, on ? 0.06 : 0, 4, dt);
+  });
+  if (!strip || !fill) return null;
+  return (
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]}>
+      <mesh geometry={fill}>
+        <meshBasicMaterial ref={wash} color={color} transparent opacity={0} depthWrite={false} toneMapped={false} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh geometry={strip} position={[0, 0, 0.004]}>
+        <meshBasicMaterial ref={edge} color={color} transparent opacity={0} depthWrite={false} toneMapped={false} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Pins for the park's places while it's open: a dot and a short stem, like the arrival places */
+function ParkPins({ p, color, active }: { p: TowerProfile; color: string; active: string | null }) {
+  return (
+    <>
+      {p.park?.plan?.spots.map((s) => (
+        <group key={s.id} position={[s.x, 0, s.z]}>
+          <mesh position={[0, 0.25, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 0.5, 6]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 0.52, 0]}>
+            <sphereGeometry args={[s.id === active ? 0.06 : 0.04, 12, 8]} />
+            <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.2} toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
+    </>
   );
 }
 
@@ -791,8 +954,9 @@ function Marker({ p, level, color }: { p: TowerProfile; level: number | null; co
     m.scale.x = THREE.MathUtils.damp(m.scale.x, size[0], 5, dt);
     m.scale.y = THREE.MathUtils.damp(m.scale.y, size[1], 5, dt);
     m.scale.z = THREE.MathUtils.damp(m.scale.z, size[2], 5, dt);
-    // Over the park it's a wash of colour, so the trees and paths still read through it
-    mat.current!.opacity = THREE.MathUtils.damp(mat.current!.opacity, level == null ? 0 : level === 0 && p.park ? 0.38 : 0.92, 4, dt);
+    // Over the park it's a wash of colour, so the trees and paths still read through it; a park with a real outline traces that instead
+    const park = level === 0 && p.park ? (p.park.outline ? 0 : 0.38) : 0.92;
+    mat.current!.opacity = THREE.MathUtils.damp(mat.current!.opacity, level == null ? 0 : park, 4, dt);
   });
   return (
     <mesh ref={ref} position={[0, levelY(p, p.restLevel), 0]}>
@@ -914,12 +1078,15 @@ function CompassTracker({ focus, el, north }: { focus: RefObject<THREE.Vector3>;
 /** Where the camera frames each stop. `yaw` limits keep the subject on the open side. */
 type View = { target: THREE.Vector3; radius: number; lift: number; yaw?: [center: number, range: number] };
 
-function viewFor(p: TowerProfile, level: number | null, narrow: boolean, zoom = 1): View {
+function viewFor(p: TowerProfile, level: number | null, narrow: boolean, zoom = 1, parkSpot?: [number, number] | null): View {
   const r = (narrow ? 1.3 : 1) * (level == null ? 1 : zoom);
   const top = topOf(p);
   if (level == null) return { target: new THREE.Vector3(0, top * 0.62 + 0.6, 0), radius: 30 * r, lift: 7 };
-  // The park faces the camera, with the tower rising behind it.
-  if (level === 0 && p.park) return { target: new THREE.Vector3(p.park.x * 0.944, 0.4, p.park.z * 0.944), radius: 11 * r, lift: 6.5, yaw: p.park.yaw };
+  // The park faces the camera, with the tower rising behind it; a place in it (the one in the photo on show) draws the camera in
+  if (level === 0 && p.park) {
+    if (parkSpot) return { target: new THREE.Vector3(parkSpot[0] * 0.8, 0.9, parkSpot[1] * 0.8), radius: 9.5 * r, lift: 4.4, yaw: p.park.yaw };
+    return { target: new THREE.Vector3(p.park.x * 0.944, 0.6, p.park.z * 0.944), radius: 11 * r, lift: 5.6, yaw: p.park.yaw };
+  }
   // Low floors look down over the rooftops; higher ones sit level with the band.
   const lift = level < 15 ? 4.2 : 2.4;
   return { target: new THREE.Vector3(0, levelY(p, level) + 0.3, 0), radius: 17 * r, lift };
@@ -959,6 +1126,7 @@ function Rig({
   zoom,
   street,
   spot,
+  parkSpot,
   look,
 }: {
   p: TowerProfile;
@@ -970,6 +1138,8 @@ function Rig({
   zoom?: number;
   street?: boolean;
   spot?: [number, number] | null;
+  /** At street level: the park place to draw in on */
+  parkSpot?: [number, number] | null;
   /** Look out along this true bearing: the camera swings round behind the floor, facing that way */
   look?: number | null;
 }) {
@@ -1057,7 +1227,7 @@ function Rig({
   }, [look, p]);
 
   useFrame((_, dt) => {
-    const v = street ? streetView(p, spot ?? null, narrow) : viewFor(p, level, narrow, zoom);
+    const v = street ? streetView(p, spot ?? null, narrow) : viewFor(p, level, narrow, zoom, parkSpot);
     const dragging = !!drag.current;
 
     // Fling, then the slow drift picks back up once the user has been idle.
@@ -1193,6 +1363,10 @@ export type TowerCanvasProps = {
   onLandmark?: (name: string) => void;
   /** The real sun, for an event's date and time: the key light comes from it and it glows on the horizon when low */
   sunSky?: SunSky | null;
+  /** At street level, the park place in the photo on show (a `ParkSpot` id): it lights and the camera draws in */
+  parkSpot?: string | null;
+  /** Park place pins become buttons */
+  onParkSpot?: (id: string) => void;
 };
 
 /** Ready means the first frame has actually been drawn, not just that the context exists. */
@@ -1236,6 +1410,8 @@ export default function TowerCanvas({
   activeLandmarks,
   onLandmark,
   sunSky,
+  parkSpot,
+  onParkSpot,
 }: TowerCanvasProps) {
   // One mutable light state per canvas; useFrame blends it every frame
   const [env] = useState(() => makeEnv(sun));
@@ -1267,6 +1443,13 @@ export default function TowerCanvas({
   const spot = useMemo<[number, number] | null>(() => (spotPoi ? [spotPoi.x, spotPoi.z] : null), [spotPoi]);
   const hotspotEls = useRef<(HTMLElement | null)[]>([]);
   const hotspotLevels = useMemo(() => (hotspots ?? []).map((h) => h.level), [hotspots]);
+  // The park's places, pinned while the park is the stop
+  const inPark = level === 0 && !pois;
+  const parkSpots = useMemo(() => (inPark ? (p.park?.plan?.spots ?? []) : []), [inPark, p]);
+  const parkEls = useRef<(HTMLElement | null)[]>([]);
+  const parkAnchors = useMemo(() => parkSpots.map((s) => new THREE.Vector3(s.x, 0.6, s.z)), [parkSpots]);
+  const shownSpot = parkSpots.find((s) => s.id === parkSpot);
+  const parkFocus = useMemo<[number, number] | null>(() => (shownSpot ? [shownSpot.x, shownSpot.z] : null), [shownSpot]);
 
   return (
     <div className="relative h-full w-full">
@@ -1285,9 +1468,14 @@ export default function TowerCanvas({
         <FirstFrame onReady={onReady} />
         <Sky sun={sun} env={env} sky={sunSky} north={p.north} />
         {sunSky && <SunDisc sky={sunSky} north={p.north} />}
-        <Rig p={p} level={level} auto={auto} focus={focus} onInteract={onInteract} shift={shift} zoom={zoom} street={pois} spot={spot} look={lookBearing} />
+        <Rig p={p} level={level} auto={auto} focus={focus} onInteract={onInteract} shift={shift} zoom={zoom} street={pois} spot={spot} parkSpot={parkFocus} look={lookBearing} />
         <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} />
-        <Park p={p} env={env} glow={level === 0 ? 0.14 : 0} color={accent} onPick={onPick ? () => onPick(0) : undefined} />
+        <Park p={p} env={env} flat={pois} onPick={onPick ? () => onPick(0) : undefined} />
+        {p.park?.plan && <ParkPlaces p={p} env={env} active={inPark ? (parkSpot ?? null) : null} color={accent} />}
+        {p.park?.plan && <StringLights p={p} env={env} off={pois} />}
+        <ParkOutline p={p} on={level === 0} color={accent} />
+        {inPark && <ParkPins p={p} color={accent} active={parkSpot ?? null} />}
+        {inPark && <AnchorTracker anchors={parkAnchors} els={parkEls} center />}
         <City p={p} env={env} focus={focus} />
         {p.realCity && <RealCity p={p} env={env} focus={focus} flat={pois} clearPark={level === 0} />}
         <Marker p={p} level={level} color={accent} />
@@ -1358,6 +1546,26 @@ export default function TowerCanvas({
               {i + 1}
             </span>
             {x.label}
+          </button>
+        );
+      })}
+      {parkSpots.map((s, i) => {
+        const on = s.id === parkSpot;
+        return (
+          <button
+            key={s.id}
+            ref={(el) => {
+              parkEls.current[i] = el;
+            }}
+            type="button"
+            onClick={() => onParkSpot?.(s.id)}
+            aria-label={`${s.label}: see it in the photos`}
+            aria-pressed={on}
+            className={`absolute left-0 top-0 flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[0.75rem] font-medium opacity-0 shadow-[var(--shadow-float)] transition-[opacity,background-color,color] duration-300 ${on ? "z-10 bg-accent text-paper" : "bg-paper/90 text-ink hover:bg-white max-sm:p-1.5"}`}
+          >
+            {/* On phones the places not on show shrink to a dot, so close ones don't pile up */}
+            {!on && <span className="keep-round size-2 rounded-full bg-accent sm:hidden" />}
+            <span className={on ? undefined : "max-sm:hidden"}>{s.label}</span>
           </button>
         );
       })}

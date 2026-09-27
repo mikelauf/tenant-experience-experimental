@@ -13,11 +13,13 @@ import type { Img, Venue } from "@/lib/data/types";
  */
 
 const shot = (id: keyof typeof tap, caption: string): Img => ({ ...tap[id], caption });
+/** The city's landmarks and the Pyramid itself: the only tags the photos show. The rest still tie the park's photos to its places. */
+const LANDMARKS = new Set(["Alcatraz", "Angel Island", "Coit Tower", "Salesforce Tower", "Bay Bridge", "The Pyramid's base", "The Pyramid's diagonal columns"]);
 /** A shot with what's in it pointed out. `ratio` is the file's width / height, so tags stay put when the photo is cropped. */
 const tagged = (id: keyof typeof tap, caption: string, ratio: number, tags: [string, number, number][]): Img => ({
   ...shot(id, caption),
   ratio,
-  tags: tags.map(([label, x, y]) => ({ label, x, y })),
+  tags: tags.map(([label, x, y]) => ({ label, x, y, landmark: LANDMARKS.has(label) || undefined })),
 });
 
 const indoorRequired = { title: "Required services", items: ["Janitorial service", "HVAC"], note: "Listed separately from venue facilities." };
@@ -172,7 +174,10 @@ export const venues: Venue[] = [
       { icon: "lock", label: "Exclusive floor access" },
     ],
     services: [
-      { title: "Available services", items: ["Catering partners", "DJ or live music", "Additional security", "Furniture rental", "Private elevator access by arrangement"] },
+      {
+        title: "Available services",
+        items: ["Catering partners", "DJ or live music", "Additional security", "Furniture rental", "Private elevator access by arrangement"],
+      },
       indoorRequired,
     ],
     policies: ["Central furniture removal carries an additional fee. Setup and capacity depend on the event format."],
@@ -200,7 +205,14 @@ export const venues: Venue[] = [
       },
     ],
     viewBearing: 335,
-    floorPlans: [plan("sky-bar", "Lounge", "Sky Bar floor plan: a central bar with lounge seating along the Washington and Clay Street windows, pantry and restrooms at either end.", 80)],
+    floorPlans: [
+      plan(
+        "sky-bar",
+        "Lounge",
+        "Sky Bar floor plan: a central bar with lounge seating along the Washington and Clay Street windows, pantry and restrooms at either end.",
+        80,
+      ),
+    ],
     minBudget: PLACEHOLDER_MIN_BUDGET,
     layout: layouts["sky-bar"],
   },
@@ -334,7 +346,10 @@ export const venues: Venue[] = [
       { icon: "pin", label: "Loading and vendor access" },
     ],
     services: [
-      { title: "Available services", items: ["Catering partners", "Music and AV", "Additional security", "Furniture rental", "Food trucks and portable restrooms"] },
+      {
+        title: "Available services",
+        items: ["Catering partners", "Music and AV", "Additional security", "Furniture rental", "Food trucks and portable restrooms"],
+      },
       { title: "Required services", items: ["Janitorial service"], note: "Outdoor event requirements need confirmation for the proposed use." },
     ],
     policies: [],

@@ -363,8 +363,8 @@ const data: TenantData = {
       ],
       towerPoster: images.hallColonnade,
       floorIntro: {
-        title: "612 feet. 44 floors. Two rooms to gather in.",
-        body: "Scroll up the setbacks. The hall sits at the foot of the tower and the Lantern Room at the top.",
+        title: "Find your floor.",
+        body: "The whole tower in 3D, from the Great Hall at its foot to the Lantern Room at the top. Step onto any floor to see the room, its plan and its view.",
       },
       crown: {
         level: 44,
