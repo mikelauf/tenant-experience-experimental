@@ -860,81 +860,177 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
   if (layout === "focused") {
     const answered = rows.filter((r) => r.val && r.s !== step);
-    const card = (
-      <form
-        {...formProps}
-        className={cn(
-          "relative bg-paper",
-          modal
-            ? "rounded-t-[28px] lg:rounded-[28px]"
-            : "mx-auto max-w-[580px] scroll-mt-[calc(var(--nav-h)+16px)] rounded-[28px] shadow-[var(--shadow-float),var(--shadow-ring)] lg:max-w-[720px]",
-        )}
-      >
-        {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
-        <div className={cn("theme-night relative overflow-hidden rounded-t-[28px] bg-night", modal ? "h-[184px] sm:h-[208px]" : "h-[208px] sm:h-[232px]")}>
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={hero.src}
-              className="absolute inset-0"
-              initial={{ opacity: 0, scale: 1.08 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+    /** The chosen space, crossfading as the venues change */
+    const scene = (sizes: string) => (
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={hero.src}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.08 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <Image src={hero.src} alt="" fill sizes={sizes} className="object-cover" style={{ objectPosition: hero.pos }} />
+        </motion.div>
+      </AnimatePresence>
+    );
+    const titleText = (className: string) => (
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.p
+          key={title}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className={className}
+        >
+          {title}
+        </motion.p>
+      </AnimatePresence>
+    );
+    const pills = (list: typeof rows) =>
+      list.map((r) => (
+        <button
+          key={r.k}
+          type="button"
+          onClick={() => r.s <= reached && go(r.s)}
+          disabled={!!sent || r.s > reached}
+          title={sent ? undefined : `Edit ${r.k.toLowerCase()}`}
+          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25 disabled:hover:bg-white/15"
+        >
+          {r.val}
+        </button>
+      ));
+    /* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */
+    const stepper = (
+      <ol className="grid grid-cols-4 gap-2" aria-label="Inquiry steps">
+        {STEPS.map((st, k) => (
+          <li key={st.short}>
+            <button
+              type="button"
+              onClick={() => k <= reached && go(k)}
+              disabled={k > reached}
+              aria-current={k === step ? "step" : undefined}
+              className="group w-full text-left disabled:cursor-default"
             >
-              <Image src={hero.src} alt="" fill sizes="(min-width:1024px) 720px, 580px" className="object-cover" style={{ objectPosition: hero.pos }} />
-            </motion.div>
-          </AnimatePresence>
+              <span className="relative block h-1 overflow-hidden rounded-full bg-fog">
+                <motion.span
+                  className={cn("absolute inset-0 origin-left rounded-full", k === step ? "bg-accent" : "bg-ink")}
+                  initial={false}
+                  animate={{ scaleX: k <= step ? 1 : k <= reached ? 0.35 : 0 }}
+                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                />
+              </span>
+              <span
+                className={cn(
+                  "mt-2 block text-[0.8125rem] font-medium transition-colors",
+                  k === step ? "text-accent" : k <= reached ? "text-ink-2 group-hover:text-ink" : "text-stone-2",
+                )}
+              >
+                {st.short}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    );
+    const sendButton = (
+      <button
+        type="submit"
+        disabled={sending}
+        className="group flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper shadow-[0_8px_24px_-8px_var(--color-accent)] transition-[background-color,transform] hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60"
+      >
+        {sending ? (
+          <>
+            <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+            Sending…
+          </>
+        ) : (
+          <>
+            {step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
+            <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
+          </>
+        )}
+      </button>
+    );
+    const simulate = isDemo && step === 3 && (
+      <label className="t-meta mt-6 flex cursor-pointer items-center gap-2">
+        <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
+        Demo: simulate a connection error
+      </label>
+    );
+
+    if (!modal) {
+      const one = chosen.length === 1 ? chosen[0] : undefined;
+      return (
+        <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,6fr)]">
+          {/* The space, as large as the screen allows: it follows the venues picked, and the answers gather on it */}
+          <div className="theme-night relative mt-[var(--nav-h)] h-[300px] overflow-hidden bg-night sm:h-[380px] lg:sticky lg:top-0 lg:mt-0 lg:h-[100svh]">
+            {scene("(min-width:1024px) 55vw, 100vw")}
+            <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-night/5" />
+            <div className="frame absolute inset-x-0 bottom-0 pb-6 lg:pb-12">
+              <h1 className="t-meta !text-moon/80">Event inquiry</h1>
+              {titleText("t-hero mt-2 max-w-[14ch] text-moon")}
+              <p className="t-small mt-3 min-h-5 text-moon/75">
+                {one
+                  ? `${one.levelLabel.replace(/^./, (c) => c.toUpperCase())} · ${guestsShort(one)} guests`
+                  : chosen.length > 1
+                    ? chosen.map((x) => x.name).join(" · ")
+                    : "Four quick steps. No account, nothing reserved."}
+              </p>
+              {rows.some((r) => r.val) && <div className="mt-5 flex flex-wrap gap-1.5">{pills(rows.filter((r) => r.val))}</div>}
+            </div>
+          </div>
+
+          <form {...formProps} className="relative flex min-h-[calc(100svh-var(--nav-h))] scroll-mt-[var(--nav-h)] flex-col lg:min-h-[100svh]">
+            <div className="frame flex-1 pb-10 pt-8 lg:px-[clamp(40px,5vw,96px)] lg:pt-[calc(var(--nav-h)+56px)]">
+              <div className="max-w-[600px]">
+                {stepper}
+                <div className="mt-10">{fieldset}</div>
+                {simulate}
+              </div>
+            </div>
+            {/* Actions stick to the bottom of the screen on long steps */}
+            <div className="sticky bottom-0 z-10 border-t hairline bg-quartz/95 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-4 backdrop-blur-xl sm:pb-5">
+              <div className="frame flex max-w-[calc(600px+2*var(--gutter))] items-center justify-between gap-4 lg:max-w-[calc(600px+2*clamp(40px,5vw,96px))] lg:px-[clamp(40px,5vw,96px)]">
+                {backButton}
+                {sendButton}
+              </div>
+            </div>
+          </form>
+        </div>
+      );
+    }
+
+    return (
+      <form {...formProps} className="relative rounded-t-[28px] bg-paper lg:rounded-[28px]">
+        {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
+        <div className="theme-night relative h-[184px] overflow-hidden rounded-t-[28px] bg-night sm:h-[208px]">
+          {scene("(min-width:1024px) 720px, 580px")}
           <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
           <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-5 sm:px-8">
-            {modal ? (
-              <h2 id={id("title")} className="t-meta !text-moon/85">
-                Event inquiry
-              </h2>
-            ) : (
-              <h1 className="t-meta !text-moon/85">Event inquiry</h1>
-            )}
+            <h2 id={id("title")} className="t-meta !text-moon/85">
+              Event inquiry
+            </h2>
             <span className="flex items-center gap-2">
               <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
                 {sent ? "Sent" : `${step + 1} / ${STEPS.length}`}
               </span>
-              {modal && (
-                <button
-                  type="button"
-                  onClick={onClose}
-                  aria-label="Close"
-                  className="-mr-1.5 grid size-9 place-items-center rounded-full bg-white/15 text-moon backdrop-blur-md transition-colors hover:bg-white/25"
-                >
-                  <Icon name="close" size={18} />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close"
+                className="-mr-1.5 grid size-9 place-items-center rounded-full bg-white/15 text-moon backdrop-blur-md transition-colors hover:bg-white/25"
+              >
+                <Icon name="close" size={18} />
+              </button>
             </span>
           </div>
           <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.p
-                key={title}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="t-h2 text-moon"
-              >
-                {title}
-              </motion.p>
-            </AnimatePresence>
+            {titleText("t-h2 text-moon")}
             <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
-              {answered.map((r) => (
-                <button
-                  key={r.k}
-                  type="button"
-                  onClick={() => go(r.s)}
-                  disabled={!!sent}
-                  title={sent ? undefined : `Edit ${r.k.toLowerCase()}`}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25 disabled:hover:bg-white/15"
-                >
-                  {r.val}
-                </button>
-              ))}
+              {pills(answered)}
               {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
             </div>
           </div>
@@ -981,109 +1077,21 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           </motion.div>
         ) : (
           <>
-            {/* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */}
-            <ol className="grid grid-cols-4 gap-2 px-5 pt-6 sm:px-8" aria-label="Inquiry steps">
-              {STEPS.map((st, k) => (
-                <li key={st.short}>
-                  <button
-                    type="button"
-                    onClick={() => k <= reached && go(k)}
-                    disabled={k > reached}
-                    aria-current={k === step ? "step" : undefined}
-                    className="group w-full text-left disabled:cursor-default"
-                  >
-                    <span className="relative block h-1 overflow-hidden rounded-full bg-fog">
-                      <motion.span
-                        className={cn("absolute inset-0 origin-left rounded-full", k === step ? "bg-accent" : "bg-ink")}
-                        initial={false}
-                        animate={{ scaleX: k <= step ? 1 : k <= reached ? 0.35 : 0 }}
-                        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                      />
-                    </span>
-                    <span
-                      className={cn(
-                        "mt-2 block text-[0.8125rem] font-medium transition-colors",
-                        k === step ? "text-accent" : k <= reached ? "text-ink-2 group-hover:text-ink" : "text-stone-2",
-                      )}
-                    >
-                      {st.short}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
+            <div className="px-5 pt-6 sm:px-8">{stepper}</div>
 
             <div className="px-5 pb-8 pt-7 sm:px-8">
               {fieldset}
-              {modal && isDemo && step === 3 && (
-                <label className="t-meta mt-6 flex cursor-pointer items-center gap-2">
-                  <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
-                  Demo: simulate a connection error
-                </label>
-              )}
+              {simulate}
             </div>
 
             {/* Actions live in the card; on long steps they stick to the bottom of the screen */}
-            <div
-              className={cn(
-                "sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5",
-                modal ? "lg:rounded-b-[28px]" : "rounded-b-[28px]",
-              )}
-            >
+            <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5 lg:rounded-b-[28px]">
               {backButton}
-              <button
-                type="submit"
-                disabled={sending}
-                className="group flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper shadow-[0_8px_24px_-8px_var(--color-accent)] transition-[background-color,transform] hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60"
-              >
-                {sending ? (
-                  <>
-                    <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
-                    Sending…
-                  </>
-                ) : (
-                  <>
-                    {step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
-                    <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
-                  </>
-                )}
-              </button>
+              {sendButton}
             </div>
           </>
         )}
       </form>
-    );
-    if (modal) return card;
-
-    return (
-      <div className="relative isolate">
-        {/* The chosen space, blurred wide behind everything, so the card sits in its light */}
-        <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={hero.src}
-              className="absolute -inset-16"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.55 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Image src={hero.src} alt="" fill sizes="40vw" className="scale-110 object-cover blur-[72px] saturate-[1.3]" />
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-b from-quartz/40 via-quartz/70 to-quartz" />
-        </div>
-
-        <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
-          {card}
-        </motion.div>
-        {isDemo && step === 3 && (
-          <label className="t-meta mx-auto mt-4 flex max-w-[580px] lg:max-w-[720px] cursor-pointer items-center justify-end gap-2">
-            <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
-            Demo: simulate a connection error
-          </label>
-        )}
-      </div>
     );
   }
 
