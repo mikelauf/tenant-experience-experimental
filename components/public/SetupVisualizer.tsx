@@ -615,7 +615,7 @@ export function SetupVisualizer({
                 {slug && (
                   <Link href={briefHref({ venues: [slug], setup, guests: shown })} className="flex items-center gap-1.5 text-[0.875rem] font-medium text-stone transition-colors hover:text-ink">
                     <Icon name="print" size={16} />
-                    Make a brief
+                    Save as a brief
                   </Link>
                 )}
               </div>

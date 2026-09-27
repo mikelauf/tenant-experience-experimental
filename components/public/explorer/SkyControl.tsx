@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRef } from "react";
 import { cn } from "@/lib/cn";
 import { briefHref } from "@/lib/brief";
 import { LIGHT_LABEL, clock, type Light } from "@/lib/sun";
@@ -44,28 +45,63 @@ export function SkyControl({
   slug?: string;
   className?: string;
 }) {
+  const picker = useRef<HTMLInputElement>(null);
+  const today = isoDay(new Date());
+  // A day either side, for stepping through dates without the calendar
+  const shift = (d: number) => {
+    const [y, m, day] = date.split("-").map(Number);
+    const next = isoDay(new Date(y, m - 1, day + d));
+    if (next >= today) onDate(next);
+  };
+  // The native calendar only opens from its own (hidden) icon, so open it from the button instead
+  const openPicker = () => {
+    const el = picker.current;
+    if (!el) return;
+    try {
+      el.showPicker();
+    } catch {
+      el.focus();
+      el.click();
+    }
+  };
   const pct = ((minutes - SKY_FROM) / (SKY_TO - SKY_FROM)) * 100;
   // Where sunset sits on the track, as a tick
   const sunsetAt = evening.sunset != null ? ((evening.sunset - SKY_FROM) / (SKY_TO - SKY_FROM)) * 100 : null;
   const hh = `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
   return (
-    <div className={cn("rounded-[20px] bg-night/65 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_24px_48px_-20px_rgb(0_0_0/0.65)] backdrop-blur-xl", className)}>
+    <div className={cn("relative rounded-[20px] bg-night/65 p-3 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.08),0_24px_48px_-20px_rgb(0_0_0/0.65)] backdrop-blur-xl", className)}>
       <div className="flex items-center justify-between gap-3">
-        <p className="t-meta">Your event&apos;s sky</p>
-        <label className="relative flex items-center gap-1.5 rounded-full bg-white/8 px-2.5 py-1 text-[0.75rem] font-medium text-moon hover:bg-white/12">
-          <Icon name="calendar" size={14} />
-          <span>{date ? new Date(`${date}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Today"}</span>
+        <p className="t-meta whitespace-nowrap">Your event</p>
+        <div className="flex items-center gap-0.5">
+          <button
+            onClick={() => shift(-1)}
+            disabled={date <= today}
+            aria-label="Day before"
+            className="grid size-7 place-items-center rounded-full text-moon-2 hover:bg-white/10 hover:text-moon disabled:opacity-30"
+          >
+            <Icon name="chevron-left" size={14} />
+          </button>
+          <button onClick={openPicker} className="flex items-center gap-1.5 whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-[0.75rem] font-medium text-moon hover:bg-white/15">
+            <Icon name="calendar" size={14} />
+            {date === today ? "Today" : new Date(`${date}T12:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+          </button>
+          <button onClick={() => shift(1)} aria-label="Day after" className="grid size-7 place-items-center rounded-full text-moon-2 hover:bg-white/10 hover:text-moon">
+            <Icon name="chevron-right" size={14} />
+          </button>
           <input
+            ref={picker}
             type="date"
             value={date}
-            min={isoDay(new Date())}
+            min={today}
             onChange={(e) => e.target.value && onDate(e.target.value)}
             aria-label="Event date"
-            className="absolute inset-0 cursor-pointer opacity-0 [color-scheme:dark]"
+            tabIndex={-1}
+            className="pointer-events-none absolute right-3 top-3 h-0 w-0 opacity-0 [color-scheme:dark]"
           />
-        </label>
+        </div>
       </div>
+      <p className="t-small mt-1.5 text-moon-2">Pick a date and time. The building relights with the real sun for that moment.</p>
 
       <div className="mt-2 flex items-baseline gap-2">
         <span className="t-num text-[1.625rem] font-medium leading-none">{clock(minutes)}</span>
@@ -109,7 +145,7 @@ export function SkyControl({
       {slug && (
         <Link href={briefHref({ venues: [slug], date, time: hh })} className="t-meta mt-2 flex items-center justify-center gap-1.5 !text-moon-2 hover:!text-moon">
           <Icon name="print" size={13} />
-          Make a brief of this evening
+          Save as a one-page brief to share
         </Link>
       )}
     </div>

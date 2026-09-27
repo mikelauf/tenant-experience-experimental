@@ -111,6 +111,10 @@ export default async function BriefPage({ searchParams }: PageProps<"/venues/bri
           <h1 className="t-hero max-w-[16ch] print:text-[3rem]">{picked.length === 1 ? shortName(first.v.name) : names(picked.map((x) => x.v))}</h1>
           <BriefActions inquireHref={inquire} />
         </div>
+        <p className="t-lead mt-5 max-w-[60ch] text-stone print:hidden">
+          A one-page summary of {picked.length === 1 ? "this venue" : "these venues"}, set up for your event, to share with your team or print. It isn&apos;t an
+          inquiry and doesn&apos;t reserve anything.
+        </p>
         <dl className="mt-10 grid gap-x-10 gap-y-5 border-t hairline pt-6 sm:grid-cols-3 print:mt-4 print:grid-cols-3 print:pt-4">
           {facts
             .filter((f): f is [string, string] => !!f[1])
