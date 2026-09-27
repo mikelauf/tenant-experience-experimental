@@ -16,13 +16,14 @@ import { Pill } from "@/components/ui/Pill";
 import { ClassAction } from "./ClassAction";
 import { ClassSheet, Intensity } from "./ClassSheet";
 import { ResourceSheet } from "./ResourceSheet";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 function AccessCard() {
   const s = useDemo();
   const { membership } = useTenant().fitness!;
   const hydrated = useHydrated();
   if (!hydrated) return <div className="h-[260px] rounded-[var(--radius-media)] bg-paper/60" />;
-  const member = s.persona !== "signed-out" && s.fitnessMember;
+  const member = isMember(s.persona) && s.fitnessMember;
 
   return (
     <div className={cn("rounded-[var(--radius-media)] p-6 sm:p-8", member ? "bg-paper shadow-[var(--shadow-ring)]" : "theme-night")}>
@@ -34,6 +35,8 @@ function AccessCard() {
           </Pill>
         ) : s.persona === "signed-out" ? (
           <Pill tone="night">Not signed in</Pill>
+        ) : !isMember(s.persona) ? (
+          <Pill tone="night">{s.persona === "verifying" ? "Access being verified" : "Work email not verified"}</Pill>
         ) : (
           <Pill tone="night">No membership yet</Pill>
         )}
@@ -57,9 +60,9 @@ function AccessCard() {
               Manage membership
             </ButtonLink>
           </>
-        ) : s.persona === "signed-out" ? (
-          <ButtonLink href="/sign-in?returnTo=%2Ffitness" variant="light" icon="arrow-right">
-            Sign in to see your access
+        ) : !isMember(s.persona) ? (
+          <ButtonLink href={gateHref("/fitness")} variant="light" icon="arrow-right">
+            {s.persona === "signed-out" ? "Sign in to see your access" : gateLabel(s.persona, "")}
           </ButtonLink>
         ) : (
           <ButtonLink href="/account/membership?returnTo=%2Ffitness" variant="light" icon="arrow-right">
@@ -103,7 +106,7 @@ export function FitnessHome() {
   const trainingRequested = hydrated && s.commitments.some((c) => c.kind === "training" && c.status !== "cancelled");
 
   const requestIntro = (id: string) => {
-    if (s.persona === "signed-out") return;
+    if (!isMember(s.persona)) return;
     const coach = coaches.find((c) => c.id === id)!;
     const start = at(3, 8 * 60);
     actions.add(
@@ -295,9 +298,9 @@ export function FitnessHome() {
                   <p className="mt-5 font-medium">{c.name}</p>
                   <p className="t-meta">{c.role}</p>
                   <p className="t-small mt-3 flex-1 text-stone">{c.bio}</p>
-                  {hydrated && s.persona === "signed-out" ? (
-                    <Link href="/sign-in?returnTo=%2Ffitness" className="mt-5 text-[0.875rem] font-medium underline decoration-ink/25 underline-offset-4">
-                      Sign in to request
+                  {hydrated && !isMember(s.persona) ? (
+                    <Link href={gateHref("/fitness")} className="mt-5 text-[0.875rem] font-medium underline decoration-ink/25 underline-offset-4">
+                      {gateLabel(s.persona, "request")}
                     </Link>
                   ) : (
                     <button

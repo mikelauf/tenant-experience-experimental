@@ -15,6 +15,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { isBusy } from "./Availability";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 /** Airbnb "Review and continue", then an in-place confirmation. */
 export function BookReview({ slug }: { slug: string }) {
@@ -42,12 +43,12 @@ export function BookReview({ slug }: { slug: string }) {
   const invalid = !params.get("start") || offset < 0 || isBusy(r.slug, offset, start, start + dur);
   const request = r.approval === "request";
 
-  if (hydrated && s.persona === "signed-out")
+  if (hydrated && !isMember(s.persona))
     return (
       <div className="frame flex min-h-[70svh] flex-col items-start justify-center pt-[var(--nav-h)]">
-        <h1 className="t-h1">Sign in to finish booking.</h1>
-        <ButtonLink href={`/sign-in?returnTo=${encodeURIComponent(`/spaces/${r.slug}/book?${params}`)}`} className="mt-6" icon="arrow-right">
-          Sign in
+        <h1 className="t-h1">{s.persona === "signed-out" ? "Sign in to finish booking." : "Confirm your building access to finish booking."}</h1>
+        <ButtonLink href={gateHref(`/spaces/${r.slug}/book?${params}`)} className="mt-6" icon="arrow-right">
+          {s.persona === "signed-out" ? "Sign in" : gateLabel(s.persona, "book")}
         </ButtonLink>
       </div>
     );

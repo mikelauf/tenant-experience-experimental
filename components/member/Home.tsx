@@ -18,6 +18,7 @@ import { LiveBuilding } from "./live/LiveBuilding";
 import { CommitmentRow, CommitmentSheet, UpNext, isUpcoming, useNow } from "./Commitments";
 import { EventCard } from "./EventCard";
 import { ServiceTabs } from "./ServiceTabs";
+import { isMember } from "@/lib/access";
 
 function greeting(now: number) {
   const h = new Date(now).getHours();
@@ -408,7 +409,7 @@ export function Home() {
 
   return (
     <div className="pb-tab lg:pb-24">
-      {s.persona === "signed-out" ? <SignedOut /> : s.persona === "new" ? <NewMember onOpen={setOpen} /> : <Returning onOpen={setOpen} />}
+      {!isMember(s.persona) ? <SignedOut /> : s.persona === "new" ? <NewMember onOpen={setOpen} /> : <Returning onOpen={setOpen} />}
       <CommitmentSheet c={live} onClose={() => setOpen(null)} />
     </div>
   );

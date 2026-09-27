@@ -8,6 +8,7 @@ import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { useNow } from "@/lib/useNow";
 import { Icon } from "@/components/ui/Icon";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 export type ClassState = "signin" | "access" | "reserved" | "waitlisted" | "waitlist" | "reserve" | "past";
 
@@ -19,7 +20,7 @@ export function useClassState(c: ClassSession): { state: ClassState; left: numbe
   const { cap, taken, left, full, mine } = classSeats(tenant, s, c);
   const base = { left, cap, taken, pos: mine?.waitlistPos, commitmentId: mine?.id };
   if (hydrated && new Date(c.startsAt).getTime() < now) return { state: "past", ...base };
-  if (!hydrated || s.persona === "signed-out") return { state: "signin", ...base };
+  if (!hydrated || !isMember(s.persona)) return { state: "signin", ...base };
   if (mine?.status === "confirmed") return { state: "reserved", ...base };
   if (mine?.status === "waitlist") return { state: "waitlisted", ...base };
   if (!s.fitnessMember) return { state: "access", ...base };
@@ -29,6 +30,7 @@ export function useClassState(c: ClassSession): { state: ClassState; left: numbe
 /** One button that always shows the next action that can actually work. */
 export function ClassAction({ c, size = "md", className, returnTo }: { c: ClassSession; size?: "md" | "lg"; className?: string; returnTo: string }) {
   const { state, pos } = useClassState(c);
+  const { persona } = useDemo();
   const tenant = useTenant();
   const h = size === "lg" ? "h-13 px-6 text-base" : "h-10 px-4 text-[0.875rem]";
   const base = cn(
@@ -41,11 +43,11 @@ export function ClassAction({ c, size = "md", className, returnTo }: { c: ClassS
   if (state === "signin")
     return (
       <Link
-        href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}
+        href={gateHref(returnTo)}
         className={cn(base, "bg-ink text-paper hover:bg-ink-2")}
         onClick={(e) => e.stopPropagation()}
       >
-        Sign in to reserve
+        {gateLabel(persona, "reserve")}
       </Link>
     );
   if (state === "access")

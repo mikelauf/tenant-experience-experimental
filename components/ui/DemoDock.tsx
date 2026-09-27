@@ -14,6 +14,8 @@ import { Icon } from "./Icon";
 
 const personas: { id: Persona; label: string; note: string }[] = [
   { id: "signed-out", label: "Signed out", note: "Browsing before sign-in" },
+  { id: "public", label: "Public account", note: "Inquired about a venue; no work email yet" },
+  { id: "verifying", label: "Verifying", note: "Work email waiting on the building team" },
   { id: "new", label: "New member", note: "First week, nothing booked" },
   { id: "returning", label: "Returning", note: "Regular with plans on the books" },
 ];

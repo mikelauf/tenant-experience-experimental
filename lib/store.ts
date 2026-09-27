@@ -2,13 +2,15 @@
 
 import { useSyncExternalStore } from "react";
 import { at, addMin } from "./time";
-import type { Commitment, Inquiry, Persona } from "./data/types";
+import type { Account, Commitment, Inquiry, Persona } from "./data/types";
 import { tenantById, type Tenant } from "./tenants";
 import { activeTenantId } from "./tenants/client";
 import { week } from "./time";
 
 export type DemoState = {
   persona: Persona;
+  /** Set once signed in */
+  account?: Account;
   fitnessMember: boolean;
   commitments: Commitment[];
   shortlist: string[];
@@ -84,14 +86,51 @@ function returningSeed(t: Tenant): Commitment[] {
   return out;
 }
 
+/** The demo member's emails: their work address, and a personal one on the same name */
+export function emailsFor(t: Tenant) {
+  const [local] = t.member.email.split("@");
+  return { work: t.member.email, personal: `${local}@gmail.com`, domain: t.member.email.split("@")[1]! };
+}
+
+function accountFor(persona: Persona, t: Tenant): Account | undefined {
+  const { work, personal } = emailsFor(t);
+  if (persona === "signed-out") return undefined;
+  if (persona === "public") return { primary: personal, via: "email" };
+  if (persona === "verifying") return { primary: personal, via: "google", work: `${work.split("@")[0]}@northline-sf.example`, workStatus: "pending" };
+  return { primary: personal, via: "google", work, workStatus: "verified" };
+}
+
+/** A public customer's history: the venue inquiry that brought them here (Public Customer Activity Center, #298) */
+function publicSeed(t: Tenant): Inquiry[] {
+  const v = t.venues.find((x) => x.slug === "bay-lounge") ?? t.venues[0];
+  if (!v) return [];
+  const { personal } = emailsFor(t);
+  const d = new Date();
+  d.setDate(d.getDate() + 38);
+  return [
+    {
+      id: "inq-seed",
+      venue: v.slug,
+      firstName: t.member.first,
+      lastName: t.member.last,
+      email: personal,
+      guests: "60",
+      date: d.toISOString().slice(0, 10),
+      eventType: "Reception",
+      createdAt: new Date(Date.now() - 3 * 864e5).toISOString(),
+    },
+  ];
+}
+
 export function seed(persona: Persona, t: Tenant = tenantById(activeTenantId())): DemoState {
   const returning = persona === "returning";
   return {
     persona,
+    account: accountFor(persona, t),
     fitnessMember: returning && !!t.fitness,
     commitments: returning ? returningSeed(t) : [],
     shortlist: [],
-    inquiries: [],
+    inquiries: persona === "public" ? publicSeed(t) : [],
     history: returning ? t.copy.usuals.slice(0, 3).map((u) => u.id) : [],
     dismissed: [],
     notify: { reminders: true, events: true, digest: false },
@@ -161,13 +200,35 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 
 export const actions = {
   setPersona(p: Persona) {
-    setState((s) => ({ ...seed(p), shortlist: s.shortlist, guests: s.guests, inquiries: s.inquiries }));
+    setState((s) => {
+      const next = seed(p);
+      // Keep what someone did in this session; a public customer brings their seeded inquiry
+      return { ...next, shortlist: s.shortlist, guests: s.guests, inquiries: s.inquiries.length ? s.inquiries : next.inquiries };
+    });
   },
-  signIn() {
-    setState((s) => (s.persona === "signed-out" ? { ...s, persona: "new" } : s));
+  /**
+   * Sign-in finished. With a verified work email they're a building member (member status wins over public, #300);
+   * with one under review they wait in `verifying`; with none, they're a public customer until they add one.
+   */
+  signIn(account: Account) {
+    setState((s) => {
+      const persona: Persona =
+        account.workStatus === "verified"
+          ? s.persona === "returning"
+            ? "returning"
+            : "new"
+          : account.workStatus === "pending"
+            ? "verifying"
+            : "public";
+      return { ...s, account, persona };
+    });
+  },
+  /** Demo only: the building team approves a pending work email */
+  approveAccess() {
+    setState((s) => (s.persona === "verifying" && s.account ? { ...s, persona: "new", account: { ...s.account, workStatus: "verified" } } : s));
   },
   signOut() {
-    setState((s) => ({ ...s, persona: "signed-out" }));
+    setState((s) => ({ ...s, persona: "signed-out", account: undefined }));
   },
   setFitness(on: boolean) {
     setState((s) => ({ ...s, fitnessMember: on }));

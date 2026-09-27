@@ -277,7 +277,23 @@ export type BuildingEvent = {
   tone: "day" | "night";
 };
 
-export type Persona = "signed-out" | "new" | "returning";
+/**
+ * Where someone stands with this building (Wayfinder #296):
+ * - `signed-out`: browsing
+ * - `public`: a Playbook account with no confirmed relationship to the building, e.g. from a venue inquiry
+ * - `verifying`: signed in, work email under review ("building access is being verified")
+ * - `new`: a verified building member with no first action yet
+ * - `returning`: a member with activity
+ */
+export type Persona = "signed-out" | "public" | "verifying" | "new" | "returning";
+
+/** How someone signed in, and their emails: the primary one anchors the account, the work one unlocks the building (#334) */
+export type Account = {
+  primary: string;
+  via: "email" | "google" | "apple" | "microsoft";
+  work?: string;
+  workStatus?: "verified" | "pending";
+};
 
 export type CommitmentKind = "class" | "room" | "event" | "resource" | "training" | "inquiry";
 export type CommitmentStatus = "confirmed" | "pending" | "waitlist" | "cancelled";

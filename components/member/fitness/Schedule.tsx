@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 import { DateStrip } from "../DateStrip";
 import { ClassAction, useClassState } from "./ClassAction";
 import { ClassSheet, Intensity } from "./ClassSheet";
+import { isMember } from "@/lib/access";
 
 const kinds: { id: ClassKind | "all"; label: string }[] = [
   { id: "all", label: "All classes" },
@@ -207,7 +208,7 @@ export function Schedule() {
                 </li>
               </ul>
             </div>
-            {hydrated && s.persona !== "signed-out" && !s.fitnessMember && (
+            {hydrated && isMember(s.persona) && !s.fitnessMember && (
               <div className="rounded-[var(--radius-card)] bg-accent-soft p-5 text-accent-deep">
                 <p className="font-medium">You can look, but not book yet</p>
                 <p className="t-small mt-1">Classes need a {fitness!.name} membership. It takes a minute.</p>
@@ -227,7 +228,7 @@ export function Schedule() {
         c={open}
         onClose={close}
         returnTo={open ? `/fitness/schedule?class=${encodeURIComponent(open.id)}` : "/fitness/schedule"}
-        resumed={resumed && hydrated && s.persona !== "signed-out" && openId === deepClass}
+        resumed={resumed && hydrated && isMember(s.persona) && openId === deepClass}
       />
     </div>
   );

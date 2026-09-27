@@ -10,6 +10,7 @@ import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { EventCard, accessLabel, canAttend } from "../EventCard";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 export function EventDetail({ slug }: { slug: string }) {
   const t = useTenant();
@@ -33,10 +34,10 @@ export function EventDetail({ slug }: { slug: string }) {
   const action = (() => {
     const cls = "flex h-14 w-full items-center justify-center gap-2 rounded-full font-medium transition-colors";
     if (!hydrated) return <span className={`${cls} bg-fog`} />;
-    if (s.persona === "signed-out")
+    if (!isMember(s.persona))
       return (
-        <Link href={`/sign-in?returnTo=${encodeURIComponent(`/programming/${e.slug}`)}`} className={`${cls} bg-ink text-paper hover:bg-ink-2`}>
-          Sign in to RSVP
+        <Link href={gateHref(`/programming/${e.slug}`)} className={`${cls} bg-ink text-paper hover:bg-ink-2`}>
+          {gateLabel(s.persona, "RSVP")}
         </Link>
       );
     if (mine)

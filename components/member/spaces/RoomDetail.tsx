@@ -16,6 +16,7 @@ import { Pill } from "@/components/ui/Pill";
 import { SetupVisualizer } from "@/components/public/SetupVisualizer";
 import { DateStrip } from "../DateStrip";
 import { AvailabilityBar, CLOSE, isBusy } from "./Availability";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 const durations = [30, 60, 90, 120];
 
@@ -47,7 +48,7 @@ export function RoomDetail({ slug }: { slug: string }) {
 
   const q = new URLSearchParams({ day, start: String(start ?? ""), dur: String(dur), setup, people: String(people), title });
   const next = `/spaces/${r.slug}/book?${q}`;
-  const signedOut = hydrated && s.persona === "signed-out";
+  const signedOut = hydrated && !isMember(s.persona);
 
   const shell = useMemo(() => shellFromPlate(r.plate), [r.plate]);
   const specs = useMemo(
@@ -228,10 +229,10 @@ export function RoomDetail({ slug }: { slug: string }) {
 
             {signedOut ? (
               <Link
-                href={`/sign-in?returnTo=${encodeURIComponent(`/spaces/${r.slug}?${q}`)}`}
+                href={gateHref(`/spaces/${r.slug}?${q}`)}
                 className="mt-6 flex h-13 items-center justify-center rounded-full bg-ink py-3.5 font-medium text-paper"
               >
-                Sign in to book
+                {gateLabel(s.persona, "book")}
               </Link>
             ) : (
               <button

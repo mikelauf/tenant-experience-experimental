@@ -28,7 +28,7 @@ The public venue site is in good shape. This doc covers the next surface, the si
 _Last updated: 2026-09-27._
 
 - [x] 1. Real amenity content: `amenities` on every tenant (`lib/tenants/pyramid/amenities.ts`). Fitness moves to L26. The Foster and Pereira rooms (names and capacities from Core staging) replace Washington. The demo's storage key moves to v2.
-- [ ] 2. Personas and sign-in: add verifying and public, plus email code, social sign-in and a one-time work-email check
+- [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
 - [ ] 3. Building Home rewrite: the live tower front door, "what you can use" by group, a section for each state
 - [ ] 4. 3D, in order:
   - open the floor

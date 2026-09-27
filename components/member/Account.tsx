@@ -10,6 +10,7 @@ import { useTenant } from "@/lib/tenants/client";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
+import { isMember } from "@/lib/access";
 
 function SignedOutNote({ returnTo }: { returnTo: string }) {
   return (
@@ -159,7 +160,7 @@ export function MembershipFlow() {
   const membership = fitness!.membership;
 
   if (!hydrated) return <div className="min-h-[80svh]" />;
-  if (s.persona === "signed-out") return <SignedOutNote returnTo={`/account/membership?returnTo=${encodeURIComponent(returnTo)}`} />;
+  if (!isMember(s.persona)) return <SignedOutNote returnTo={`/account/membership?returnTo=${encodeURIComponent(returnTo)}`} />;
 
   const start = async () => {
     setStage("working");

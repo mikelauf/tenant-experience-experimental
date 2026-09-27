@@ -14,6 +14,7 @@ import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { Sheet } from "@/components/ui/Sheet";
 import { DateStrip } from "../DateStrip";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 /** Slot picker for a bookable studio resource (bike, recovery suite). */
 export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () => void }) {
@@ -38,7 +39,7 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
   // A few slots are taken, deterministically
   const taken = (m: number) => (m / 30 + offset * 3 + (r?.slug.length ?? 0)) % 4 === 0;
 
-  const state = !hydrated || s.persona === "signed-out" ? "signin" : !s.fitnessMember ? "access" : "ok";
+  const state = !hydrated || !isMember(s.persona) ? "signin" : !s.fitnessMember ? "access" : "ok";
 
   const close = () => {
     setSlot(null);
@@ -59,10 +60,10 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
           </Link>
         ) : state === "signin" ? (
           <Link
-            href={`/sign-in?returnTo=${encodeURIComponent("/fitness")}`}
+            href={gateHref("/fitness")}
             className="flex h-13 w-full items-center justify-center rounded-full bg-ink py-3.5 font-medium text-paper"
           >
-            Sign in to book
+            {gateLabel(s.persona, "book")}
           </Link>
         ) : state === "access" ? (
           <Link
