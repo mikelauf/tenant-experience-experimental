@@ -217,6 +217,21 @@ _Update as work lands. Last updated: 2026-09-26._
 - [ ] AI "ask a question" box (waiting on Danielle's knowledge-base doc and Matt's backend decision)
 - [ ] Spencer: Sandbox 300 vs 400 guests; booklet contact email
 
+### Frontend review (2026-09-27), one commit per step
+- [x] Inquiry page edge to edge: the chosen space in a tall panel beside the form, not a floating card
+- [x] Venue page: facts keep only what the hero doesn't say; photos under the intro; hero Inquire opens in place
+- [x] Demo dock is an edge tab on public pages, clear of the corner controls
+- [ ] Brief empty state: pick venues right there
+- [ ] Footer: the events team's contact (waits on `copy.public.contact`) and no member link on public hosts
+- [ ] Home: fewer same-shaped section heads (the two-tone line on every section)
+- [ ] Getting here: the plaza tower with arrival pins in place of the flat site plan
+- [ ] Shortlist tray → side-by-side compare → one inquiry or brief
+- [ ] Tower locator on each venue page, opening the explorer at that floor
+- [ ] Guest count set once, carried across cards, the 3D space and the inquiry
+- [ ] Live hero: the tower as it is now in SF
+- [ ] Split `TowerCanvas`, `InquiryForm`, `landmarks` before handoff
+- [ ] Lighthouse, image budget and mobile 3D pass
+
 ### Decisions made while building
 - **Invented content stays out of production.** The fictional host (Inés), the 555 phone number, "moments" from sample events, the spire "crown" stop (Sky Bar is on Level 48) and sample policies are no longer on the Pyramid's public site. The host section, public contact and moments return automatically once real ones are added to the bundle (`publicHostId`, `copy.public.contact`, `copy.public.moments`).
 - **Sky Bar has no single capacity** (sources say 50–75, 65–80, 75). It shows "Varies by setup", as TE did, until Spencer confirms.
