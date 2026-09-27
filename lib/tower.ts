@@ -126,6 +126,18 @@ export function sceneLandmarks(p: TowerProfile): SceneLandmark[] {
   });
 }
 
+/** The scene direction of a true compass bearing, as an x/z unit vector, on a grid turned by `north` */
+export const bearingDir = (bearing: number, north = 0): [number, number] => dirOf(bearing - north);
+
+/**
+ * The orbit angle (radians, as the tower rig measures it: the camera sits at focus + (cos, sin)·r) that puts
+ * the camera behind the focus looking out along a true bearing.
+ */
+export function yawForBearing(bearing: number, north = 0) {
+  const [dx, dz] = bearingDir(bearing, north);
+  return Math.atan2(-dz, -dx);
+}
+
 /** The scene direction of true north, as an x/z unit vector */
 export const trueNorth = (p: TowerProfile): [number, number] => dirOf(-(p.north ?? 0));
 

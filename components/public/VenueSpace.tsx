@@ -1,6 +1,7 @@
 "use client";
 
 import type { Venue } from "@/lib/data/types";
+import { useTenant } from "@/lib/tenants/client";
 import { SetupVisualizer } from "./SetupVisualizer";
 
 /**
@@ -8,7 +9,8 @@ import { SetupVisualizer } from "./SetupVisualizer";
  * with its controls in one rail (setup, guests, inquiry). The building's floor plan rides under the
  * inquiry card, and the photos at the bottom of the page point out what's in them.
  */
-export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout"> }) {
+export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing"> }) {
+  const { tower } = useTenant();
   if (!v.layout) return null;
 
   return (
@@ -17,7 +19,7 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         The space
       </h2>
       <p className="t-body mt-2 max-w-[62ch] text-stone">
-        {v.name}, traced from the building&apos;s plan. Pick a setup, drag the guest count, and turn the room to look around.
+        {v.name}, traced from the building&apos;s plan. Pick a setup, drag the guest count, turn the room, tap a label to look closer, or look out from the windows.
       </p>
 
       <SetupVisualizer
@@ -27,6 +29,10 @@ export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "l
         setups={v.layout.setups}
         title={v.sqft ? `${v.name} · ${v.sqft.toLocaleString("en-US")} sq ft` : v.name}
         inquireHref={`/venues/inquire?venue=${v.slug}`}
+        views={v.views}
+        viewBearing={v.viewBearing}
+        north={tower.north}
+        shareable
         footnote={
           v.layout.illustrative
             ? "Illustrative. Traced from the building's plan; capacities are estimates until the events team confirms your plan."

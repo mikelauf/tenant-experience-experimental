@@ -52,7 +52,7 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
         </Reveal>
       </div>
 
-      <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout }} />
+      <VenueSpace v={{ slug: v.slug, name: v.name, sqft: v.sqft, layout: v.layout, views: v.views, viewBearing: v.viewBearing }} />
 
       <div className="frame grid-12 mt-16 gap-y-16 lg:mt-24">
         <div className="col-span-12 flex flex-col gap-16 lg:col-span-7">

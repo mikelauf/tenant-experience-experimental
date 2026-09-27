@@ -2,14 +2,15 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { ContactShadows, Environment, Lightformer, PerspectiveCamera } from "@react-three/drei";
-import { useLayoutEffect, useMemo, useRef, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { cn } from "@/lib/cn";
 import type { Rect, Seg, Setup, SetupSpec, Shell } from "@/lib/data/types";
 import { shellBounds } from "@/lib/setup/shell";
 import { useOrbit } from "../useOrbit";
-import { fitRadius, frameFor, type Box, type Preset } from "./camera";
-import { inPoly, makeLayout, type P } from "./layouts";
+import { fitRadius, focusFrame, frameFor, outward, type Box, type Lookout, type Preset } from "./camera";
+import { makeLayout, type P } from "./layouts";
 
 const col = {
   wall: "#faf9f6",
@@ -283,17 +284,6 @@ function Block({ r, h, color, y = 0 }: { r: Rect; h: number; color: string; y?: 
 const sameSeg = (a: Seg, b: Seg) =>
   (a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3]) || (a[0] === b[2] && a[1] === b[3] && a[2] === b[0] && a[3] === b[1]);
 
-/** Outward unit normal of an outline edge. */
-function outward(s: Seg, outline: [number, number][]): [number, number] {
-  const [x0, z0, x1, z1] = s;
-  const len = Math.hypot(x1 - x0, z1 - z0) || 1;
-  let n: [number, number] = [(z1 - z0) / len, -(x1 - x0) / len];
-  const mx = (x0 + x1) / 2 + n[0] * 0.3;
-  const mz = (z0 + z1) / 2 + n[1] * 0.3;
-  if (inPoly(mx, mz, outline)) n = [-n[0], -n[1]];
-  return n;
-}
-
 /**
  * A floor finish drawn once into a canvas and tiled by the meter: oak planks for Sky Bar, pale stone
  * for the lounges, polished concrete for The Sandbox, grass for the park. Subtle on purpose.
@@ -513,14 +503,14 @@ function Toggle({ r, h, on, color, counter }: { r: Rect; h: number; on: boolean;
 
 /* ------------------------------------------------------------------ labels */
 
-type Tag = { at: [number, number, number]; text: string; tone: "chip" | "street"; hidden?: boolean };
+type Tag = { at: [number, number, number]; text: string; tone: "chip" | "street"; hidden?: boolean; note?: string };
 
 /** Everything worth naming in the room: cores, rooms, marks, neighbours, bars, the stage and (in overview) the streets. */
 function tagsFor(shell: Shell, bar: boolean, stage: boolean, streets: boolean): Tag[] {
   const { solids, rooms = [], context = [], fixed = {}, streets: st, outdoor } = shell;
   const b = shellBounds(shell);
   const pad = outdoor ? 3 : 1.4;
-  const chip = (r: Rect, y: number, hidden?: boolean): Tag => ({ at: [r.x, y, r.z], text: r.label!, tone: "chip", hidden });
+  const chip = (r: Rect, y: number, hidden?: boolean): Tag => ({ at: [r.x, y, r.z], text: r.label!, tone: "chip", hidden, note: r.note });
   const street = (at: [number, number, number], text?: string): Tag[] => (text ? [{ at, text, tone: "street", hidden: !streets }] : []);
   return [
     ...[...solids, ...(fixed.marks ?? [])].filter((r) => r.label).map((r) => chip(r, 0.7)),
@@ -551,6 +541,7 @@ function TagTracker({ tags, els }: { tags: Tag[]; els: RefObject<(HTMLElement | 
       const off = _proj.z > 1 || Math.abs(_proj.x) > 1.1 || Math.abs(_proj.y) > 1.1;
       el.style.transform = `translate3d(${((_proj.x + 1) / 2) * size.width}px, ${((1 - _proj.y) / 2) * size.height}px, 0) translate(-50%, -50%)`;
       el.style.opacity = t.hidden || off ? "0" : "1";
+      el.style.pointerEvents = t.hidden || off || t.tone !== "chip" ? "none" : "auto";
     });
   });
   return null;
@@ -564,11 +555,33 @@ const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
  * The camera. It eases to each setup's framing (sweeping the short way round), fits the framed box to
  * the stage exactly, lets you drag it round and tilt it, and drifts gently on its own when left alone.
  */
-function Rig({ frame, view, onInteract, still }: { frame: ReturnType<typeof frameFor>; view: ViewRef; onInteract?: () => void; still?: boolean }) {
+function Rig({
+  frame,
+  view,
+  onInteract,
+  still,
+  look,
+  onLook,
+}: {
+  frame: ReturnType<typeof frameFor>;
+  view: ViewRef;
+  onInteract?: () => void;
+  still?: boolean;
+  /** Stand at a window looking out, blending away from the orbit; null walks back */
+  look?: Lookout | null;
+  /** Called once the camera is most of the way to the window, for the photo to take over */
+  onLook?: () => void;
+}) {
   const { camera, size } = useThree();
   const orbit = useOrbit({ onInteract });
   const cam = useRef({ yaw: frame.yaw, pitch: frame.pitch, radius: 0, box: { ...frame.box }, drift: 0, dir: 1 });
   const arrived = useRef(false);
+  // How far toward the window the camera is (0 orbiting, 1 standing there), and the last window, for the walk back
+  const at = useRef(0);
+  const lastLook = useRef<Lookout | null>(null);
+  const told = useRef(false);
+  const _eye = useRef(new THREE.Vector3());
+  const _tgt = useRef(new THREE.Vector3());
 
   // A new framing (another setup or view) clears what the user had dragged, so the move lands cleanly
   const key = `${frame.yaw.toFixed(3)}|${frame.pitch}|${frame.box.x0.toFixed(2)}|${frame.box.z0.toFixed(2)}|${frame.box.x1.toFixed(2)}|${frame.box.z1.toFixed(2)}`;
@@ -591,7 +604,7 @@ function Rig({ frame, view, onInteract, still }: { frame: ReturnType<typeof fram
       o.yaw.current += o.vel.current * dt * 1000;
       o.vel.current = THREE.MathUtils.damp(o.vel.current, 0, 4, dt);
       // After a while alone, a slow ping-pong drift keeps the model feeling alive
-      if (!still && now > o.idleUntil.current) {
+      if (!still && !look && now > o.idleUntil.current) {
         c.drift += dt * 0.045 * c.dir;
         const lim = Math.min(0.32, frame.range);
         if (Math.abs(c.drift) > lim) c.dir = -Math.sign(c.drift);
@@ -617,10 +630,28 @@ function Rig({ frame, view, onInteract, still }: { frame: ReturnType<typeof fram
     const dx = Math.cos(c.yaw);
     const dz = Math.sin(c.yaw);
     camera.position.set(tx + Math.cos(c.pitch) * dx * c.radius, ty + Math.sin(c.pitch) * c.radius, tz + Math.cos(c.pitch) * dz * c.radius);
-    camera.lookAt(tx, ty, tz);
     const pc = camera as THREE.PerspectiveCamera;
     pc.far = c.radius * 4;
     pc.near = Math.max(0.1, c.radius / 200);
+
+    // Walking to the window: ease from the orbit to eye level just inside the glass, looking out
+    if (look) lastLook.current = look;
+    at.current = THREE.MathUtils.damp(at.current, look ? 1 : 0, look ? 1.7 : 2.6, dt);
+    const L = lastLook.current;
+    if (L && at.current > 0.001) {
+      const e = at.current * at.current * (3 - 2 * at.current);
+      _eye.current.set(...L.eye);
+      _tgt.current.set(tx + (L.at[0] - tx) * e, ty + (L.at[1] - ty) * e, tz + (L.at[2] - tz) * e);
+      camera.position.lerp(_eye.current, e);
+      camera.lookAt(_tgt.current);
+      pc.near = THREE.MathUtils.lerp(pc.near, 0.05, e);
+      pc.far = Math.max(pc.far, 80);
+    } else camera.lookAt(tx, ty, tz);
+    if (look && at.current > 0.55 && !told.current) {
+      told.current = true;
+      onLook?.();
+    }
+    if (!look) told.current = false;
     pc.updateProjectionMatrix();
 
     const v = view.current;
@@ -660,6 +691,8 @@ export default function SetupCanvas({
   labels = true,
   onReady,
   onInteract,
+  look,
+  onLook,
 }: {
   shell: Shell;
   spec: SetupSpec;
@@ -670,12 +703,21 @@ export default function SetupCanvas({
   labels?: boolean;
   onReady?: () => void;
   onInteract?: () => void;
+  /** Stand at this window looking out; null returns to the orbit */
+  look?: Lookout | null;
+  /** The camera reached the window */
+  onLook?: () => void;
 }) {
   const layout = useMemo(() => makeLayout(setup, guests, shell, spec), [setup, guests, shell, spec]);
 
   // Frame the setup at its full size, so dragging the guest count re-fills the room without the camera moving
   const full = useMemo(() => makeLayout(setup, spec.max, shell, spec), [setup, shell, spec]);
-  const frame = useMemo(() => frameFor(shell, spec, setup, full, preset), [shell, spec, setup, full, preset]);
+  const framed = useMemo(() => frameFor(shell, spec, setup, full, preset), [shell, spec, setup, full, preset]);
+
+  // A tapped label flies the camera to it. It belongs to the setup and view it was tapped in, so picking
+  // another of either lets it go without an effect.
+  const [picked, setPicked] = useState<{ i: number; setup: Setup; preset: Preset } | null>(null);
+  const focus = picked && picked.setup === setup && picked.preset === preset ? picked.i : null;
 
   const geo = useMemo(
     () => ({
@@ -695,7 +737,7 @@ export default function SetupCanvas({
 
   const b = shellBounds(shell);
   const f = shell.fixed ?? {};
-  const view = useRef<View>({ tx: b.cx, tz: b.cz, dx: 0.7, dz: 0.7, pitch: 0.8, box: frame.box });
+  const view = useRef<View>({ tx: b.cx, tz: b.cz, dx: 0.7, dz: 0.7, pitch: 0.8, box: framed.box });
 
   // Fit the shadow camera to the floor so small rooms get crisp shadows and big ones aren't clipped
   const reach = Math.max(b.w, b.d) * 0.62;
@@ -704,12 +746,21 @@ export default function SetupCanvas({
 
   const tags = useMemo(() => (labels ? tagsFor(shell, layout.bar, layout.stage, preset === "overview") : []), [labels, shell, layout.bar, layout.stage, preset]);
   const els = useRef<(HTMLElement | null)[]>([]);
+  const focused = focus != null ? tags[focus] : undefined;
+  const frame = useMemo(() => (focused ? focusFrame(shell, [focused.at[0], focused.at[2]]) : framed), [focused, shell, framed]);
+
+  useEffect(() => {
+    if (focus == null) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setPicked(null);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [focus]);
 
   return (
     <div className="relative h-full w-full cursor-grab touch-pan-y active:cursor-grabbing [&_canvas]:touch-pan-y">
       <Canvas shadows dpr={[1, 2]} frameloop={active ? "always" : "never"} gl={{ antialias: true, alpha: true }} onCreated={() => onReady?.()} aria-hidden>
         <PerspectiveCamera makeDefault fov={FOV} position={[b.cx + 30, 30, b.cz + 30]} />
-        <Rig frame={frame} view={view} onInteract={onInteract} still={preset === "top"} />
+        <Rig frame={frame} view={view} onInteract={onInteract} still={preset === "top" || focus != null} look={look} onLook={onLook} />
         {/* Soft, even studio light made from panels, so nothing loads from the network */}
         <Environment resolution={64} frames={1}>
           <Lightformer intensity={0.55} position={[0, 6, 0]} rotation-x={Math.PI / 2} scale={[20, 20, 1]} />
@@ -746,22 +797,40 @@ export default function SetupCanvas({
         <ContactShadows position={[b.cx, 0.005, b.cz]} opacity={0.35} scale={Math.max(b.w, b.d) * 1.4} blur={2.2} far={2.5} />
         <TagTracker tags={tags} els={els} />
       </Canvas>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
-        {tags.map((t, i) => (
-          <span
-            key={`${t.text}${i}`}
-            ref={(el) => {
-              els.current[i] = el;
-            }}
-            className={
-              t.tone === "chip"
-                ? "absolute left-0 top-0 whitespace-nowrap rounded-full bg-paper/85 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-stone opacity-0 shadow-[var(--shadow-ring)] backdrop-blur-sm transition-opacity duration-500"
-                : "absolute left-0 top-0 whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.14em] text-stone-2 opacity-0 transition-opacity duration-500"
-            }
-          >
-            {t.text}
-          </span>
-        ))}
+      <div className={cn("pointer-events-none absolute inset-0 overflow-hidden transition-opacity duration-300", look && "opacity-0")}>
+        {tags.map((t, i) =>
+          t.tone === "chip" ? (
+            <button
+              key={`${t.text}${i}`}
+              ref={(el) => {
+                els.current[i] = el;
+              }}
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setPicked(focus === i ? null : { i, setup, preset })}
+              aria-pressed={focus === i}
+              aria-label={focus === i ? `${t.text}: back to the room` : `Look closer at ${t.text}`}
+              className={cn(
+                "absolute left-0 top-0 max-w-[15rem] cursor-pointer rounded-[14px] text-left opacity-0 shadow-[var(--shadow-ring)] backdrop-blur-sm transition-[opacity,background-color,color] duration-500",
+                focus === i ? "z-10 bg-ink px-3 py-2 text-paper" : "bg-paper/85 px-2 py-0.5 text-stone hover:bg-paper hover:text-ink",
+              )}
+            >
+              <span className="block whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.06em]">{t.text}</span>
+              {focus === i && t.note && <span className="mt-1 block text-[0.75rem] leading-snug text-paper/85">{t.note}</span>}
+            </button>
+          ) : (
+            <span
+              key={`${t.text}${i}`}
+              ref={(el) => {
+                els.current[i] = el;
+              }}
+              aria-hidden
+              className="absolute left-0 top-0 whitespace-nowrap text-[10px] font-medium uppercase tracking-[0.14em] text-stone-2 opacity-0 transition-opacity duration-500"
+            >
+              {t.text}
+            </span>
+          ),
+        )}
       </div>
     </div>
   );

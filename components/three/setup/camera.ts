@@ -1,6 +1,7 @@
-import type { Setup, SetupSpec, Shell } from "../../../lib/data/types.ts";
+import type { Seg, Setup, SetupSpec, Shell } from "../../../lib/data/types.ts";
 import { shellBounds } from "../../../lib/setup/shell.ts";
-import type { Layout } from "./layouts.ts";
+import { bearingDir } from "../../../lib/tower.ts";
+import { inPoly, type Layout } from "./layouts.ts";
 
 /** The camera views the stage offers. */
 export type Preset = "overview" | "close" | "top";
@@ -106,4 +107,52 @@ export function fitRadius(box: Box, yaw: number, pitch: number, fovY: number, as
         r = Math.max(r, Math.abs(dot(right)) / th + d, Math.abs(dot(up)) / tv + d);
       }
   return r * margin;
+}
+
+/**
+ * A close look at one labeled thing (a core, a room, the bar): a small box around it, seen from the
+ * outside of the floor looking back in, so the walls behind it frame it rather than hide it.
+ */
+export function focusFrame(shell: Shell, at: [number, number], reach = 3.2): Frame {
+  const b = shellBounds(shell);
+  const off = Math.hypot(at[0] - b.cx, at[1] - b.cz) > 1 ? Math.atan2(at[1] - b.cz, at[0] - b.cx) : Math.PI / 4;
+  return { box: { x0: at[0] - reach, x1: at[0] + reach, y0: 0, y1: 1.4, z0: at[1] - reach, z1: at[1] + reach }, yaw: off + 0.35, pitch: 0.62, range: 0.9 };
+}
+
+/** Outward unit normal of an outline edge. */
+export function outward(s: Seg, outline: [number, number][]): [number, number] {
+  const [x0, z0, x1, z1] = s;
+  const len = Math.hypot(x1 - x0, z1 - z0) || 1;
+  let n: [number, number] = [(z1 - z0) / len, -(x1 - x0) / len];
+  if (inPoly((x0 + x1) / 2 + n[0] * 0.3, (z0 + z1) / 2 + n[1] * 0.3, outline)) n = [-n[0], -n[1]];
+  return n;
+}
+
+/** Where to stand to look out along a bearing: just inside a window, at eye level, and which way to face. */
+export type Lookout = { eye: [number, number, number]; at: [number, number, number]; dir: [number, number] };
+
+/**
+ * The window that best faces a true compass bearing (the grid turned by `north`), and a spot a couple
+ * of meters inside it. The window is the glass run whose outward normal is closest to the bearing; the
+ * camera stands behind its middle, looking out along the bearing itself. Null for rooms with no glass.
+ */
+export function windowFor(shell: Shell, bearing: number, north = 0): Lookout | null {
+  if (!shell.glass.length) return null;
+  const dir = bearingDir(bearing, north);
+  let best: { s: Seg; n: [number, number]; score: number } | null = null;
+  for (const s of shell.glass) {
+    const n = outward(s, shell.outline);
+    const score = n[0] * dir[0] + n[1] * dir[1];
+    if (!best || score > best.score) best = { s, n, score };
+  }
+  if (!best || best.score <= 0) return null;
+  const [x0, z0, x1, z1] = best.s;
+  const mx = (x0 + x1) / 2;
+  const mz = (z0 + z1) / 2;
+  const back = 2.2;
+  return {
+    eye: [mx - best.n[0] * back, 1.35, mz - best.n[1] * back],
+    at: [mx + dir[0] * 12, 1.15, mz + dir[1] * 12],
+    dir,
+  };
 }

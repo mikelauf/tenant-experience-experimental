@@ -207,7 +207,7 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] FAQ page (`/venues/faq`) + nav link + "While you wait" on the confirmation page
 - [x] "The space" section: every venue traced into 3D from its booklet plan (incl. Redwood Park), with setups and a live guest-count slider, shipped in production
 - [x] The space, round 2: one control rail (setup list with sketches, guests, inquiry). The 3D room turns by drag and drifts when idle, like the tower. Each setup frames itself: Overview, Close-up and Top-down. Walls, cores and trees clear out of the camera's way. Floor finishes, clothed tables, guests who walk in from the elevators. Floor plan and view sit below.
-- [ ] **Later (agreed Sep 26):** tap a label to fly to it with a note; "Look out from here" (eye level at the window, cross-fading to the view photo); a shareable link holding setup, guests and camera view
+- [x] The space, round 3 (agreed Sep 26): tap a label to fly to it, with a note from the booklet; "Look out from here" walks the camera to the window facing the view and cross-fades into the real view photos (hidden until a venue has views, so Legacy Gallery waits on photos); the page link keeps setup, guests and view (`?setup=&guests=&view=`, `lib/setup/share.ts`) with "Share this setup"; the inquiry picks up the setup
 - [x] 3D explorer replaces the scroll-driven tower: click floors or the jump list, real landmarks by true bearing, "Look out from here" per venue, arrival pins with Google Maps links
 - [ ] Real per-space budget minimums from Chad / OS (all venues use a $10k placeholder)
 - [ ] Loading dock location and street diagrams from Oscar

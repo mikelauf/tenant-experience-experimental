@@ -43,7 +43,7 @@ export type Feature = { icon: IconName; label: string; detail?: string };
 export type Plate = { w: number; d: number; windows: "north" | "east" | "wrap" | "none"; outdoor?: boolean };
 
 /** An axis-aligned rectangle in meters: center and size. */
-export type Rect = { x: number; z: number; w: number; d: number; label?: string };
+export type Rect = { x: number; z: number; w: number; d: number; label?: string; /** A line about it, shown when its label is tapped in 3D */ note?: string };
 /** A line segment in meters: x0, z0, x1, z1 */
 export type Seg = [number, number, number, number];
 

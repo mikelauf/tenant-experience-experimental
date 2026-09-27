@@ -1,17 +1,22 @@
 "use client";
 
-import { motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import dynamic from "next/dynamic";
-import { useDeferredValue, useId, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { setupLabels } from "@/lib/data/shared";
-import type { Rect, Setup, SetupSpec, Shell } from "@/lib/data/types";
+import type { Rect, Setup, SetupSpec, Shell, ViewPhoto } from "@/lib/data/types";
+import { readSpace, spaceQuery } from "@/lib/setup/share";
 import { shellBounds } from "@/lib/setup/shell";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Lazy3D } from "@/components/three/Lazy3D";
-import type { Preset } from "@/components/three/setup/camera";
+import { windowFor, type Preset } from "@/components/three/setup/camera";
 import { makeLayout, perFigure } from "@/components/three/setup/layouts";
 import { ButtonLink } from "@/components/ui/Button";
+import Image from "@/components/ui/SmoothImage";
+import { Icon } from "@/components/ui/Icon";
+import { compass } from "./AnnotatedView";
+import { PhotoTags } from "./PhotoTags";
 
 const SetupCanvas = dynamic(() => import("@/components/three/setup/SetupCanvas"), { ssr: false });
 
@@ -130,7 +135,7 @@ function fullness(guests: number, max: number) {
 }
 
 /** Top-down plan, drawn from the same shell and layout. The poster while 3D loads, and the reduced-motion view. */
-function Plan({ shell, spec, setup, guests }: { shell: Shell; spec: SetupSpec; setup: Setup; guests: number }) {
+export function Plan({ shell, spec, setup, guests }: { shell: Shell; spec: SetupSpec; setup: Setup; guests: number }) {
   const L = useMemo(() => makeLayout(setup, guests, shell, spec), [setup, guests, shell, spec]);
   const b = shellBounds(shell);
   const f = shell.fixed ?? {};
@@ -174,6 +179,107 @@ function Plan({ shell, spec, setup, guests }: { shell: Shell; spec: SetupSpec; s
 }
 
 /**
+ * What you see from the window: the venue's real view photos, filling the stage once the camera has walked
+ * to the glass. Tags sit where the landmarks really are, placed for the stage's crop.
+ */
+function WindowView({ views, onBack, onCovered }: { views: ViewPhoto[]; onBack: () => void; onCovered: () => void }) {
+  const [i, setI] = useState(0);
+  const box = useRef<HTMLDivElement>(null);
+  const [frame, setFrame] = useState(4 / 3);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setFrame(e.contentRect.width / Math.max(1, e.contentRect.height)));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const v = views[i];
+  const go = (d: number) => setI((k) => (k + d + views.length) % views.length);
+
+  return (
+    <motion.div
+      ref={box}
+      className="absolute inset-0 z-20 overflow-hidden bg-night"
+      initial={{ opacity: 0, scale: 1.1 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.06 }}
+      transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={(d: { opacity?: number }) => d.opacity === 1 && onCovered()}
+    >
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={v.src}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Image src={v.src} alt={v.alt} fill sizes="(min-width:1024px) 70vw, 100vw" className="object-cover" style={{ objectPosition: v.pos }} />
+          <PhotoTags img={v} frame={frame} max={4} />
+        </motion.div>
+      </AnimatePresence>
+      <div className="absolute inset-x-0 top-0 flex items-start justify-between gap-3 bg-gradient-to-b from-night/70 to-transparent p-3 sm:p-4">
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 rounded-full bg-paper/90 px-3 py-1.5 text-[0.8125rem] font-medium text-ink shadow-[var(--shadow-soft)] backdrop-blur-md hover:bg-paper"
+        >
+          <Icon name="chevron-left" size={16} />
+          Back to the room
+        </button>
+        <p className="t-meta !text-moon-2 flex items-center gap-1.5 pt-1.5">
+          {v.bearing != null && (
+            <span className="keep-round inline-block size-3 rounded-full border border-current" style={{ transform: `rotate(${v.bearing}deg)` }} aria-hidden>
+              <span className="mx-auto mt-px block h-1.5 w-px bg-current" />
+            </span>
+          )}
+          {v.bearing != null ? `Facing ${compass(v.bearing)}` : null}
+          {views.length > 1 ? ` · ${i + 1} of ${views.length}` : null}
+        </p>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-night/75 to-transparent p-3 pt-10 sm:p-4 sm:pt-12">
+        <p className="min-w-0 text-[0.875rem] font-medium text-moon">{v.caption}</p>
+        {views.length > 1 && (
+          <div className="flex shrink-0 gap-1.5">
+            <button onClick={() => go(-1)} aria-label="Previous view" className="grid size-9 place-items-center rounded-full bg-night/60 text-moon backdrop-blur-md hover:bg-night/80">
+              <Icon name="chevron-left" size={18} />
+            </button>
+            <button onClick={() => go(1)} aria-label="Next view" className="grid size-9 place-items-center rounded-full bg-night/60 text-moon backdrop-blur-md hover:bg-night/80">
+              <Icon name="chevron-right" size={18} />
+            </button>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/** Copies the page's link (the share sheet on phones), then says so for a moment. */
+function ShareButton({ className }: { className?: string }) {
+  const [done, setDone] = useState(false);
+  const share = async () => {
+    const url = window.location.href;
+    try {
+      if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+        await navigator.share({ title: document.title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setDone(true);
+      setTimeout(() => setDone(false), 2200);
+    } catch {
+      // Dismissed share sheet, or no clipboard: nothing to undo
+    }
+  };
+  return (
+    <button onClick={share} className={cn("flex items-center justify-center gap-1.5 text-[0.875rem] font-medium text-stone transition-colors hover:text-ink", className)}>
+      <Icon name={done ? "check" : "share"} size={16} />
+      <span aria-live="polite">{done ? "Link copied" : "Share this setup"}</span>
+    </button>
+  );
+}
+
+/**
  * The room in 3D, set for an event: pick a setup, then drag the guest count and watch the furniture
  * re-flow. `split` puts the controls in a rail beside a large stage (the venue page); `stacked` keeps
  * them above it (member rooms).
@@ -188,6 +294,10 @@ export function SetupVisualizer({
   footnote = "Illustrative layout. Our events team confirms the final plan with you.",
   variant = "stacked",
   inquireHref,
+  views,
+  viewBearing,
+  north,
+  shareable,
 }: {
   shell: Shell;
   setups: Partial<Record<Setup, SetupSpec>>;
@@ -197,19 +307,88 @@ export function SetupVisualizer({
   title?: string;
   footnote?: string;
   variant?: "stacked" | "split";
-  /** Inquiry link; the guest count is added to it */
+  /** Inquiry link; the guest count and setup are added to it */
   inquireHref?: string;
+  /** The venue's view photos, for "Look out from here" */
+  views?: ViewPhoto[];
+  /** Which way the best view faces (degrees from true north), to pick the window */
+  viewBearing?: number;
+  /** The street grid's turn from true north, in degrees */
+  north?: number;
+  /** Keep setup, guests and view in the page's link, and offer to share it */
+  shareable?: boolean;
 }) {
   const keys = Object.keys(setups) as Setup[];
   const [inner, setInner] = useState<Setup>(keys[0]);
   const setup = value && setups[value] ? value : inner;
   const spec = setups[setup]!;
   const [guests, setGuests] = useState(spec.max);
-  const [preset, setPreset] = useState<Preset>("close");
+  const [preset, setPresetRaw] = useState<Preset>("close");
   const [touched, setTouched] = useState(false);
+  const reduce = useReducedMotion();
+
+  // Look out from here: the camera walks to the window facing the view, then the view photo fades in
+  const lookout = useMemo(() => (views?.length && viewBearing != null ? windowFor(shell, viewBearing, north) : null), [views, viewBearing, north, shell]);
+  const [looking, setLooking] = useState(false);
+  const [seen, setSeen] = useState(false);
+  // Once the photo fully covers the stage, the 3D behind it stops drawing
+  const [covered, setCovered] = useState(false);
+  const lookOut = () => {
+    setLooking(true);
+    setChanged(true);
+    if (reduce) setSeen(true);
+  };
+  const back = () => {
+    setSeen(false);
+    setCovered(false);
+    setLooking(false);
+    setChanged(true);
+  };
+  // If the 3D never arrives (still loading, or no WebGL), show the photo anyway
+  useEffect(() => {
+    if (!looking || seen) return;
+    const t = setTimeout(() => setSeen(true), 2400);
+    return () => clearTimeout(t);
+  }, [looking, seen]);
+
+  // Shared links: read the state once on arrival, then keep the link current as people change it
+  const [changed, setChanged] = useState(false);
+  const setPreset = (p: Preset) => {
+    setPresetRaw(p);
+    setLooking(false);
+    setSeen(false);
+    setCovered(false);
+    setChanged(true);
+  };
+  useEffect(() => {
+    if (!shareable) return;
+    const s = readSpace(new URLSearchParams(window.location.search), setups);
+    if (!s || !new URLSearchParams(window.location.search).has("setup")) return;
+    /* eslint-disable react-hooks/set-state-in-effect -- the link is only readable after hydration */
+    setInner(s.setup);
+    setGuests(s.guests);
+    if (s.view === "window") {
+      if (lookout) {
+        setLooking(true);
+        if (reduce) setSeen(true);
+      }
+    } else setPresetRaw(s.view);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    // Arrival only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const uid = useId();
   const shown = Math.min(guests, spec.max);
   const deferred = useDeferredValue(shown);
+
+  useEffect(() => {
+    if (!shareable || !changed) return;
+    const t = setTimeout(() => {
+      const q = spaceQuery({ setup, guests: shown, view: looking ? "window" : preset });
+      window.history.replaceState(null, "", `${window.location.pathname}?${q}${window.location.hash}`);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [shareable, changed, setup, shown, preset, looking]);
 
   const min = spec.min ?? Math.min(10, spec.max);
   const step = spec.max >= 500 ? 10 : 1;
@@ -221,6 +400,7 @@ export function SetupVisualizer({
 
   const choose = (s: Setup) => {
     const next = setups[s]!;
+    setChanged(true);
     setGuests((g) => (g >= spec.max ? next.max : Math.max(next.min ?? Math.min(10, next.max), Math.min(g, next.max))));
     setPreset("close");
     if (onChange) onChange(s);
@@ -315,7 +495,10 @@ export function SetupVisualizer({
         max={spec.max}
         step={step}
         value={shown}
-        onChange={(e) => setGuests(Number(e.target.value))}
+        onChange={(e) => {
+          setGuests(Number(e.target.value));
+          setChanged(true);
+        }}
         aria-valuetext={`${shown} guests, ${setupLabels[setup].toLowerCase()}`}
         className="scrub scrub-day w-full"
         style={{ "--p": `${pct}%` } as React.CSSProperties}
@@ -346,14 +529,35 @@ export function SetupVisualizer({
       }
     >
       {({ active, onReady }) => (
-        <SetupCanvas shell={shell} spec={spec} setup={setup} guests={deferred} preset={preset} active={active} onReady={onReady} onInteract={() => setTouched(true)} />
+        <SetupCanvas
+          shell={shell}
+          spec={spec}
+          setup={setup}
+          guests={deferred}
+          preset={preset}
+          active={active && !covered}
+          onReady={onReady}
+          onInteract={() => setTouched(true)}
+          look={looking ? lookout : null}
+          onLook={() => setSeen(true)}
+        />
       )}
     </Lazy3D>
   );
 
   // Camera views, floating over the stage. Hidden without motion, where the flat plan stands in.
-  const views = (
+  const cameraViews = (
     <>
+      <AnimatePresence>{seen && views && <WindowView key="window" views={views} onBack={back} onCovered={() => setCovered(true)} />}</AnimatePresence>
+      {lookout && !looking && (
+        <button
+          onClick={lookOut}
+          className="absolute right-3 top-3 z-10 flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-[0.8125rem] font-medium text-paper shadow-[var(--shadow-soft)] transition-transform hover:scale-[1.03] sm:right-4 sm:top-4"
+        >
+          <Icon name="view" size={16} />
+          Look out from here
+        </button>
+      )}
       <div
         role="radiogroup"
         aria-label="Camera view"
@@ -363,14 +567,14 @@ export function SetupVisualizer({
           <button
             key={p.id}
             role="radio"
-            aria-checked={preset === p.id}
+            aria-checked={preset === p.id && !looking}
             onClick={() => setPreset(p.id)}
             className={cn(
               "relative whitespace-nowrap rounded-full px-3 py-1.5 text-[0.8125rem] font-medium transition-colors duration-300 sm:px-3.5",
-              preset === p.id ? "text-paper" : "text-stone hover:text-ink",
+              preset === p.id && !looking ? "text-paper" : "text-stone hover:text-ink",
             )}
           >
-            {preset === p.id && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
+            {preset === p.id && !looking && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
             <span className="relative">{p.label}</span>
           </button>
         ))}
@@ -390,7 +594,7 @@ export function SetupVisualizer({
   );
 
   const cta = inquireHref && (
-    <ButtonLink href={`${inquireHref}${inquireHref.includes("?") ? "&" : "?"}guests=${shown}`} variant="accent" icon="arrow-right" className="w-full">
+    <ButtonLink href={`${inquireHref}${inquireHref.includes("?") ? "&" : "?"}guests=${shown}&setup=${setup}`} variant="accent" icon="arrow-right" className="w-full">
       Inquire for {shown.toLocaleString("en-US")} guests
     </ButtonLink>
   );
@@ -400,7 +604,7 @@ export function SetupVisualizer({
       <div className={cn("grid overflow-hidden rounded-[var(--radius-media)] bg-paper shadow-[var(--shadow-ring)] lg:grid-cols-[minmax(0,1fr)_340px]", className)}>
         <div className="relative min-w-0 bg-[radial-gradient(ellipse_at_50%_40%,var(--color-paper),var(--color-quartz))]">
           {stage}
-          {views}
+          {cameraViews}
         </div>
         <div className="flex flex-col gap-6 border-t hairline p-5 sm:p-7 lg:border-l lg:border-t-0">
           {list}
@@ -409,6 +613,7 @@ export function SetupVisualizer({
           <div className="mt-auto space-y-4">
             {source}
             {cta}
+            {shareable && <ShareButton className="w-full" />}
             <p className="t-meta">{footnote}</p>
           </div>
         </div>
@@ -425,7 +630,7 @@ export function SetupVisualizer({
       <div className="px-5 pt-5 sm:px-7">{slider}</div>
       <div className="relative">
         {stage}
-        {views}
+        {cameraViews}
       </div>
       <div className="space-y-2 px-5 pb-5 sm:px-7 sm:pb-6">
         {source}

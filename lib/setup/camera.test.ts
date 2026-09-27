@@ -1,8 +1,8 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import type { Setup } from "../data/types.ts";
-import { fitRadius, frameFor } from "../../components/three/setup/camera.ts";
-import { makeLayout } from "../../components/three/setup/layouts.ts";
+import { fitRadius, focusFrame, frameFor, windowFor } from "../../components/three/setup/camera.ts";
+import { inPoly, makeLayout } from "../../components/three/setup/layouts.ts";
 import { layouts } from "../tenants/pyramid/shells.ts";
 import { shellBounds } from "./shell.ts";
 
@@ -51,4 +51,33 @@ test("fitting is monotonic: a wider stage needs less distance", () => {
   const narrow = fitRadius(box, 0.8, 0.7, 0.5, 0.8);
   const wide = fitRadius(box, 0.8, 0.7, 0.5, 2);
   assert.ok(wide < narrow && wide > 0);
+});
+
+test("a label's close look keeps the label in the middle of the frame", () => {
+  for (const [venue, { shell }] of Object.entries(layouts)) {
+    for (const r of [...shell.solids, ...(shell.rooms ?? [])].filter((r) => r.label)) {
+      const { box } = focusFrame(shell, [r.x, r.z]);
+      assert.ok(Math.abs((box.x0 + box.x1) / 2 - r.x) < 1e-9 && Math.abs((box.z0 + box.z1) / 2 - r.z) < 1e-9, `${venue} ${r.label}`);
+    }
+  }
+});
+
+// Each venue's best view, as in the tenant bundle (degrees from true north), on a grid 9.1° west of north
+const bearings: Record<string, number> = { "sky-bar": 335, "bay-lounge": 345, "legacy-gallery": 300 };
+const north = -9.1;
+
+test("looking out stands inside the room, at a window facing the view", () => {
+  for (const [venue, bearing] of Object.entries(bearings)) {
+    const { shell } = layouts[venue as keyof typeof layouts];
+    const w = windowFor(shell, bearing, north);
+    assert.ok(w, `${venue}: no window found`);
+    assert.ok(inPoly(w.eye[0], w.eye[2], shell.outline), `${venue}: eye outside the floor`);
+    // The look runs roughly north-northwest for every venue, so it heads toward Washington St (−z)
+    assert.ok(w.at[2] < w.eye[2], `${venue}: not looking north`);
+    assert.ok(w.eye[1] > 1 && w.eye[1] < 2, `${venue}: not at eye level`);
+  }
+});
+
+test("an outdoor venue has no window to look out of", () => {
+  assert.equal(windowFor(layouts["redwood-park"].shell, 0, north), null);
 });

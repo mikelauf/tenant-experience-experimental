@@ -9,7 +9,8 @@ import { budgetOptions } from "@/lib/core/inquiry/budget";
 import { MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/contract";
 import { getPublicCampaign } from "@/lib/core/inquiry/campaign";
 import { INQUIRY_CLIENT_TIMEOUT_MS } from "@/lib/core/inquiry/timeouts";
-import { eventTypes, guestsShort } from "@/lib/data/shared";
+import { eventTypes, guestsShort, setupLabels } from "@/lib/data/shared";
+import type { Setup } from "@/lib/data/types";
 import { isDemo } from "@/lib/flags";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
@@ -169,7 +170,7 @@ const EVENT_PHRASE: Record<string, string> = {
   "Something else": "an event",
 };
 
-export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string; layout?: string } }) {
+export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string; layout?: string; setup?: string } }) {
   const tenant = useTenant();
   const { venues: all, publicHost: host, building, copy } = tenant;
   const router = useRouter();
@@ -179,6 +180,8 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const top = useRef<HTMLFormElement>(null);
 
   const initialVenue = initial.venue && (all.some((x) => x.slug === initial.venue) || initial.venue === NOT_SURE) ? [initial.venue] : [];
+  // Coming from a venue's 3D space with a setup picked: start the note with it, for them to keep or edit
+  const fromSetup = all.find((x) => x.slug === initial.venue)?.layout?.setups[initial.setup as Setup] ? (initial.setup as Setup) : undefined;
   const [v, setV] = useState<Values>({
     date: /^\d{4}-\d{2}-\d{2}$/.test(initial.date ?? "") ? initial.date! : "",
     flexible: false,
@@ -186,7 +189,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
     venues: initialVenue,
     eventType: "",
     budget: "",
-    message: "",
+    message: fromSetup ? `We're picturing a ${setupLabels[fromSetup].toLowerCase()} setup.` : "",
     firstName: "",
     lastName: "",
     email: "",
