@@ -789,7 +789,16 @@ export default function SetupCanvas({
 
   return (
     <div className="relative h-full w-full cursor-grab touch-pan-y active:cursor-grabbing [&_canvas]:touch-pan-y">
-      <Canvas shadows dpr={[1, 2]} frameloop={active ? "always" : "never"} gl={{ antialias: true, alpha: true }} onCreated={() => onReady?.()} aria-hidden>
+      <Canvas
+        shadows
+        dpr={[1, 2]}
+        frameloop={active ? "always" : "never"}
+        gl={{ antialias: true, alpha: true }}
+        // Layout size, not the transformed box (Lazy3D scales scenes in from 97%)
+        resize={{ offsetSize: true }}
+        onCreated={() => onReady?.()}
+        aria-hidden
+      >
         <PerspectiveCamera makeDefault fov={FOV} position={[b.cx + 30, 30, b.cz + 30]} />
         <Rig frame={frame} view={view} onInteract={onInteract} still={preset === "top" || focus != null} look={look} onLook={onLook} />
         {/* Soft, even studio light made from panels, so nothing loads from the network */}

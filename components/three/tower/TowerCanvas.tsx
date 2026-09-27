@@ -345,6 +345,9 @@ export default function TowerCanvas({
         frameloop={active ? "always" : "demand"}
         camera={{ position: [20, 12, 20], fov: 32, near: 0.5, far: 120 }}
         gl={{ antialias: true, alpha: true }}
+        // Measure layout size, not the on-screen box: Lazy3D fades scenes in from 97% scale, and a transformed
+        // measurement would leave the canvas 3% short on every side it doesn't hit
+        resize={{ offsetSize: true }}
         onPointerMissed={() => setHover(null)}
         aria-hidden
       >
