@@ -7,8 +7,8 @@ export type Shape = "rounded" | "flat";
 
 export const SHAPE_KEY = "pyramid-shape";
 
-/** Runs in <head> before paint so a flat reload never flashes rounded corners. */
-export const shapeBootScript = `try{if(localStorage.getItem("${SHAPE_KEY}")==="flat")document.documentElement.dataset.shape="flat"}catch(e){}`;
+/** Runs in <head> before paint. Flat is the default; only a reviewer who picked rounded gets rounded corners. */
+export const shapeBootScript = `try{if(localStorage.getItem("${SHAPE_KEY}")!=="rounded")document.documentElement.dataset.shape="flat"}catch(e){document.documentElement.dataset.shape="flat"}`;
 
 const listeners = new Set<() => void>();
 const read = (): Shape => (document.documentElement.dataset.shape === "flat" ? "flat" : "rounded");
@@ -30,6 +30,6 @@ export function useShape(): Shape {
       return () => listeners.delete(l);
     },
     read,
-    () => "rounded",
+    () => "flat",
   );
 }

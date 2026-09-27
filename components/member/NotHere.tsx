@@ -12,7 +12,7 @@ export function NotHere({ service, building }: { service: string; building: stri
         Every Playbook building has its own mix of services. The concierge can point you to the closest alternative.
       </p>
       <div className="mt-8">
-        <ButtonLink href="/" icon="arrow-right">
+        <ButtonLink href="/home" icon="arrow-right">
           Back to home
         </ButtonLink>
       </div>

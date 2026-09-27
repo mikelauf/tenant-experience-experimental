@@ -37,7 +37,7 @@ export function DemoDock() {
     switchTenant(id);
     setOpen(false);
     setLeaving(id);
-    window.setTimeout(() => window.location.assign(isPublic ? "/venues" : "/"), 650);
+    window.setTimeout(() => window.location.assign(isPublic ? "/venues" : "/home"), 650);
   };
 
   useEffect(() => {
@@ -115,7 +115,7 @@ export function DemoDock() {
 
             <div className="mt-4 grid grid-cols-2 gap-1 rounded-full bg-night-3 p-1 text-[0.875rem]">
               {[
-                { href: "/", label: "Member app", on: !isPublic },
+                { href: "/home", label: "Member app", on: !isPublic },
                 { href: "/venues", label: "Public venues", on: isPublic },
               ].map((x) => (
                 <Link
@@ -234,7 +234,7 @@ export function DemoDock() {
               onClick={() => {
                 actions.reset();
                 setOpen(false);
-                router.push(isPublic ? "/venues" : "/");
+                router.push(isPublic ? "/venues" : "/home");
               }}
               className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-night-line py-2.5 text-[0.875rem] font-medium text-moon hover:bg-night-2"
             >

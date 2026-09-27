@@ -28,7 +28,10 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     // Old Tenant Experience URLs on the same domain keep working.
-    return production ? [{ source: "/spaces/:slug", destination: "/venues/:slug", permanent: true }] : [];
+    // The demo opens on the public venue site too; the member app lives at /home.
+    return production
+      ? [{ source: "/spaces/:slug", destination: "/venues/:slug", permanent: true }]
+      : [{ source: "/", destination: "/venues", permanent: false }];
   },
 };
 

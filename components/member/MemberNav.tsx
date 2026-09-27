@@ -18,14 +18,14 @@ function useMemberNav(): Item[] {
   const { building, fitness } = useTenant();
   const on = building.services;
   return [
-    { href: "/", label: "Home", icon: "home" as const, on: true },
+    { href: "/home", label: "Home", icon: "home" as const, on: true },
     { href: "/spaces", label: "Spaces", icon: "spaces" as const, on: on.spaces },
     { href: "/fitness", label: "Fitness", icon: "fitness" as const, on: on.fitness && !!fitness },
     { href: "/programming", label: "Events", icon: "programming" as const, on: on.programming },
   ].filter((i) => i.on);
 }
 
-const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+const isActive = (path: string, href: string) => (href === "/home" ? path === "/home" : path.startsWith(href));
 
 function useUpcomingCount() {
   const s = useDemo();
@@ -83,7 +83,7 @@ export function MemberTopNav() {
       )}
     >
       <div className="frame flex h-[var(--nav-h)] items-center justify-between gap-6">
-        <Link href="/" className="flex items-center gap-2.5" aria-label={`${building.name}, member home`}>
+        <Link href="/home" className="flex items-center gap-2.5" aria-label={`${building.name}, member home`}>
           <Mark size={24} />
           <span className="flex flex-col leading-none">
             <span className="text-[1.0625rem] font-semibold tracking-[-0.03em] [font-stretch:88%]">{building.name}</span>

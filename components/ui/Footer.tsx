@@ -26,7 +26,7 @@ export async function Footer({ variant }: { variant: "member" | "public" }) {
           ...t.venues.map((v) => ({ href: `/venues/${v.slug}`, label: v.name })),
           { href: "/venues/inquire", label: "Start an inquiry" },
           ...(copy.public.faq?.length ? [{ href: "/venues/faq", label: "Questions & answers" }] : []),
-          ...(isDemo ? [{ href: "/", label: "Work here? Member site" }] : []),
+          ...(isDemo ? [{ href: "/home", label: "Work here? Member site" }] : []),
         ];
   // The member footer shows the concierge desk; the public one only shows a confirmed events contact.
   const contact =

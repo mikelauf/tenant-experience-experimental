@@ -20,9 +20,9 @@ function describe(path: string) {
 export function SignIn() {
   const router = useRouter();
   const params = useSearchParams();
-  const raw = params.get("returnTo") ?? "/";
+  const raw = params.get("returnTo") ?? "/home";
   // Only allow same-site paths
-  const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/";
+  const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
   const { member: currentMember, copy, fitness } = useTenant();
   const img = copy.signInImg;
   const [email, setEmail] = useState(currentMember.email);
