@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { getImageProps } from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { preload } from "react-dom";
 import Image from "@/components/ui/SmoothImage";
@@ -73,7 +74,10 @@ export function BuildingExplorer() {
     ...byLevel.map((v) => ({ id: v.slug, label: v.name.replace(/^Transamerica /, ""), level: v.level, venue: v })),
     ...(pois.length ? [{ id: "arrive", label: "Arriving", level: 0, arrive: true }] : []),
   ];
-  const [id, setId] = useState("overview");
+  // `?floor=sky-bar` (the venue pages' locator) opens that floor straight away, in place of the scroll tour
+  const floorParam = useSearchParams().get("floor");
+  const linked = stops.some((s) => s.id === floorParam && s.id !== "overview") ? floorParam : null;
+  const [id, setId] = useState(linked ?? "overview");
   const [landmarks, setLandmarks] = useState(true);
   // Arriving: the place under the pointer, and the one the camera has flown to
   const [poi, setPoi] = useState<string | null>(null);
@@ -168,7 +172,7 @@ export function BuildingExplorer() {
     touring,
     extra,
     end: endTour,
-  } = useTour({ enabled: stage.ready && stage.wide && !reduce, count: stops.length, stageRef, onStop: (i) => show(stops[i].id) });
+  } = useTour({ enabled: stage.ready && stage.wide && !reduce && !linked, count: stops.length, stageRef, onStop: (i) => show(stops[i].id) });
   const go = (next: string) => {
     endTour();
     show(next);
@@ -248,9 +252,25 @@ export function BuildingExplorer() {
     wide.current = stage.wide;
     touringRef.current = touring;
   }, [stage.wide, touring]);
+  // Arriving by a floor link: once the stage is measured, jump it into view (no glide down the whole page)
+  const rootRef = useRef<HTMLDivElement>(null);
+  const arrived = useRef(!linked);
+  useEffect(() => {
+    if (arrived.current || !stage.ready) return;
+    arrived.current = true;
+    const el = stage.wide ? stageRef.current : rootRef.current;
+    if (!el) return;
+    const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 68;
+    const r = el.getBoundingClientRect();
+    const want = stage.wide ? Math.min(nav + 16, window.innerHeight - 16 - r.height) : nav + 12;
+    const y = window.scrollY + r.top - want;
+    const lenis = window.__lenis;
+    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+    else window.scrollTo({ top: y, behavior: "instant" });
+  }, [stage.ready, stage.wide, stageRef]);
   useEffect(() => {
     const el = stageRef.current;
-    if (id === "overview" || !wide.current || touringRef.current || !el) return;
+    if (!arrived.current || id === "overview" || !wide.current || touringRef.current || !el) return;
     const r = el.getBoundingClientRect();
     const nav = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--nav-h")) || 68;
     const top = nav + 16;
@@ -323,7 +343,7 @@ export function BuildingExplorer() {
   );
 
   return (
-    <div>
+    <div ref={rootRef}>
       {/* Phones: floor chips above the stage */}
       <div className="frame">
         <FloorChips stops={stops} current={stop.id} onPick={toggle} />
