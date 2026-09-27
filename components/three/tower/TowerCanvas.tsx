@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from "react";
 import * as THREE from "three";
-import { levelY, neighborsFor, sceneLandmarks, topOf, treesFor, trueNorth, type TowerProfile } from "@/lib/tower";
+import { LANDMARK_REACH, levelY, neighborsFor, sceneLandmarks, topOf, treesFor, trueNorth, yawForBearing, type SceneLandmark, type TowerProfile } from "@/lib/tower";
 
 import { makeEnv, mixEnv, type Env } from "./env";
 import { Landmarks, landmarkTop } from "./landmarks";
@@ -771,6 +771,7 @@ function AnchorTracker({ anchors, els, center }: { anchors: THREE.Vector3[]; els
       const hidden = _proj.z > 1 || Math.abs(_proj.x) > 1.05 || Math.abs(_proj.y) > 1.05;
       el.style.transform = `translate3d(${((_proj.x + 1) / 2) * size.width}px, ${((1 - _proj.y) / 2) * size.height}px, 0) ${center ? "translate(-50%, -100%)" : "translateY(-50%)"}`;
       el.style.opacity = hidden ? "0" : "1";
+      el.style.pointerEvents = hidden ? "none" : "";
     });
   });
   return null;
@@ -872,6 +873,7 @@ function Rig({
   zoom,
   street,
   spot,
+  look,
 }: {
   p: TowerProfile;
   level: number | null;
@@ -882,6 +884,8 @@ function Rig({
   zoom?: number;
   street?: boolean;
   spot?: [number, number] | null;
+  /** Look out along this true bearing: the camera swings round behind the floor, facing that way */
+  look?: number | null;
 }) {
   const { camera, size, gl } = useThree();
   const narrow = size.width < 640;
@@ -952,6 +956,20 @@ function Rig({
     idleUntil.current = performance.now() + 6000;
   }, [street, sx, sz, p]);
 
+  // Looking out: swing round behind the floor to face the bearing, a touch off-axis so the tower doesn't hide the view,
+  // and hold there (no drift) until the view changes or someone drags
+  useEffect(() => {
+    // Done looking: let the drift pick back up shortly
+    if (look == null) {
+      idleUntil.current = Math.min(idleUntil.current, performance.now() + 1500);
+      return;
+    }
+    const target = yawForBearing(look, p.north) - 0.2;
+    aim.current = yaw.current + wrap(target - yaw.current);
+    vel.current = 0;
+    idleUntil.current = performance.now() + 60_000;
+  }, [look, p]);
+
   useFrame((_, dt) => {
     const v = street ? streetView(p, spot ?? null, narrow) : viewFor(p, level, narrow, zoom);
     const dragging = !!drag.current;
@@ -1003,6 +1021,34 @@ function Rig({
 
 /* ------------------------------------------------------------------ scene */
 
+/** A pulsing ring on the ground and a faint beam of light, marking a landmark that's in the photo on show. */
+function Halo({ l, color }: { l: SceneLandmark; color: string }) {
+  const ring = useRef<THREE.Mesh>(null);
+  const beam = useRef<THREE.MeshBasicMaterial>(null);
+  const r = Math.max(LANDMARK_REACH[l.kind], 1.4) + 0.6;
+  const top = landmarkTop(l).y;
+  useFrame(({ clock }) => {
+    const t = (clock.elapsedTime % 2.2) / 2.2;
+    if (ring.current) {
+      ring.current.scale.setScalar(0.7 + t * 0.6);
+      (ring.current.material as THREE.MeshBasicMaterial).opacity = 0.75 * (1 - t);
+    }
+    if (beam.current) beam.current.opacity = 0.16 + Math.sin(clock.elapsedTime * 2.4) * 0.05;
+  });
+  return (
+    <group position={[l.x, 0, l.z]}>
+      <mesh ref={ring} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+        <ringGeometry args={[r * 0.92, r, 64]} />
+        <meshBasicMaterial color={color} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+      <mesh position={[0, top / 2 + 0.2, 0]}>
+        <cylinderGeometry args={[0.1, r * 0.35, top + 0.4, 24, 1, true]} />
+        <meshBasicMaterial ref={beam} color={color} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
 function Ground({ env, radius = 14.5 }: { env: Env; radius?: number }) {
   const mat = useRef<THREE.MeshStandardMaterial>(null);
   useFrame(() => mat.current?.color.copy(env.ground));
@@ -1053,6 +1099,12 @@ export type TowerCanvasProps = {
   onPoiHover?: (id: string | null) => void;
   /** Where the compass sits, as classes; no compass without it */
   compass?: string;
+  /** Face this true compass bearing from the selected floor (a view photo's direction) */
+  lookBearing?: number | null;
+  /** Landmarks to point out (the ones in the photo on show), by name */
+  activeLandmarks?: string[];
+  /** Landmark labels become buttons */
+  onLandmark?: (name: string) => void;
 };
 
 /** Ready means the first frame has actually been drawn, not just that the context exists. */
@@ -1092,6 +1144,9 @@ export default function TowerCanvas({
   onPoi,
   onPoiHover,
   compass,
+  lookBearing,
+  activeLandmarks,
+  onLandmark,
 }: TowerCanvasProps) {
   // One mutable light state per canvas; useFrame blends it every frame
   const [env] = useState(() => makeEnv(sun));
@@ -1140,7 +1195,7 @@ export default function TowerCanvas({
         <PerformanceMonitor onDecline={() => setDpr(1.25)} />
         <FirstFrame onReady={onReady} />
         <Sky sun={sun} env={env} />
-        <Rig p={p} level={level} auto={auto} focus={focus} onInteract={onInteract} shift={shift} zoom={zoom} street={pois} spot={spot} />
+        <Rig p={p} level={level} auto={auto} focus={focus} onInteract={onInteract} shift={shift} zoom={zoom} street={pois} spot={spot} look={lookBearing} />
         <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} />
         <Park p={p} env={env} glow={level === 0 ? 0.14 : 0} color={accent} onPick={onPick ? () => onPick(0) : undefined} />
         <City p={p} env={env} focus={focus} />
@@ -1152,6 +1207,7 @@ export default function TowerCanvas({
         <Ground env={env} radius={p.ground} />
         <Water env={env} hills={!!p.landmarks?.length} turn={-(p.north ?? 0)} />
         {landmarks && <Landmarks p={p} env={env} focus={focus} />}
+        {landmarks && shownLandmarks.filter((l) => activeLandmarks?.includes(l.name)).map((l) => <Halo key={l.name} l={l} color={accent} />)}
         {hotspots && <HotspotTracker p={p} levels={hotspotLevels} els={hotspotEls} />}
         {landmarks && <AnchorTracker anchors={landmarkAnchors} els={landmarkEls} center />}
         {pois && <PoiMarkers p={p} color={accent} active={activePoi} />}
@@ -1160,17 +1216,26 @@ export default function TowerCanvas({
         {pois && compass && <CompassTracker focus={focus} el={compassEl} north={north} />}
         <ContactShadows position={[0, 0.01, 0]} opacity={env.shadow} scale={14} blur={2.4} far={6} />
       </Canvas>
-      {shownLandmarks.map((l, i) => (
-        <span
-          key={l.name}
-          ref={(el) => {
-            landmarkEls.current[i] = el;
-          }}
-          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-black/30 px-2 py-0.5 text-[0.625rem] font-medium tracking-[0.01em] text-white/65 opacity-0 backdrop-blur-sm transition-opacity duration-300"
-        >
-          {l.name}
-        </span>
-      ))}
+      {shownLandmarks.map((l, i) => {
+        const on = !!activeLandmarks?.includes(l.name);
+        return (
+          <button
+            key={l.name}
+            ref={(el) => {
+              landmarkEls.current[i] = el;
+            }}
+            type="button"
+            tabIndex={onLandmark ? 0 : -1}
+            onClick={() => onLandmark?.(l.name)}
+            aria-label={onLandmark ? `${l.name}: find it in a view` : l.name}
+            className={`absolute left-0 top-0 whitespace-nowrap rounded-full font-medium opacity-0 backdrop-blur-sm transition-[opacity,background-color,color,padding,font-size] duration-300 ${
+              onLandmark ? "cursor-pointer" : "pointer-events-none"
+            } ${on ? "z-10 bg-accent px-2.5 py-1 text-[0.75rem] text-paper shadow-[var(--shadow-float)]" : "bg-black/30 px-2 py-0.5 text-[0.625rem] tracking-[0.01em] text-white/65 hover:bg-black/55 hover:text-white"}`}
+          >
+            {l.name}
+          </button>
+        );
+      })}
       {shownStreets.map((x, i) => (
         <span
           key={x.name}

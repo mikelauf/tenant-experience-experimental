@@ -209,6 +209,7 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] The space, round 2: one control rail (setup list with sketches, guests, inquiry). The 3D room turns by drag and drifts when idle, like the tower. Each setup frames itself: Overview, Close-up and Top-down. Walls, cores and trees clear out of the camera's way. Floor finishes, clothed tables, guests who walk in from the elevators. Floor plan and view sit below.
 - [x] The space, round 3 (agreed Sep 26): tap a label to fly to it, with a note from the booklet; "Look out from here" walks the camera to the window facing the view and cross-fades into the real view photos (hidden until a venue has views, so Legacy Gallery waits on photos); the page link keeps setup, guests and view (`?setup=&guests=&view=`, `lib/setup/share.ts`) with "Share this setup"; the inquiry picks up the setup
 - [x] 3D explorer replaces the scroll-driven tower: click floors or the jump list, real landmarks by true bearing, "Look out from here" per venue, arrival pins with Google Maps links
+- [x] Views ↔ 3D: stepping through a venue's view photos turns the tower to face each one, and the landmarks in the photo light up (label, ground ring, beam). Landmark labels are buttons: one opens the nearest floor's photo that shows it, or just turns to face it when no photo does.
 - [ ] Real per-space budget minimums from Chad / OS (all venues use a $10k placeholder)
 - [ ] Loading dock location and street diagrams from Oscar
 - [ ] AI "ask a question" box (waiting on Danielle's knowledge-base doc and Matt's backend decision)

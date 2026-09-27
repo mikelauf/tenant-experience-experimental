@@ -102,13 +102,30 @@ function Header({ meta, title, tagline, ride, onClose }: { meta: string; title: 
   );
 }
 
-type Tab = "photos" | "plan" | "view";
+export type Tab = "photos" | "plan" | "view";
 const TAB_LABEL: Record<Tab, string> = { photos: "Photos", plan: "Floor plan", view: "The view" };
 
 /** A venue: headline, a media frame (photos with an always-visible strip, the floor plan, the tagged view), facts, and the way in. */
-export function VenueStage({ v, ride, onClose }: { v: Venue; ride: Ride; onClose: () => void }) {
+export function VenueStage({
+  v,
+  ride,
+  onClose,
+  tab,
+  onTab,
+  viewIndex,
+  onViewIndex,
+}: {
+  v: Venue;
+  ride: Ride;
+  onClose: () => void;
+  /** The media tab and the view photo on show are the explorer's, since the 3D turns to face the view */
+  tab: Tab;
+  onTab: (t: Tab) => void;
+  viewIndex: number;
+  onViewIndex: (i: number) => void;
+}) {
   const tabs = (["photos", "plan", "view"] as const).filter((t) => (t === "photos" ? v.gallery.length : t === "plan" ? v.floorPlans?.length : v.views?.length));
-  const [tab, setTab] = useState<Tab>("photos");
+  const setTab = onTab;
   const facts: [string, string][] = [
     [v.capacity ? v.capacity.toLocaleString("en-US") : "—", v.capacity ? "Guests, up to" : (v.capacityNote ?? "Guests on request")],
     [v.sqft ? v.sqft.toLocaleString("en-US") : "—", "Square feet"],
@@ -139,7 +156,7 @@ export function VenueStage({ v, ride, onClose }: { v: Venue; ride: Ride; onClose
       <div className="mx-5 mt-3 flex min-h-0 flex-1 flex-col">
         {tab === "photos" && <Photos gallery={v.gallery} />}
         {tab === "plan" && v.floorPlans?.[0] && <Plan plan={v.floorPlans[0]} title={v.name} />}
-        {tab === "view" && v.views && <Views views={v.views} />}
+        {tab === "view" && v.views && <Views views={v.views} i={Math.min(viewIndex, v.views.length - 1)} onI={onViewIndex} />}
       </div>
 
       <dl className="mx-5 mt-4 grid shrink-0 grid-cols-3 border-t border-white/10 pt-3">
@@ -239,10 +256,9 @@ function Plan({ plan, title }: { plan: NonNullable<Venue["floorPlans"]>[number];
  * The real view from the venue, with its landmarks tagged. The photo is fitted inside the frame at its own
  * proportions (container units), so the tags stay exactly where they belong at any panel height.
  */
-function Views({ views }: { views: ViewPhoto[] }) {
-  const [i, setI] = useState(0);
+function Views({ views, i, onI }: { views: ViewPhoto[]; i: number; onI: (i: number) => void }) {
   const v = views[i];
-  const go = (d: number) => setI((k) => (k + d + views.length) % views.length);
+  const go = (d: number) => onI((i + d + views.length) % views.length);
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-2">
       <div className="grid h-[72vw] place-items-center lg:h-auto lg:min-h-0 lg:flex-1" style={{ containerType: "size" }}>
@@ -271,7 +287,7 @@ function Views({ views }: { views: ViewPhoto[] }) {
       <div className="flex shrink-0 items-center justify-between gap-3">
         <span className="min-w-0">
           <span className="block truncate text-[0.8125rem] font-medium">{v.caption}</span>
-          {v.bearing != null && <span className="t-meta">Facing {compass(v.bearing)}</span>}
+          {v.bearing != null && <span className="t-meta">Facing {compass(v.bearing)} · the model turns to match</span>}
         </span>
         {views.length > 1 && (
           <span className="flex shrink-0 items-center gap-1">

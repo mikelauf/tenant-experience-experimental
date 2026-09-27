@@ -13,7 +13,7 @@ import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Icon } from "@/components/ui/Icon";
 import { Tower } from "@/components/three/Tower";
 import { DWELL_MS, FloorMarker, PEEK_MS } from "./explorer/FloorMarker";
-import { ArrivalStage, STAGE_PHOTO_SIZES, StagePanel, VenueStage, type Ride } from "./explorer/VenueStage";
+import { ArrivalStage, STAGE_PHOTO_SIZES, StagePanel, VenueStage, type Ride, type Tab } from "./explorer/VenueStage";
 import { useTour } from "./explorer/useTour";
 
 type Stop = { id: string; label: string; level: number | null; venue?: Venue; arrive?: boolean };
@@ -81,6 +81,34 @@ export function BuildingExplorer() {
     setId(next);
     setPoi(null);
     setSpot(null);
+  };
+
+  // The open venue's media tab and view photo. They belong to one venue, so opening another starts on its photos.
+  const [media, setMedia] = useState<{ slug: string; tab: Tab; i: number }>({ slug: "", tab: "photos", i: 0 });
+  const tab: Tab = v && media.slug === v.slug ? media.tab : "photos";
+  const viewIndex = v && media.slug === v.slug ? media.i : 0;
+  const shownView = v && tab === "view" ? v.views?.[Math.min(viewIndex, v.views.length - 1)] : undefined;
+  // A landmark nobody has a photo of: just face it
+  const [pointed, setPointed] = useState<{ slug: string; name: string } | null>(null);
+  const pointedHere = pointed && v && pointed.slug === v.slug && tab !== "view" ? tower.landmarks?.find((l) => l.name === pointed.name) : undefined;
+  const lookBearing = shownView ? (shownView.bearing ?? v?.viewBearing ?? null) : (pointedHere?.bearing ?? null);
+  const activeLandmarks = shownView ? (shownView.tags ?? []).map((x) => x.label) : pointedHere ? [pointedHere.name] : [];
+
+  /** A landmark's label, clicked: show the photo that has it, from this floor if one does, else from the nearest floor that does. */
+  const findLandmark = (name: string) => {
+    const has = (x: (typeof venues)[number]) => (x.views ?? []).findIndex((p) => p.tags?.some((t) => t.label === name));
+    const order = v ? [v, ...[...byLevel].sort((a, b) => Math.abs(a.level - v.level) - Math.abs(b.level - v.level)).filter((x) => x !== v)] : byLevel;
+    const hit = order.find((x) => has(x) >= 0);
+    if (hit) {
+      setMedia({ slug: hit.slug, tab: "view", i: has(hit) });
+      setPointed(null);
+      if (hit.slug !== id) go(hit.slug);
+      return;
+    }
+    const here = v ?? byLevel.find((x) => x.views?.length) ?? byLevel[0];
+    setPointed({ slug: here.slug, name });
+    setMedia({ slug: here.slug, tab: "photos", i: 0 });
+    if (here.slug !== id) go(here.slug);
   };
 
   // Desktop, first time down the page: scrolling rides the building stop by stop. Any choice of their own ends it.
@@ -223,7 +251,20 @@ export function BuildingExplorer() {
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         >
-          {v && <VenueStage v={v} ride={ride} onClose={() => go("overview")} />}
+          {v && (
+            <VenueStage
+              v={v}
+              ride={ride}
+              onClose={() => go("overview")}
+              tab={tab}
+              onTab={(next) => {
+                setMedia({ slug: v.slug, tab: next, i: 0 });
+                setPointed(null);
+              }}
+              viewIndex={viewIndex}
+              onViewIndex={(i) => setMedia({ slug: v.slug, tab: "view", i })}
+            />
+          )}
           {stop.arrive && <ArrivalStage pois={pois} active={poi ?? spot} onActive={setPoi} onFocus={setSpot} ride={ride} onClose={() => go("overview")} />}
         </motion.div>
       </AnimatePresence>
@@ -249,6 +290,9 @@ export function BuildingExplorer() {
             level={stop.arrive ? null : stop.level}
             sun={0.55}
             landmarks={landmarks}
+            lookBearing={open && !stop.arrive ? lookBearing : null}
+            activeLandmarks={open && !stop.arrive ? activeLandmarks : []}
+            onLandmark={findLandmark}
             pois={!!stop.arrive}
             activePoi={poi ?? spot}
             focusPoi={spot}
