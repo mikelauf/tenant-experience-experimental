@@ -12,6 +12,7 @@ import { InquireCard } from "@/components/public/InquireCard";
 import { InquireLink, InquiryHost } from "@/components/public/InquiryModal";
 import { VenueSpace } from "@/components/public/VenueSpace";
 import { PhotoRow, VenueHero } from "@/components/public/VenuePhotos";
+import { TowerLocator } from "@/components/public/TowerLocator";
 
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
   const v = (await getTenant()).venue((await params).slug);
@@ -55,6 +56,10 @@ export default async function VenuePage({ params }: PageProps<"/venues/[slug]">)
                 </div>
               </div>
             )}
+          </Reveal>
+          {/* Where it is in the building, in the column beside the introduction */}
+          <Reveal delay={0.1} className="col-span-12 mt-12 lg:col-span-3 lg:col-start-10 lg:mt-0">
+            <TowerLocator v={{ slug: v.slug, name: v.name, level: v.level }} />
           </Reveal>
         </div>
 
