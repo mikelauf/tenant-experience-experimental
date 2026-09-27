@@ -9,16 +9,14 @@ import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 
 import { useNow as useClock } from "@/lib/useNow";
-import { LineReveal, Reveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
-import { Icon, type AnyIcon } from "@/components/ui/Icon";
-import { TowerHero } from "@/components/three/TowerHero";
-import { LiveBuilding } from "./live/LiveBuilding";
+import { Icon } from "@/components/ui/Icon";
 import { CommitmentRow, CommitmentSheet, UpNext, isUpcoming, useNow } from "./Commitments";
 import { EventCard } from "./EventCard";
-import { ServiceTabs } from "./ServiceTabs";
-import { isMember } from "@/lib/access";
+import { ActivityCenter } from "./home/ActivityCenter";
+import { BuildingDoor } from "./home/BuildingDoor";
+import { WhatYouCanUse } from "./home/WhatYouCanUse";
 
 function greeting(now: number) {
   const h = new Date(now).getHours();
@@ -58,92 +56,86 @@ function EventsRail({ title }: { title?: string }) {
   );
 }
 
-/* ---------------- Signed out ---------------- */
+/* ---------------- Before building access: signed out, a public account, or verifying ---------------- */
 
 function SignedOut() {
-  const { building, copy, fitness } = useTenant();
-  const access: { icon: AnyIcon; t: string; d: string; tag: string; member?: boolean }[] = [
-    { icon: "access", t: "Your building access", d: "Meeting rooms, building events and the concierge. Sign in with your work email.", tag: "Included" },
-    ...(fitness
-      ? [
-          {
-            icon: "fitness" as const,
-            t: fitness.name,
-            d: "Classes, studio bookings and recovery. A separate monthly membership.",
-            tag: "Membership",
-            member: true,
-          },
-        ]
-      : []),
-    { icon: "people", t: "The events team", d: "Receptions, offsites and dinners, planned with you. Start with a short inquiry.", tag: "On request" },
-  ];
-  const hero = copy.memberHero;
+  const { copy } = useTenant();
   return (
     <>
-      <section data-nav-over className="theme-night relative flex min-h-[92svh] flex-col justify-end overflow-hidden">
-        {building.heroTower ? (
-          <TowerHero className="absolute inset-0" />
-        ) : (
-          <Image src={hero.img.src} alt={hero.img.alt} fill priority sizes="100vw" className="object-cover" style={{ objectPosition: hero.img.pos }} />
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-night via-night/40 to-night/10" />
-        <div className="frame relative pb-12 pt-40 lg:pb-16">
-          <p className="t-lead text-moon/80 animate-rise">{building.name} · Members</p>
-          <LineReveal as="h1" className="t-mega mt-4 max-w-[12ch]" lines={hero.lines} />
-          <Reveal delay={0.35} className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href="/sign-in?returnTo=%2F" variant="light" size="lg" icon="arrow-right">
-              Sign in with your work email
+      <BuildingDoor
+        lines={copy.memberHero.lines}
+        lead="Browse everything first. Sign in when you want to book, and confirm where you work once."
+        actions={
+          <>
+            <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="light" size="lg" icon="arrow-right">
+              Sign in
             </ButtonLink>
-            <ButtonLink href="#explore" variant="glass" size="lg">
-              Look around first
-            </ButtonLink>
-          </Reveal>
-        </div>
-      </section>
-
-      <div id="explore" className="pt-20 lg:pt-28">
-        <ServiceTabs heading="What's here for you" />
-      </div>
-
-      <div className="pt-24 lg:pt-32">
-        <LiveBuilding
-          personal={false}
-          title={`${copy.The}, live.`}
-          lead="See what's happening on every floor right now. Sign in and your own plans show up here too."
-        />
-      </div>
-
-      <section className="frame pt-24 lg:pt-32" aria-labelledby="acc-h">
-        <div className="grid-12 gap-y-8">
-          <div className="col-span-12 lg:col-span-4">
-            <h2 id="acc-h" className="t-h1">
+            <ButtonLink href="#use-h" variant="glass" size="lg">
               What you can use
-            </h2>
-            <p className="t-lead mt-4 text-stone">Working here gets you in the door. A couple of things are memberships, and we&apos;ll always say which.</p>
-          </div>
-          <ul className={cn("col-span-12 grid gap-3 lg:col-span-8", access.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
-            {access.map((a, i) => (
-              <Reveal key={a.t} delay={i * 0.06}>
-                <li className="card flex h-full flex-col p-6">
-                  <div className="flex items-center justify-between">
-                    <span className="grid size-11 place-items-center rounded-2xl bg-fog">
-                      <Icon name={a.icon} size={22} />
-                    </span>
-                    <span
-                      className={cn("rounded-full px-2.5 py-1 text-[0.75rem] font-medium", a.member ? "bg-accent-soft text-accent-deep" : "bg-fog text-ink-2")}
-                    >
-                      {a.tag}
-                    </span>
-                  </div>
-                  <p className="t-h3 mt-10">{a.t}</p>
-                  <p className="t-small mt-2 text-stone">{a.d}</p>
-                </li>
-              </Reveal>
-            ))}
-          </ul>
-        </div>
-      </section>
+            </ButtonLink>
+          </>
+        }
+      />
+      <WhatYouCanUse />
+      <EventsRail />
+    </>
+  );
+}
 
+function PublicAccount() {
+  const s = useDemo();
+  const { member, copy } = useTenant();
+  return (
+    <>
+      <BuildingDoor
+        kicker="Your account"
+        lines={["Welcome back,", `${member.first}.`]}
+        lead={
+          <>
+            You&apos;re signed in as {s.account?.primary}. Work at {copy.the}? Confirm your work email once to use what the building offers its
+            tenants.
+          </>
+        }
+        actions={
+          <>
+            <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="light" size="lg" icon="arrow-right">
+              Verify your work email
+            </ButtonLink>
+            <ButtonLink href="/venues/inquire" variant="glass" size="lg">
+              Plan another event
+            </ButtonLink>
+          </>
+        }
+      >
+        <ActivityCenter />
+      </BuildingDoor>
+      <WhatYouCanUse lead="Some of this is open to everyone. The rest opens up once you confirm where you work." />
+      <EventsRail title={`What's on at ${copy.the}`} />
+    </>
+  );
+}
+
+function Verifying() {
+  const s = useDemo();
+  const { member, copy } = useTenant();
+  const domain = s.account?.work?.split("@")[1];
+  return (
+    <>
+      <BuildingDoor
+        lines={["Almost there,", `${member.first}.`]}
+        lead={
+          <>
+            The building team is confirming {domain ? <span className="text-moon">{domain}</span> : "your work email"} for {copy.the}. It usually takes a
+            working day. Until then, browse everything; the green floors are already yours.
+          </>
+        }
+        actions={
+          <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="glass" size="lg" iconLeft="clock">
+            Access being verified
+          </ButtonLink>
+        }
+      />
+      <WhatYouCanUse />
       <EventsRail />
     </>
   );
@@ -190,16 +182,23 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
 
   return (
     <>
-      <section className="frame pb-4 pt-[calc(var(--nav-h)+48px)] lg:pt-[calc(var(--nav-h)+72px)]">
-        <p className="t-lead text-stone">{today(now)}</p>
-        <LineReveal as="h1" className="t-hero mt-3" lines={[`Welcome to ${copy.the},`, `${member.first}.`]} />
-        <p className="t-lead mt-5 max-w-[48ch] text-stone">
-          You&apos;re set up with {member.company} on {member.floor}. Here are {["", "one", "two", "three", "four"][steps.length]} good first steps; do them in
-          any order.
-        </p>
-      </section>
+      <BuildingDoor
+        personal
+        kicker={today(now)}
+        lines={[`Welcome to ${copy.the},`, `${member.first}.`]}
+        lead={
+          <>
+            You&apos;re set up with {member.company} on {member.floor}. Everything green is yours today; pick a floor to see what&apos;s there.
+          </>
+        }
+        actions={
+          <ButtonLink href="#first-h" variant="light" size="lg" icon="arrow-right">
+            Your first week
+          </ButtonLink>
+        }
+      />
 
-      <section className="pt-10" aria-labelledby="first-h">
+      <section className="scroll-mt-[calc(var(--nav-h)+24px)] pt-20 lg:pt-28" aria-labelledby="first-h" id="first">
         <div className="frame flex items-center justify-between gap-4">
           <h2 id="first-h" className="t-h3">
             Your first week
@@ -278,16 +277,8 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
         </section>
       )}
 
-      <div className="pt-24 lg:pt-32">
-        <LiveBuilding
-          title={`Your building, floor by floor.`}
-          lead={`Everything at ${copy.the} lives on a floor. Tap one to see what's there right now, or scrub ahead to tonight.`}
-        />
-      </div>
-      <div className="pt-24 lg:pt-32">
-        <ServiceTabs heading="Everything that's here" />
-      </div>
       <EventsRail />
+      <WhatYouCanUse heading="Everything that's here" />
     </>
   );
 }
@@ -388,13 +379,15 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
       )}
 
       <div className="pt-16 lg:pt-20">
-        <LiveBuilding
-          title="Right now in the building"
-          lead="Every floor, live. Your plans are pinned where they happen. Scrub the day to see what opens up."
+        <BuildingDoor
+          personal
+          kicker="Right now"
+          lines={["Your building,", "floor by floor."]}
+          lead="Today's plans are pinned where they happen. Pick a floor to see what's there."
         />
       </div>
       <EventsRail title="Happening this week" />
-      <ServiceTabs heading="Explore the building" className="pb-8" />
+      <WhatYouCanUse heading="Explore the building" />
     </>
   );
 }
@@ -409,7 +402,17 @@ export function Home() {
 
   return (
     <div className="pb-tab lg:pb-24">
-      {!isMember(s.persona) ? <SignedOut /> : s.persona === "new" ? <NewMember onOpen={setOpen} /> : <Returning onOpen={setOpen} />}
+      {s.persona === "signed-out" ? (
+        <SignedOut />
+      ) : s.persona === "public" ? (
+        <PublicAccount />
+      ) : s.persona === "verifying" ? (
+        <Verifying />
+      ) : s.persona === "new" ? (
+        <NewMember onOpen={setOpen} />
+      ) : (
+        <Returning onOpen={setOpen} />
+      )}
       <CommitmentSheet c={live} onClose={() => setOpen(null)} />
     </div>
   );

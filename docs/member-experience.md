@@ -29,7 +29,7 @@ _Last updated: 2026-09-27._
 
 - [x] 1. Real amenity content: `amenities` on every tenant (`lib/tenants/pyramid/amenities.ts`). Fitness moves to L26. The Foster and Pereira rooms (names and capacities from Core staging) replace Washington. The demo's storage key moves to v2.
 - [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
-- [ ] 3. Building Home rewrite: the live tower front door, "what you can use" by group, a section for each state
+- [x] 3. Building Home rewrite (`components/member/home/`). `BuildingDoor` is the front door: the tower lit by the real sky over SF right now, with a floor directory and tower markers that follow each other. Green floors are open to you, amber ones need a step. Picking a floor flies the tower there and opens what it is and who can use it. `WhatYouCanUse` groups by Move, Work, Meet, Gather and Eat, with access labels. Each state has its own composition, including an Activity Center for a public account. It replaces `ServiceTabs`; `LiveBuilding` is kept for "your day".
 - [ ] 4. 3D, in order:
   - open the floor
   - pick your bike
