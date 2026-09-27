@@ -8,6 +8,7 @@ import { Photo } from "@/components/ui/Photo";
 import { ArrivalPlan } from "@/components/public/ArrivalPlan";
 import { CloserLook } from "@/components/public/CloserLook";
 import { HeroMedia } from "@/components/public/HeroMedia";
+import { LiveNow } from "@/components/public/LiveNow";
 import { Setting } from "@/components/public/Setting";
 import { Suspense } from "react";
 import { ExplorerSection } from "@/components/public/explorer/ExplorerSection";
@@ -73,17 +74,25 @@ export default async function VenuesHome() {
             animate={{ opacity: 1, y: 0 }}
             className="col-span-12 lg:absolute lg:bottom-10 lg:right-[var(--gutter)] lg:w-[calc((100%-2*var(--gutter)-2*var(--col-gap))/3)]"
           >
-            <dl className="grid grid-cols-3 gap-px overflow-hidden rounded-[20px] bg-white/10 backdrop-blur-md">
-              {[{ k: "Venues", v: venues.length }, ...(total ? [{ k: "Up to", v: total, s: " guests" }] : []), { k: "Floors", v: building.floors }].map((x) => (
-                <div key={x.k} className="bg-night/30 p-4">
-                  <dt className="t-meta">{x.k}</dt>
-                  <dd className="t-num mt-1 text-[1.75rem] font-medium leading-none">
-                    <NumberRoll value={x.v} fromZero onLoad delay={0.7} duration={1.2} />
-                    {x.s && <span className="ml-1 text-[0.8125rem] font-normal tracking-normal text-moon-2">{x.s.trim()}</span>}
-                  </dd>
-                </div>
-              ))}
-            </dl>
+            <div className="overflow-hidden rounded-[20px] bg-white/10 backdrop-blur-md">
+              <dl className="grid grid-cols-3 gap-px">
+                {[{ k: "Venues", v: venues.length }, ...(total ? [{ k: "Up to", v: total, s: " guests" }] : []), { k: "Floors", v: building.floors }].map(
+                  (x) => (
+                    <div key={x.k} className="bg-night/30 p-4">
+                      <dt className="t-meta">{x.k}</dt>
+                      <dd className="t-num mt-1 text-[1.75rem] font-medium leading-none">
+                        <NumberRoll value={x.v} fromZero onLoad delay={0.7} duration={1.2} />
+                        {x.s && <span className="ml-1 text-[0.8125rem] font-normal tracking-normal text-moon-2">{x.s.trim()}</span>}
+                      </dd>
+                    </div>
+                  ),
+                )}
+              </dl>
+              {/* The building right now, lit by the real sun, as the 3D tower below is */}
+              <div className="mt-px">
+                <LiveNow />
+              </div>
+            </div>
           </Reveal>
         </div>
       </section>
@@ -141,7 +150,8 @@ export default async function VenuesHome() {
             <LineReveal className="t-h1" lines={["An inquiry starts", "a conversation."]} />
             <Reveal delay={0.1}>
               <p className="t-lead mt-6 max-w-[40ch] text-moon-2">
-                There&apos;s no checkout here. Every event is a little different, so the events team reads every inquiry and follows up. Nothing is reserved until you agree it together.
+                There&apos;s no checkout here. Every event is a little different, so the events team reads every inquiry and follows up. Nothing is reserved
+                until you agree it together.
               </p>
               <div className="mt-9">
                 <ButtonLink href="/venues/inquire" variant="light" size="lg" icon="arrow-right">
