@@ -8,7 +8,7 @@ export default async function InquirePage({ searchParams }: PageProps<"/venues/i
 
   return (
     <div className="frame pb-24 pt-[calc(var(--nav-h)+24px)] lg:pb-16">
-      <InquiryForm initial={{ venue: one("venue"), guests: one("guests"), date: one("date"), layout: one("layout"), setup: one("setup") }} />
+      <InquiryForm initial={{ venue: one("venue"), guests: one("guests"), date: one("date"), time: one("time"), layout: one("layout"), setup: one("setup") }} />
     </div>
   );
 }

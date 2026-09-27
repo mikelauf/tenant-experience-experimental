@@ -78,6 +78,8 @@ const data: TenantData = {
     ground: 23,
     // Downtown's street grid (and the Pyramid, square to it) sits 9.1° west of true north; measured from the streets
     north: -9.1,
+    // 600 Montgomery Street
+    geo: { lat: 37.7952, lng: -122.4028, tz: "America/Los_Angeles" },
     // Landmarks stand in a ring beyond the real neighborhood instead of among its buildings
     landmarkRing: { start: 16.5, perKm: 2.5 },
     restLevel: 27,

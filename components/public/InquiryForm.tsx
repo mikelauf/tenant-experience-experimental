@@ -9,6 +9,8 @@ import { budgetOptions } from "@/lib/core/inquiry/budget";
 import { MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/contract";
 import { getPublicCampaign } from "@/lib/core/inquiry/campaign";
 import { INQUIRY_CLIENT_TIMEOUT_MS } from "@/lib/core/inquiry/timeouts";
+import { START_TIMES, dateText } from "@/lib/core/inquiry/when";
+import { clock, minutesOf } from "@/lib/sun";
 import { eventTypes, guestsShort, setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
 import { isDemo } from "@/lib/flags";
@@ -28,6 +30,8 @@ import { LineReveal } from "@/components/motion/Reveal";
 
 type Values = {
   date: string;
+  /** Start time, "HH:MM", optional; Core has no field for it, so it rides in the date text */
+  time: string;
   flexible: boolean;
   guests: string;
   venues: string[];
@@ -170,7 +174,7 @@ const EVENT_PHRASE: Record<string, string> = {
   "Something else": "an event",
 };
 
-export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string; layout?: string; setup?: string } }) {
+export function InquiryForm({ initial }: { initial: { venue?: string; guests?: string; date?: string; time?: string; layout?: string; setup?: string } }) {
   const tenant = useTenant();
   const { venues: all, publicHost: host, building, copy } = tenant;
   const router = useRouter();
@@ -184,6 +188,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const fromSetup = all.find((x) => x.slug === initial.venue)?.layout?.setups[initial.setup as Setup] ? (initial.setup as Setup) : undefined;
   const [v, setV] = useState<Values>({
     date: /^\d{4}-\d{2}-\d{2}$/.test(initial.date ?? "") ? initial.date! : "",
+    time: START_TIMES.includes(initial.time ?? "") ? initial.time! : "",
     flexible: false,
     guests: /^\d{1,6}$/.test(initial.guests ?? "") ? initial.guests! : "",
     venues: initialVenue,
@@ -301,7 +306,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
       venue: venues[0],
       company: v.company.trim(),
       phone: v.phone.trim(),
-      date: `${v.date}${v.flexible ? " (flexible)" : ""}`,
+      date: dateText(v.date, v.time, v.flexible),
       guests: v.guests,
       eventType: v.eventType,
       budget,
@@ -373,7 +378,7 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
   const hero = chosen[0]?.hero ?? building.hero;
   const title = chosen.length > 1 ? `${chosen.length} venues` : (chosen[0]?.name ?? (venues.includes(NOT_SURE) ? "The right space for you" : building.name));
   const rows = [
-    { k: "When", s: 0, val: v.date ? `${formatDate(v.date)}${v.flexible ? " · flexible" : ""}` : "" },
+    { k: "When", s: 0, val: v.date ? `${formatDate(v.date)}${v.time ? ` · ${clock(minutesOf(v.time)!)}` : ""}${v.flexible ? " · flexible" : ""}` : "" },
     { k: "Guests", s: 0, val: v.guests ? `${Number(v.guests).toLocaleString("en-US")} guests` : "" },
     { k: "Where", s: 1, val: venues.includes(NOT_SURE) ? "Not sure yet" : chosen.map((x) => x.name).join(", ") },
     { k: "Budget", s: 2, val: budget },
@@ -415,10 +420,23 @@ export function InquiryForm({ initial }: { initial: { venue?: string; guests?: s
         invalid={!!errors.date}
         describedBy={errors.date ? `${id("date")}-error` : undefined}
       />
-      <label className="mt-3 flex cursor-pointer items-center gap-2.5 text-[0.9375rem]">
-        <input type="checkbox" checked={v.flexible} onChange={(e) => set("flexible", e.target.checked)} className="size-[18px] accent-[var(--color-ink)]" />
-        My dates are flexible
-      </label>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <label className="flex cursor-pointer items-center gap-2.5 text-[0.9375rem]">
+          <input type="checkbox" checked={v.flexible} onChange={(e) => set("flexible", e.target.checked)} className="size-[18px] accent-[var(--color-ink)]" />
+          My dates are flexible
+        </label>
+        <label className="flex items-center gap-2 text-[0.9375rem]">
+          <span className="text-stone">Starting</span>
+          <select value={v.time} onChange={(e) => set("time", e.target.value)} aria-label="Start time (optional)" className="field !h-10 !w-auto !py-0 pr-8">
+            <option value="">Any time</option>
+            {START_TIMES.map((t) => (
+              <option key={t} value={t}>
+                {clock(minutesOf(t)!)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
     </Field>
   );
 

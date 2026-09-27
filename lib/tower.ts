@@ -45,6 +45,8 @@ export type TowerProfile = {
    * and a grid can sit off true north (downtown San Francisco's by about 9°); bearings are turned by this.
    */
   north?: number;
+  /** Where the building stands, for the real sun: latitude, longitude and its time zone */
+  geo?: { lat: number; lng: number; tz: string };
   /** Where landmarks sit: `start` units out, plus `perKm` for each real kilometre (default 9 + 3.1/km) */
   landmarkRing?: { start: number; perKm: number };
   /** Default level the marker rests at when nothing is selected */

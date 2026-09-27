@@ -2,18 +2,20 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { getImageProps } from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { preload } from "react-dom";
 import Image from "@/components/ui/SmoothImage";
 import { cn } from "@/lib/cn";
 import { guestsLabel } from "@/lib/data/shared";
 import type { Venue } from "@/lib/data/types";
+import { eveningOf, lightAt, sunLevel, sunPosition, zonedTime } from "@/lib/sun";
 import { useTenant } from "@/lib/tenants/client";
 import { NumberRoll } from "@/components/motion/NumberRoll";
 import { Icon } from "@/components/ui/Icon";
 import { Tower } from "@/components/three/Tower";
 import { DWELL_MS, FloorMarker, PEEK_MS } from "./explorer/FloorMarker";
 import { ArrivalStage, STAGE_PHOTO_SIZES, StagePanel, VenueStage, type Ride, type Tab } from "./explorer/VenueStage";
+import { SkyControl, isoDay, skyBackdrop } from "./explorer/SkyControl";
 import { useTour } from "./explorer/useTour";
 
 type Stop = { id: string; label: string; level: number | null; venue?: Venue; arrive?: boolean };
@@ -54,6 +56,8 @@ function useStage() {
  * with the space's photos, floor plan and tagged views. The rail only highlights on hover and changes floors
  * on click, so a stray pointer can't send the camera off. Arrow keys ride the floors; Escape comes back out.
  */
+const noopSubscribe = () => () => {};
+
 export function BuildingExplorer() {
   const t = useTenant();
   const { venues, copy, tower } = t;
@@ -77,6 +81,24 @@ export function BuildingExplorer() {
   const [stageRef, stage] = useStage();
   const panelRef = useRef<HTMLElement>(null);
 
+  /* Your event's sky: a date and time relight the building with the real sun. Today is only known in the browser,
+     so the server draws the default dusk and the real sky takes over on arrival. */
+  const today = useSyncExternalStore(
+    noopSubscribe,
+    () => isoDay(new Date()),
+    () => "",
+  );
+  const [skyDate, setSkyDate] = useState("");
+  const [skyMin, setSkyMin] = useState(19 * 60);
+  const [skyOpen, setSkyOpen] = useState(false);
+  const geo = tower.geo;
+  const date = skyDate || today;
+  const hh = `${String(Math.floor(skyMin / 60)).padStart(2, "0")}:${String(skyMin % 60).padStart(2, "0")}`;
+  const sunSky = geo && date ? sunPosition(zonedTime(date, hh, geo.tz), geo) : null;
+  const evening = geo && date ? eveningOf(date, geo) : null;
+  const light = sunSky ? lightAt(sunSky.elevation) : "dusk";
+  const sunValue = sunSky ? sunLevel(sunSky.elevation) : 0.55;
+
   const show = (next: string) => {
     setId(next);
     setPoi(null);
@@ -93,6 +115,17 @@ export function BuildingExplorer() {
   const pointedHere = pointed && v && pointed.slug === v.slug && tab !== "view" ? tower.landmarks?.find((l) => l.name === pointed.name) : undefined;
   const lookBearing = shownView ? (shownView.bearing ?? v?.viewBearing ?? null) : (pointedHere?.bearing ?? null);
   const activeLandmarks = shownView ? (shownView.tags ?? []).map((x) => x.label) : pointedHere ? [pointedHere.name] : [];
+
+  // Does the sun set inside the open venue's view that day? Worth saying when it does.
+  const viewBearing = v?.viewBearing;
+  const venueName = v?.name.replace(/^Transamerica /, "");
+  const setsInView = (() => {
+    if (!geo || !evening?.sunset || viewBearing == null || !date) return undefined;
+    const m = evening.sunset;
+    const az = sunPosition(zonedTime(date, `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`, geo.tz), geo).azimuth;
+    const off = Math.abs(((az - viewBearing + 540) % 360) - 180);
+    return off <= 55 ? venueName : undefined;
+  })();
 
   /** A landmark's label, clicked: show the photo that has it, from this floor if one does, else from the nearest floor that does. */
   const findLandmark = (name: string) => {
@@ -285,10 +318,13 @@ export function BuildingExplorer() {
           style={{ "--panel": `${stage.panel}px`, ...(touring && { position: "sticky", top: "calc(var(--nav-h) + 16px)" }) } as React.CSSProperties}
           className="relative h-[64svh] min-h-[440px] overflow-hidden rounded-[26px] lg:h-[min(calc(100svh-var(--nav-h)-32px),880px)] lg:min-h-[560px]"
         >
+          {/* The sky behind the model, matched to the light on it; the default is the original dusk */}
           <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_0%,#33475a_0%,#151b21_62%)]" />
+          <div className="absolute inset-0 transition-opacity duration-1000" style={{ background: sunSky ? skyBackdrop(sunValue, light) : undefined, opacity: sunSky ? 1 : 0 }} />
           <Tower
             level={stop.arrive ? null : stop.level}
-            sun={0.55}
+            sun={sunValue}
+            sunSky={sunSky}
             landmarks={landmarks}
             lookBearing={open && !stop.arrive ? lookBearing : null}
             activeLandmarks={open && !stop.arrive ? activeLandmarks : []}
@@ -430,6 +466,50 @@ export function BuildingExplorer() {
           </div>
 
           <div className="absolute bottom-4 left-4 flex flex-wrap items-center gap-2 lg:bottom-7 lg:left-7">
+            {sunSky && evening && (
+              <div className="relative">
+                <AnimatePresence>
+                  {skyOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="absolute bottom-11 left-0 z-20 w-[min(300px,calc(100vw-64px))] origin-bottom-left"
+                    >
+                      <SkyControl
+                        date={date}
+                        minutes={skyMin}
+                        onDate={(d) => {
+                          setSkyDate(d);
+                          endTour();
+                        }}
+                        onMinutes={(m) => {
+                          setSkyMin(m);
+                          endTour();
+                        }}
+                        light={light}
+                        evening={evening}
+                        inView={setsInView}
+                        inquireHref={v ? `/venues/inquire?venue=${v.slug}` : "/venues/inquire"}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <button
+                  onClick={() => setSkyOpen((x) => !x)}
+                  aria-expanded={skyOpen}
+                  className={cn(
+                    "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[0.8125rem] font-medium backdrop-blur-md transition-colors",
+                    skyOpen ? "bg-moon text-night" : "bg-black/40 hover:bg-black/55",
+                  )}
+                >
+                  <Icon name={light === "day" || light === "golden" ? "sun" : "moon"} size={14} />
+                  <span className="t-num">{`${Math.floor(skyMin / 60) % 12 || 12}:${String(skyMin % 60).padStart(2, "0")} ${skyMin < 720 ? "am" : "pm"}`}</span>
+                  <span className={cn(skyOpen ? "text-night/60" : "text-moon-2")}>{skyDate ? new Date(`${date}T12:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Tonight"}</span>
+                </button>
+              </div>
+            )}
             <button
               onClick={() => setLandmarks((x) => !x)}
               aria-pressed={landmarks}
