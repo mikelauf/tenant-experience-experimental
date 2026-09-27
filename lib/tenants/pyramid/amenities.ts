@@ -1,5 +1,6 @@
 import type { Amenity } from "@/lib/data/types";
 import { images } from "./images";
+import { loungeFloor, wellnessFloor } from "./interiors";
 import { venues } from "./venues";
 
 /**
@@ -23,6 +24,7 @@ export const amenities: Amenity[] = [
     blurb: "A gym whose machines face the slanted windows, a yoga studio with classes, and steam and sauna before you head back up.",
     points: ["Coached classes", "Yoga studio", "Steam and sauna", "Changing rooms"],
     img: images.gym,
+    inside: wellnessFloor,
     href: "/fitness",
     cta: "See classes",
     confirmed: false,
@@ -38,6 +40,7 @@ export const amenities: Amenity[] = [
     blurb: "A work lounge and espresso bar with the window framed on Coit Tower. Bring a laptop, stay for the view.",
     points: ["Espresso bar", "Work tables and sofas", "Bridge-to-bridge views"],
     img: images.bayCoit,
+    inside: loungeFloor,
     confirmed: false,
     source: `${PRESS}. It may be the tenant name for Bay Lounge.`,
   },

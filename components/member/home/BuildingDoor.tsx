@@ -88,6 +88,8 @@ export function BuildingDoor({
   const open = byId(openId);
   const hover = byId(hoverId);
   const level = open ? (open.level ?? 0) : null;
+  // A floor with an interior opens up: the floors above lift away and the room stands on its plate
+  const inside = open?.inside && open.level != null ? { level: open.level, interior: open.inside } : null;
 
   const bands: Band[] = tower.map((a) => ({ level: a.level!, tone: standing(a, s.persona, s.fitnessMember).ok ? "open" : "event" }));
   const pins = useMemo(() => (personal ? pinsFor(t, s, new Date()) : []), [personal, t, s]);
@@ -102,14 +104,16 @@ export function BuildingDoor({
         <Tower
           className="absolute inset-0"
           eager
-          shift={shift}
+          // An opened floor sits a little higher, clear of the fold
+          shift={inside && shift[0] ? [shift[0], 150] : shift}
           level={level}
           zoom={open ? 1.3 : 1}
           landmarks
           sun={sky.sun}
           sunSky={sky.sunSky}
-          bands={bands}
-          pins={pins}
+          open={inside}
+          bands={inside ? undefined : bands}
+          pins={inside ? undefined : pins}
           pickable={tower.map((a) => a.level!)}
           onPick={(floor) => {
             const a = tower.find((x) => x.level === floor);
@@ -118,7 +122,7 @@ export function BuildingDoor({
           onHover={(floor) => setHoverId(floor == null ? null : (tower.find((x) => x.level === floor)?.id ?? null))}
           hoverLevel={hover?.level ?? null}
           // On phones the directory below does the naming; labels on a narrow tower only collide
-          hotspots={shift[0] ? marks.map((g) => ({ id: g[0]!.id, level: g[0]!.level! })) : undefined}
+          hotspots={shift[0] && !inside ? marks.map((g) => ({ id: g[0]!.id, level: g[0]!.level! })) : undefined}
           renderHotspot={(id) => {
             const g = marks.find((x) => x[0]!.id === id)!;
             const levels = g.map((a) => a.level!);
@@ -148,6 +152,24 @@ export function BuildingDoor({
           }
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-night to-transparent lg:hidden" />
+        <AnimatePresence>
+          {inside && open && (
+            <motion.div
+              key={open.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0, transition: { delay: 0.6, duration: 0.5 } }}
+              exit={{ opacity: 0, transition: { duration: 0.2 } }}
+              className="absolute right-[var(--gutter)] top-[calc(var(--nav-h)+16px)] z-10 hidden max-w-[300px] rounded-[var(--radius-card)] bg-night/70 p-4 text-moon shadow-[inset_0_0_0_1px_rgb(255_255_255/0.1)] backdrop-blur-md lg:block"
+            >
+              <p className="t-meta text-moon-2">{open.where}, opened up</p>
+              <p className="mt-1 font-medium">{open.name}</p>
+              <p className="t-meta mt-2 text-moon-2">{inside.interior.note}</p>
+              <button onClick={() => setOpenId(null)} className="mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-moon hover:text-white">
+                <Icon name="close" size={14} /> Close the floor
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-[58%] bg-gradient-to-r from-night via-night/85 to-transparent lg:block" />
       </div>
 

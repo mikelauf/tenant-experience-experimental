@@ -10,9 +10,15 @@ import { levelY, topOf, yawForBearing, type TowerProfile } from "@/lib/tower";
 /** Where the camera frames each stop. `yaw` limits keep the subject on the open side. */
 type View = { target: THREE.Vector3; radius: number; lift: number; yaw?: [center: number, range: number] };
 
-function viewFor(p: TowerProfile, level: number | null, narrow: boolean, zoom = 1, parkSpot?: [number, number] | null, whole?: boolean): View {
+function viewFor(p: TowerProfile, level: number | null, narrow: boolean, zoom = 1, parkSpot?: [number, number] | null, whole?: boolean, peek?: boolean): View {
   const r = (narrow ? 1.3 : 1) * (level == null ? 1 : zoom);
   const top = topOf(p);
+  // An opened floor: close and high, looking down into it under the lifted floors
+  if (peek && level != null) {
+    const f = Math.min(level, p.floors - 1);
+    const span = Math.max(p.widthAt(f), p.depthAt(f));
+    return { target: new THREE.Vector3(0, levelY(p, level) + p.floorH * 0.3, 0), radius: (narrow ? 2.9 : 5) * span, lift: (narrow ? 2.6 : 3.9) * span };
+  }
   if (level == null) return { target: new THREE.Vector3(0, top * 0.62 + 0.6, 0), radius: 30 * r, lift: 7 };
   // The whole building with a high floor lit in it: where the floor sits, not the floor up close. Low floors keep
   // their own view below, since from this far the rooftops around the base hide them.
@@ -64,6 +70,7 @@ export function Rig({
   parkSpot,
   look,
   whole,
+  peek,
 }: {
   p: TowerProfile;
   level: number | null;
@@ -80,6 +87,8 @@ export function Rig({
   look?: number | null;
   /** Keep the whole building in frame when a high floor is selected */
   whole?: boolean;
+  /** Look down into an opened floor */
+  peek?: boolean;
 }) {
   const { camera, size, gl } = useThree();
   const narrow = size.width < 640;
@@ -165,7 +174,7 @@ export function Rig({
   }, [look, p]);
 
   useFrame((_, dt) => {
-    const v = street ? streetView(p, spot ?? null, narrow) : viewFor(p, level, narrow, zoom, parkSpot, whole);
+    const v = street ? streetView(p, spot ?? null, narrow) : viewFor(p, level, narrow, zoom, parkSpot, whole, peek);
     const dragging = !!drag.current;
 
     // Fling, then the slow drift picks back up once the user has been idle.

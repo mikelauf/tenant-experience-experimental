@@ -13,6 +13,8 @@ import { Park, ParkOutline, ParkPins, ParkPlaces, StringLights } from "./park";
 import { City, Ground, RealCity, Water } from "./city";
 import { AnchorTracker, BandMesh, Bands, CompassTracker, Halo, HotspotTracker, Marker, PinTracker, PoiMarkers, type Band, type Pin } from "./markers";
 import { Rig } from "./rig";
+import { FloorInterior, interiorPoint, LIFT_FLOORS, PLATE } from "./interior";
+import type { Interior } from "@/lib/data/types";
 
 /** Vertical window slits; the emissive twin lights some of them after dark. */
 function useFacadeTextures(p: TowerProfile) {
@@ -64,6 +66,7 @@ function Tower({
   onPick,
   onHover,
   pickable,
+  openLevel,
 }: {
   p: TowerProfile;
   env: Env;
@@ -71,6 +74,8 @@ function Tower({
   onPick?: (floor: number) => void;
   onHover?: (floor: number | null) => void;
   pickable?: number[];
+  /** Open this floor: everything above lifts away and its slab thins to a plate */
+  openLevel?: number | null;
 }) {
   const slabs = useRef<THREE.InstancedMesh>(null);
   const wings = useRef<THREE.InstancedMesh>(null);
@@ -86,32 +91,65 @@ function Tower({
     onHover?.(f);
   };
   const wingCount = p.wings ? (p.wings.to - p.wings.from) * 2 : 0;
+  const crown = useRef<THREE.Group>(null);
+  // Which floor is open (kept through the close so it settles back), and how far along the lift is, 0–1
+  const cut = useRef<number | null>(null);
+  const lift = useRef(0);
+  const drawn = useRef(-1);
+
+  /** Lay the floors out, with everything above the open one raised `up` and the open slab thinned by `k` */
+  const layout = useCallback(
+    (up: number, k: number) => {
+      const m = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const c = cut.current;
+      const slab = c == null ? -1 : Math.min(c, p.floors - 1);
+      for (let i = 0; i < p.floors; i++) {
+        const h = i === slab ? p.floorH * (0.94 + (PLATE - 0.94) * k) : p.floorH * 0.94;
+        const y = i === slab ? i * p.floorH + h / 2 : i * p.floorH + p.floorH / 2 + (slab >= 0 && i > slab ? up : 0);
+        m.compose(new THREE.Vector3(0, y, 0), q, new THREE.Vector3(p.widthAt(i), h, p.depthAt(i)));
+        slabs.current!.setMatrixAt(i, m);
+      }
+      slabs.current!.instanceMatrix.needsUpdate = true;
+      slabs.current!.computeBoundingSphere();
+
+      if (p.wings && wings.current) {
+        let n = 0;
+        const { from, to } = p.wings;
+        for (let i = from; i < to; i++) {
+          const w = p.widthAt(Math.min(i, p.floors + 2));
+          const t = (i - from) / (to - from);
+          const depth = 0.36 - t * 0.12;
+          const y = i * p.floorH + p.floorH / 2 + (slab >= 0 && i > slab ? up : 0);
+          for (const side of [-1, 1]) {
+            m.compose(new THREE.Vector3(side * (w / 2 + 0.09), y, 0), q, new THREE.Vector3(0.2, p.floorH * 0.98, depth));
+            wings.current.setMatrixAt(n++, m);
+          }
+        }
+        wings.current.instanceMatrix.needsUpdate = true;
+      }
+      if (crown.current) crown.current.position.y = slab >= 0 ? up : 0;
+    },
+    [p],
+  );
 
   useLayoutEffect(() => {
-    const m = new THREE.Matrix4();
-    const q = new THREE.Quaternion();
-    for (let i = 0; i < p.floors; i++) {
-      m.compose(new THREE.Vector3(0, i * p.floorH + p.floorH / 2, 0), q, new THREE.Vector3(p.widthAt(i), p.floorH * 0.94, p.depthAt(i)));
-      slabs.current!.setMatrixAt(i, m);
-    }
-    slabs.current!.instanceMatrix.needsUpdate = true;
-    slabs.current!.computeBoundingSphere();
+    drawn.current = -1;
+    layout(0, 0);
+  }, [layout]);
 
-    if (p.wings && wings.current) {
-      let k = 0;
-      const { from, to } = p.wings;
-      for (let i = from; i < to; i++) {
-        const w = p.widthAt(Math.min(i, p.floors + 2));
-        const t = (i - from) / (to - from);
-        const depth = 0.36 - t * 0.12;
-        for (const side of [-1, 1]) {
-          m.compose(new THREE.Vector3(side * (w / 2 + 0.09), i * p.floorH + p.floorH / 2, 0), q, new THREE.Vector3(0.2, p.floorH * 0.98, depth));
-          wings.current.setMatrixAt(k++, m);
-        }
-      }
-      wings.current.instanceMatrix.needsUpdate = true;
-    }
-  }, [p]);
+  // Opening another floor while one is open closes the first, then opens the next
+  useFrame((_, dt) => {
+    const want = openLevel ?? null;
+    if (cut.current !== want && lift.current < 0.002) cut.current = want;
+    const target = cut.current != null && cut.current === want ? 1 : 0;
+    lift.current = THREE.MathUtils.damp(lift.current, target, 3.2, dt);
+    if (Math.abs(lift.current - target) < 0.001) lift.current = target;
+    if (Math.abs(lift.current - drawn.current) < 1e-4) return;
+    drawn.current = lift.current;
+    const e = lift.current * lift.current * (3 - 2 * lift.current);
+    layout(e * LIFT_FLOORS * p.floorH, Math.min(1, e * 1.4));
+  });
 
   useFrame(() => {
     const e = env;
@@ -172,6 +210,7 @@ function Tower({
           <meshStandardMaterial ref={wingMat} color={e0.wing} roughness={0.7} metalness={0.15} />
         </instancedMesh>
       )}
+      <group ref={crown}>
       {p.crown.kind === "spire" ? (
         <mesh position={[0, top + p.crown.height / 2, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
           <coneGeometry args={[p.crown.radius, p.crown.height, 4, 1]} />
@@ -189,6 +228,7 @@ function Tower({
           </mesh>
         </group>
       )}
+      </group>
       {/* Base plinth */}
       <mesh position={[0, 0.06, 0]} receiveShadow>
         <boxGeometry args={[p.widthAt(0) + 0.5, 0.12, p.depthAt(0) + 0.5]} />
@@ -214,6 +254,11 @@ export type TowerCanvasProps = {
   bands?: Band[];
   pins?: Pin[];
   onPick?: (floor: number) => void;
+  /**
+   * Open a floor up: the floors above lift away and its interior stands on the plate, with the places in it named.
+   * The camera draws in and looks down into it.
+   */
+  open?: { level: number; interior: Interior } | null;
   /** Only these levels can be hovered and picked (venue floors) */
   pickable?: number[];
   /** DOM markers pinned to these levels' silhouette edge; `renderHotspot` draws each one */
@@ -297,6 +342,7 @@ export default function TowerCanvas({
   sunSky,
   parkSpot,
   onParkSpot,
+  open,
 }: TowerCanvasProps) {
   // One mutable light state per canvas; useFrame blends it every frame
   const [env] = useState(() => makeEnv(sun, withLight(p.light)));
@@ -335,6 +381,12 @@ export default function TowerCanvas({
   const parkAnchors = useMemo(() => parkSpots.map((s) => new THREE.Vector3(s.x, 0.6, s.z)), [parkSpots]);
   const shownSpot = parkSpots.find((s) => s.id === parkSpot);
   const parkFocus = useMemo<[number, number] | null>(() => (shownSpot ? [shownSpot.x, shownSpot.z] : null), [shownSpot]);
+  const insideEls = useRef<(HTMLElement | null)[]>([]);
+  const insideLabels = useMemo(() => open?.interior.labels ?? [], [open]);
+  const insideAnchors = useMemo(
+    () => (open ? insideLabels.map((l) => interiorPoint(p, open.level, l.x, l.z, 0.5)) : []),
+    [open, insideLabels, p],
+  );
 
   return (
     <div className="relative h-full w-full">
@@ -369,8 +421,11 @@ export default function TowerCanvas({
           parkSpot={parkFocus}
           look={lookBearing}
           whole={whole}
+          peek={!!open}
         />
-        <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} />
+        <Tower p={p} env={env} glow={accent} onPick={onPick} onHover={onPick ? setHover : undefined} pickable={pickable} openLevel={open?.level ?? null} />
+        {open && <FloorInterior key={open.level} p={p} level={open.level} interior={open.interior} />}
+        {open && <AnchorTracker anchors={insideAnchors} els={insideEls} center />}
         <Park p={p} env={env} flat={pois} onPick={onPick ? () => onPick(0) : undefined} />
         {p.park?.plan && <ParkPlaces p={p} env={env} active={inPark ? (parkSpot ?? null) : null} color={accent} />}
         {p.park?.plan && <StringLights p={p} env={env} off={pois} />}
@@ -379,7 +434,7 @@ export default function TowerCanvas({
         {inPark && <AnchorTracker anchors={parkAnchors} els={parkEls} center />}
         <City p={p} env={env} focus={focus} />
         {p.realCity && <RealCity p={p} env={env} focus={focus} flat={pois} clearPark={level === 0} />}
-        <Marker p={p} level={level} color={accent} />
+        <Marker p={p} level={open ? null : level} color={accent} />
         {bands && <Bands p={p} bands={bands} accent={accent} />}
         {pins && <PinTracker p={p} pins={pins} els={pinEls} />}
         {lit != null && lit !== level && <BandMesh key={lit} p={p} b={{ level: lit, tone: "full" }} color="#ffffff" />}
@@ -415,6 +470,17 @@ export default function TowerCanvas({
           </button>
         );
       })}
+      {insideLabels.map((l, i) => (
+        <span
+          key={`${open?.level}-${l.text}`}
+          ref={(el) => {
+            insideEls.current[i] = el;
+          }}
+          className="pointer-events-none absolute left-0 top-0 whitespace-nowrap rounded-full bg-night/70 px-2.5 py-1 text-[0.6875rem] font-medium text-moon opacity-0 max-sm:hidden shadow-[0_6px_18px_-6px_rgb(0_0_0/0.6)] backdrop-blur-md transition-opacity duration-500"
+        >
+          {l.text}
+        </span>
+      ))}
       {shownStreets.map((x, i) => (
         <span
           key={x.name}

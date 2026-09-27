@@ -31,7 +31,7 @@ _Last updated: 2026-09-27._
 - [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
 - [x] 3. Building Home rewrite (`components/member/home/`). `BuildingDoor` is the front door: the tower lit by the real sky over SF right now, with a floor directory and tower markers that follow each other. Green floors are open to you, amber ones need a step. Picking a floor flies the tower there and opens what it is and who can use it. `WhatYouCanUse` groups by Move, Work, Meet, Gather and Eat, with access labels. Each state has its own composition, including an Activity Center for a public account. It replaces `ServiceTabs`; `LiveBuilding` is kept for "your day".
 - [ ] 4. 3D, in order:
-  - open the floor
+  - [x] open the floor: pick L26 or L27 on the Home. The floors above lift seven floors, the slab thins to a plate, and an illustrative interior grows on it with its areas named (`lib/tenants/pyramid/interiors.ts`, `components/three/tower/interior.tsx`, `open` on `TowerCanvas`). The camera looks down into it. Phones hide the labels.
   - pick your bike
   - getting there
   - your floor, your view
@@ -57,6 +57,7 @@ Every amenity carries `confirmed` and `source` in the bundle. Until an item is c
 | Dining on the block | Café Sebastian, MadLab, Ama in Transamerica Three | SF Standard, Aug 2024 | All still open? Any tenant perks? |
 | Pyramid Arts | Transamerica Two, second floor | Press | Where exactly, and what's the current show? |
 | Programming | Sample events (cupping, talks, grove evenings) | Invented, apart from the grove concert series | The real calendar source and the current season |
+| Wellness center and Sky Lounge interiors | Illustrative layouts from photos, shown when a floor is opened | Our own layout | Can TAP share plans for L26 and L27, so we can trace them like the venues? |
 | Concierge | "(415) 555-0172", weekdays 7am–7pm | Invented | Real desk contact and hours, if there is a desk |
 
 ## Building facts for the 3D

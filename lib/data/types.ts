@@ -38,6 +38,30 @@ export type AmenityAccess = "included" | "membership" | "request" | "public";
 /** What you'd go there to do; the Building Home groups by this, not by product */
 export type AmenityGroup = "move" | "work" | "meet" | "gather" | "eat";
 
+/**
+ * One block of a floor's interior, for opening a floor up in the tower. Positions and sizes are fractions of the
+ * floor plate (x and z from −0.5 to 0.5, so the same plan fits whatever width the tower is at that level); heights
+ * are fractions of a floor.
+ */
+export type InteriorPiece = {
+  x: number;
+  z: number;
+  w: number;
+  d: number;
+  h: number;
+  tone: "wall" | "glass" | "wood" | "dark" | "metal" | "soft" | "green" | "mat" | "warm";
+  round?: boolean;
+};
+
+/** A floor, opened up: its finish, its pieces, and the places worth naming */
+export type Interior = {
+  floor: "wood" | "stone" | "rubber";
+  pieces: InteriorPiece[];
+  labels: { x: number; z: number; text: string }[];
+  /** Where the plan came from, said wherever it's shown */
+  note: string;
+};
+
 export type Amenity = {
   id: string;
   name: string;
@@ -54,6 +78,8 @@ export type Amenity = {
   /** The next step: a member page, a venue, or the concierge */
   href?: string;
   cta?: string;
+  /** The floor opened up in the tower, when there's a plan (even an illustrative one) */
+  inside?: Interior;
   /** False until the building confirms it; unconfirmed facts are listed in docs/member-experience.md */
   confirmed: boolean;
   source: string;
