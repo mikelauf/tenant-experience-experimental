@@ -229,7 +229,7 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] Tower locator on each venue page (`TowerLocator.tsx`): an elevation drawn from the tenant's tower profile, every venue named and linked, this one lit; opens the explorer at that floor (`/venues?floor=`)
 - [x] Guest count set once (`useSharedGuests`): the grid brings rooms that hold it forward, and it fills the inquire card, the 3D space (until its slider is moved), the comparison, the brief picker and the inquiry
 - [x] Live hero (`LiveNow.tsx`): the stats card gains the time in SF and the real light (golden hour, sunset, after dark), leading to the live 3D tower. Kept the photo carousel Spencer chose; no second WebGL canvas above the fold
-- [ ] Split `TowerCanvas`, `InquiryForm`, `landmarks` before handoff
+- [x] Split `TowerCanvas` (1,606 → 499 + sky, park, city, markers, rig) and `landmarks` (991 → 145 + kit, bridges, buildings). `InquiryForm` gave up its model and fields; it stays ~1,090 lines until the ?layout= explorations (split, card, sentence) are retired or lifted into a hook
 - [ ] Lighthouse, image budget and mobile 3D pass
 
 ### Decisions made while building

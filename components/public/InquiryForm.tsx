@@ -23,159 +23,27 @@ import { Icon } from "@/components/ui/Icon";
 import { DatePicker, formatDate } from "./DatePicker";
 import { GuestStepper } from "./GuestStepper";
 import { LineReveal } from "@/components/motion/Reveal";
-
+import {
+  BLANKS,
+  BLANK_KEY,
+  EVENT_PHRASE,
+  GUEST_PRESETS,
+  LEAD,
+  STEPS,
+  isLayout,
+  validateStep,
+  type Blank,
+  type Errors,
+  type InquiryLayout,
+  type Values,
+} from "./inquiry-model";
+import { Chips, Field } from "./inquiry-fields";
 /**
  * The public inquiry, OpenTable-style: the event first, contact details last, no account
  * (inquiries stay profile-free per the Wayfinder decisions). Four steps on one page:
  * when → where → the event → your details. The summary card beside the form can jump back to any step.
  * Budget ranges below the chosen spaces' minimum aren't offered, so an inquiry can't go out below the floor.
  */
-
-type Values = {
-  date: string;
-  /** Start time, "HH:MM", optional; Core has no field for it, so it rides in the date text */
-  time: string;
-  flexible: boolean;
-  guests: string;
-  venues: string[];
-  eventType: string;
-  budget: string;
-  message: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  company: string;
-  phone: string;
-  privacy: boolean;
-  news: boolean;
-};
-type Errors = Partial<Record<keyof Values, string>>;
-
-/** One-tap headcounts under the stepper; "500+" fills in 500. */
-const GUEST_PRESETS = ["25", "50", "100", "200", "500+"];
-
-const STEPS = [
-  { title: "When, and how many?", short: "When" },
-  { title: "Where are you thinking?", short: "Where" },
-  { title: "The event", short: "Event" },
-  { title: "Your details", short: "You" },
-] as const;
-
-function validateStep(step: number, v: Values): Errors {
-  const e: Errors = {};
-  if (step === 0) {
-    if (!v.date) e.date = "Choose a date, even a rough one. Tick “My dates are flexible” if it can move.";
-    if (!v.guests) e.guests = "Add an estimated guest count.";
-    else if (Number(v.guests) < 1) e.guests = "Use a number, like 80.";
-  }
-  if (step === 1 && !v.venues.length) e.venues = "Pick one or more venues, or “Not sure yet”.";
-  if (step === 2 && !v.budget) e.budget = "Pick a range, or “Not sure yet”.";
-  if (step === 3) {
-    if (!v.firstName.trim()) e.firstName = "Add your first name.";
-    if (!v.lastName.trim()) e.lastName = "Add your last name.";
-    if (!v.email.trim()) e.email = "Add an email so the team can reply.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim())) e.email = "That email doesn't look complete. Check for a missing @ or domain.";
-    if (!v.privacy) e.privacy = "Please confirm you've read how your details are used.";
-  }
-  return e;
-}
-
-function Field({
-  id,
-  label,
-  optional,
-  error,
-  hint,
-  children,
-  className,
-}: {
-  id: string;
-  label: string;
-  optional?: boolean;
-  error?: string;
-  hint?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <label htmlFor={id} className="mb-2 flex items-baseline justify-between text-[0.9375rem] font-medium">
-        {label}
-        {optional && <span className="t-meta font-normal">Optional</span>}
-      </label>
-      {children}
-      <AnimatePresence initial={false}>
-        {error && (
-          <motion.p
-            id={`${id}-error`}
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="t-small flex items-start gap-1.5 overflow-hidden pt-2 text-accent"
-          >
-            <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
-            {error}
-          </motion.p>
-        )}
-      </AnimatePresence>
-      {hint && !error && <p className="t-meta pt-2">{hint}</p>}
-    </div>
-  );
-}
-
-function Chips({ name, options, value, onChange, invalid }: { name: string; options: string[]; value: string; onChange: (v: string) => void; invalid?: boolean }) {
-  return (
-    <div role="radiogroup" aria-label={name} className="flex flex-wrap gap-2">
-      {options.map((o) => {
-        const on = value === o;
-        return (
-          <button
-            type="button"
-            role="radio"
-            aria-checked={on}
-            key={o}
-            onClick={() => onChange(on ? "" : o)}
-            className={cn(
-              "h-10 rounded-full px-4 text-[0.875rem] font-medium transition-[background-color,color,box-shadow] duration-200",
-              on
-                ? "bg-ink text-paper"
-                : invalid
-                  ? "bg-paper text-ink-2 shadow-[inset_0_0_0_1.5px_var(--color-accent)]"
-                  : "bg-paper text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-stone-2)]",
-            )}
-          >
-            {o}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-export type InquiryLayout = "split" | "focused" | "card" | "sentence";
-const LAYOUTS: { key: InquiryLayout; label: string }[] = [
-  { key: "split", label: "Split" },
-  { key: "focused", label: "Focused" },
-  { key: "card", label: "Card" },
-  { key: "sentence", label: "Sentence" },
-];
-const isLayout = (x: string | undefined): x is InquiryLayout => LAYOUTS.some((l) => l.key === x);
-
-const LEAD = "No account needed. The events team follows up, and nothing is reserved until you say so.";
-
-/** Sentence layout: each blank in "I'm planning [a dinner] for [80] guests…" opens its own control. */
-type Blank = "event" | "guests" | "date" | "venue" | "budget" | "note";
-const BLANKS: Blank[] = ["event", "guests", "date", "venue", "budget"];
-const BLANK_KEY: Record<Blank, keyof Values> = { event: "eventType", guests: "guests", date: "date", venue: "venues", budget: "budget", note: "message" };
-const EVENT_PHRASE: Record<string, string> = {
-  Reception: "a reception",
-  Dinner: "a dinner",
-  "Offsite or meeting": "an offsite",
-  "Launch or press": "a launch",
-  "Holiday party": "a holiday party",
-  "Panel or talk": "a panel or talk",
-  "Something else": "an event",
-};
 
 export type InquiryInitial = { venue?: string; guests?: string; date?: string; time?: string; layout?: string; setup?: string };
 
@@ -412,7 +280,13 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
   /* ---------- Shared pieces: every layout arranges the same controls ---------- */
 
-  const progressSteps = layout === "sentence" ? [{ i: 0, short: "Your event" }, { i: 3, short: "Your details" }] : STEPS.map((st, i) => ({ i, short: st.short }));
+  const progressSteps =
+    layout === "sentence"
+      ? [
+          { i: 0, short: "Your event" },
+          { i: 3, short: "Your details" },
+        ]
+      : STEPS.map((st, i) => ({ i, short: st.short }));
   const progress = (
     <ol className="flex gap-2" aria-label="Inquiry steps">
       {progressSteps.map((st, k) => (
@@ -424,7 +298,9 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             aria-current={st.i === (sentence ? 0 : step) ? "step" : undefined}
             className="group w-full text-left disabled:cursor-default"
           >
-            <span className={cn("block h-[3px] rounded-full transition-colors duration-500", st.i <= step ? "bg-ink" : st.i <= reached ? "bg-ink/35" : "bg-line-2")} />
+            <span
+              className={cn("block h-[3px] rounded-full transition-colors duration-500", st.i <= step ? "bg-ink" : st.i <= reached ? "bg-ink/35" : "bg-line-2")}
+            />
             <span className={cn("t-meta mt-2 block", st.i === (sentence ? 0 : step) && "font-medium text-ink")}>
               {k + 1}. {st.short}
             </span>
@@ -524,7 +400,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
                 <span className="t-meta block first-letter:uppercase">{o.meta}</span>
               </span>
               {saved && <Icon name="heart-fill" size={16} className="text-accent" />}
-              <span className={cn("grid size-5 shrink-0 place-items-center rounded-md border transition-colors", on ? "border-ink bg-ink text-paper" : "border-line-2")}>
+              <span
+                className={cn(
+                  "grid size-5 shrink-0 place-items-center rounded-md border transition-colors",
+                  on ? "border-ink bg-ink text-paper" : "border-line-2",
+                )}
+              >
                 {on && <Icon name="check" size={12} strokeWidth={2.5} />}
               </span>
             </button>
@@ -605,10 +486,24 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     <div className="mt-8">
       <div className="grid gap-5 sm:grid-cols-2">
         <Field id={id("firstName")} label="First name" error={errors.firstName}>
-          <input id={id("firstName")} className="field" autoComplete="given-name" value={v.firstName} onChange={(e) => set("firstName", e.target.value)} {...invalid("firstName")} />
+          <input
+            id={id("firstName")}
+            className="field"
+            autoComplete="given-name"
+            value={v.firstName}
+            onChange={(e) => set("firstName", e.target.value)}
+            {...invalid("firstName")}
+          />
         </Field>
         <Field id={id("lastName")} label="Last name" error={errors.lastName}>
-          <input id={id("lastName")} className="field" autoComplete="family-name" value={v.lastName} onChange={(e) => set("lastName", e.target.value)} {...invalid("lastName")} />
+          <input
+            id={id("lastName")}
+            className="field"
+            autoComplete="family-name"
+            value={v.lastName}
+            onChange={(e) => set("lastName", e.target.value)}
+            {...invalid("lastName")}
+          />
         </Field>
         <Field id={id("email")} label="Email" error={errors.email} className="sm:col-span-2" hint="Any email works; it doesn't need to be a work address.">
           <input
@@ -659,7 +554,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           </p>
         )}
         <label className="flex cursor-pointer items-start gap-3">
-          <input type="checkbox" checked={v.news} onChange={(e) => set("news", e.target.checked)} className="mt-0.5 size-[18px] shrink-0 accent-[var(--color-ink)]" />
+          <input
+            type="checkbox"
+            checked={v.news}
+            onChange={(e) => set("news", e.target.checked)}
+            className="mt-0.5 size-[18px] shrink-0 accent-[var(--color-ink)]"
+          />
           <span className="t-small text-stone">Send me the occasional note about new spaces and open dates.</span>
         </label>
       </div>
@@ -674,7 +574,13 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
       <AnimatePresence>
         {serverMessage && !netError && (
-          <motion.p role="alert" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="t-small mt-8 flex items-start gap-2 text-accent">
+          <motion.p
+            role="alert"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="t-small mt-8 flex items-start gap-2 text-accent"
+          >
             <Icon name="alert" size={16} className="mt-0.5 shrink-0" />
             {serverMessage}
           </motion.p>
@@ -1074,7 +980,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               <Button onClick={onClose}>Done</Button>
               {chosen.length > 0 && (
                 <ButtonLink
-                  href={briefHref({ venues: chosen.map((x) => x.slug), guests: Number(v.guests) || undefined, date: v.date || undefined, time: v.time || undefined })}
+                  href={briefHref({
+                    venues: chosen.map((x) => x.slug),
+                    guests: Number(v.guests) || undefined,
+                    date: v.date || undefined,
+                    time: v.time || undefined,
+                  })}
                   variant="outline"
                   icon="share"
                 >
@@ -1130,9 +1041,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               {fieldset}
               {navRow}
             </form>
-            <p className="t-small mt-5 text-center text-moon/75">
-              {[title, ...rows.map((r) => r.val).filter(Boolean)].join(" · ")}
-            </p>
+            <p className="t-small mt-5 text-center text-moon/75">{[title, ...rows.map((r) => r.val).filter(Boolean)].join(" · ")}</p>
           </div>
         </div>
       </>
@@ -1205,7 +1114,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             {chosen.length > 0 && (
               <div className="shrink-0 border-t border-night-line px-6 py-4">
                 <Link
-                  href={briefHref({ venues: chosen.map((x) => x.slug), guests: Number(v.guests) || undefined, date: v.date || undefined, time: v.time || undefined })}
+                  href={briefHref({
+                    venues: chosen.map((x) => x.slug),
+                    guests: Number(v.guests) || undefined,
+                    date: v.date || undefined,
+                    time: v.time || undefined,
+                  })}
                   className="t-small inline-flex items-center gap-1.5 font-medium text-moon underline-offset-2 hover:underline"
                 >
                   <Icon name="share" size={15} />
