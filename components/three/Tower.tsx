@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import { useTenant } from "@/lib/tenants/client";
 import { Lazy3D } from "./Lazy3D";
-import type { Band, Pin, TowerCanvasProps } from "./tower/TowerCanvas";
+import type { Band, Pin } from "./tower/markers";
+import type { TowerCanvasProps } from "./tower/TowerCanvas";
 
 const TowerCanvas = dynamic(() => import("./tower/TowerCanvas"), { ssr: false });
 
