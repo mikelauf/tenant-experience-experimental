@@ -9,8 +9,8 @@ import type { Venue, ViewPhoto } from "@/lib/data/types";
 import { LIGHT_LABEL, clock, eveningOf, lightAt, minutesOf, sunPosition, zonedTime, type Geo } from "@/lib/sun";
 import { getTenant } from "@/lib/tenants/server";
 import { BriefActions } from "@/components/public/brief/BriefActions";
+import { BriefPicker } from "@/components/public/brief/BriefPicker";
 import { Plan } from "@/components/public/SetupVisualizer";
-import { ButtonLink } from "@/components/ui/Button";
 
 const query = async (searchParams: PageProps<"/venues/brief">["searchParams"]) => {
   const q = await searchParams;
@@ -72,13 +72,11 @@ export default async function BriefPage({ searchParams }: PageProps<"/venues/bri
     return (
       <div className="frame pb-24 pt-[calc(var(--nav-h)+48px)]">
         <p className="t-meta">Event brief</p>
-        <h1 className="t-h1 mt-3 max-w-[18ch]">Pick a venue to make a brief.</h1>
+        <h1 className="t-h1 mt-3 max-w-[18ch]">Which venues are you weighing?</h1>
         <p className="t-lead mt-4 max-w-[52ch] text-stone">
-          A brief is a one-page summary of a venue, set up for your event, that you can share or print. Start from any venue&apos;s 3D space.
+          A brief is one page on the venues you pick, set up for your event, to share with your team or print. Pick up to five.
         </p>
-        <ButtonLink href="/venues" variant="accent" icon="arrow-right" className="mt-8">
-          See the venues
-        </ButtonLink>
+        <BriefPicker />
       </div>
     );
   }
