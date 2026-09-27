@@ -1,4 +1,5 @@
 import { PublicNav } from "@/components/public/PublicNav";
+import { Shortlist } from "@/components/public/Shortlist";
 import { Footer } from "@/components/ui/Footer";
 import { getTenant } from "@/lib/tenants/server";
 
@@ -18,6 +19,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         {children}
       </main>
       <Footer variant="public" />
+      <Shortlist />
     </>
   );
 }

@@ -221,11 +221,11 @@ _Update as work lands. Last updated: 2026-09-26._
 - [x] Inquiry page edge to edge: the chosen space in a tall panel beside the form, not a floating card
 - [x] Venue page: facts keep only what the hero doesn't say; photos under the intro; hero Inquire opens in place
 - [x] Demo dock is an edge tab on public pages, clear of the corner controls
-- [ ] Brief empty state: pick venues right there
-- [ ] Footer: the events team's contact (waits on `copy.public.contact`) and no member link on public hosts
+- [x] Brief empty state: pick venues right there, saved ones pre-ticked
+- [x] Footer: already right in production (member link and "Demo build" are demo-only); the events contact appears once `copy.public.contact` is filled
 - [ ] Home: fewer same-shaped section heads (the two-tone line on every section)
 - [ ] Getting here: the plaza tower with arrival pins in place of the flat site plan
-- [ ] Shortlist tray → side-by-side compare → one inquiry or brief
+- [x] Shortlist tray → side-by-side compare (guests, setups, area, views; a guest count marks rooms that fit) → one inquiry or brief (`Shortlist.tsx`)
 - [ ] Tower locator on each venue page, opening the explorer at that floor
 - [ ] Guest count set once, carried across cards, the 3D space and the inquiry
 - [ ] Live hero: the tower as it is now in SF
