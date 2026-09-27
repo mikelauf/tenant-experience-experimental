@@ -28,6 +28,37 @@ export type Level = {
   audience: "public" | "member" | "both";
 };
 
+/**
+ * Who can use an amenity, and what it takes:
+ * `included` with building access, `membership` needs a paid one, `request` goes through the team,
+ * `public` is open to anyone.
+ */
+export type AmenityAccess = "included" | "membership" | "request" | "public";
+
+/** What you'd go there to do; the Building Home groups by this, not by product */
+export type AmenityGroup = "move" | "work" | "meet" | "gather" | "eat";
+
+export type Amenity = {
+  id: string;
+  name: string;
+  group: AmenityGroup;
+  /** Its floor in the tower; `null` when it's elsewhere on the block */
+  level: number | null;
+  /** Where to find it, e.g. "Level 27" or "Transamerica Three, Mark Twain Alley" */
+  where: string;
+  access: AmenityAccess;
+  hours?: string;
+  blurb: string;
+  points?: string[];
+  img?: Img;
+  /** The next step: a member page, a venue, or the concierge */
+  href?: string;
+  cta?: string;
+  /** False until the building confirms it; unconfirmed facts are listed in docs/member-experience.md */
+  confirmed: boolean;
+  source: string;
+};
+
 export type Person = {
   id: string;
   name: string;

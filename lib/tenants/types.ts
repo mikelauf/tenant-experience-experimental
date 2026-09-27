@@ -1,5 +1,6 @@
 import type { AnyIcon } from "@/components/ui/Icon";
 import type {
+  Amenity,
   BuildingEvent,
   ClassKind,
   ClassSession,
@@ -138,6 +139,8 @@ export type TenantData = {
   publicHostId?: string;
   member: Member;
   venues: Venue[];
+  /** What a building member can use, by floor. The Building Home and the member tower read from it. */
+  amenities: Amenity[];
   rooms: Room[];
   roomTags: { id: RoomTag; label: string }[];
   fitness: FitnessBundle | null;

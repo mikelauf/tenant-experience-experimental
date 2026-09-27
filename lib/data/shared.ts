@@ -47,7 +47,8 @@ export const budgets = ["Under $10k", "$10k–$25k", "$25k–$50k", "$50k+", "No
 /** Rough seat count for a setup in a member room. */
 export const roomCapacity = (r: Room, s: Setup) => {
   const f: Record<Setup, number> = { boardroom: 1, theater: 1, classroom: 0.6, reception: 1.4, banquet: 0.8, lounge: 0.8, concert: 1.6 };
-  return s === "boardroom" && r.capacity > 14 ? 24 : Math.round(r.capacity * f[s]);
+  // One table seats 24 at most, however big the room
+  return s === "boardroom" ? Math.min(24, r.capacity) : Math.round(r.capacity * f[s]);
 };
 
 /** Bookable member hours, 8am–7pm, in 30 minute steps */

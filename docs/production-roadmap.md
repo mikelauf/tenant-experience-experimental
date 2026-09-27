@@ -134,6 +134,8 @@ Ask Spencer about:
 5. Matt moves the public-tap DNS to PT.
 6. Remove noindex.
 
+> **The member app** (signed-in Building Home, Phases 2–4 below) has its own plan, status and to-confirm list: [`member-experience.md`](member-experience.md).
+
 ## Phase 2: Public V1.1 and V2
 > **Transamerica team feedback, round 1** is captured in [`tap-feedback/`](tap-feedback/README.md): landmark views in 3D, real floor plans, OpenTable-style booking with one account, multi-venue inquiries, and budget qualification. It folds into this phase.
  (the "15% experimentation" track)

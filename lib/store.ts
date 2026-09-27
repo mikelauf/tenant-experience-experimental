@@ -25,7 +25,7 @@ export type DemoState = {
 };
 
 /** Each building keeps its own demo state, like separate accounts at separate properties. */
-const key = () => `pyramid-demo-v1:${activeTenantId()}`;
+const key = () => `pyramid-demo-v2:${activeTenantId()}`;
 
 /** A returning member's calendar, built from whatever this building offers. */
 function returningSeed(t: Tenant): Commitment[] {

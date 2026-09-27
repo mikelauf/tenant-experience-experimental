@@ -66,7 +66,7 @@ export const images = {
   montgomeryHall: p("venues/montgomery-hall", "Montgomery Hall set in theater rows in morning daylight", "bloom", "50% 55%"),
 
   /* Fitness */
-  gym: p("fitness/gym", "Pyramid Fitness: cardio and strength equipment facing the city through a glass entry", "building", "50% 55%"),
+  gym: p("fitness/gym", "The wellness center: cardio and strength equipment facing the city through a glass entry", "building", "50% 55%"),
   strength: p("fitness/strength", "A coach corrects a member's kettlebell form during Strength 45", "bloom", "50% 40%"),
   ride: p("fitness/ride", "Riders mid-class in the amber-lit Ride studio", "bloom", "50% 50%"),
   recovery: p("fitness/recovery", "The recovery lounge's cold plunge and cedar sauna", "bloom", "50% 50%"),

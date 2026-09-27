@@ -1,5 +1,6 @@
 import { makeTenant } from "../make";
 import type { TenantData } from "../types";
+import { amenities } from "./amenities";
 import { events } from "./events";
 import { fitness } from "./fitness";
 import { images } from "./images";
@@ -155,10 +156,10 @@ const data: TenantData = {
   },
   levels: [
     { n: 0, label: "Street", place: "Redwood Park", href: "/venues/redwood-park", audience: "both" },
-    { n: 1, label: "L1", place: "Lobby & concierge", audience: "both" },
-    { n: 2, label: "L2", place: "Pyramid Fitness", href: "/fitness", audience: "member" },
+    { n: 1, label: "L1", place: "Lobby & coffee bar", audience: "both" },
     { n: 3, label: "L3", place: "The Sandbox", href: "/venues/sandbox", audience: "both" },
     { n: 6, label: "L6", place: "Meeting rooms", href: "/spaces", audience: "member" },
+    { n: 26, label: "L26", place: "Wellness center", href: "/fitness", audience: "member" },
     { n: 27, label: "L27", place: "Bay Lounge", href: "/venues/bay-lounge", audience: "both" },
     { n: 36, label: "L36", place: "Legacy Gallery", href: "/venues/legacy-gallery", audience: "both" },
     { n: 48, label: "L48", place: "Sky Bar", href: "/venues/sky-bar", audience: "both" },
@@ -176,7 +177,7 @@ const data: TenantData = {
     {
       id: "dev",
       name: "Dev Raman",
-      role: "Head coach, Pyramid Fitness",
+      role: "Head coach, the wellness center",
       bio: "Strength coach and former collegiate rower. Runs Strength 45 and the Thursday run club.",
       initials: "DR",
     },
@@ -205,6 +206,7 @@ const data: TenantData = {
   leadId: "ines",
   member: { first: "Jordan", last: "Ellis", email: "jordan.ellis@northline.example", company: "Northline Capital", floor: "Level 31" },
   venues,
+  amenities,
   rooms,
   roomTags: [
     { id: "small", label: "Up to 6" },
@@ -228,8 +230,8 @@ const data: TenantData = {
     pitches: {
       spaces: {
         title: "A room when you need one. A team when it's bigger.",
-        body: "Book one of four meeting rooms in seconds, or hand a reception, offsite or dinner to our events team.",
-        points: ["Four rooms for 4 to 40", "Instant booking for most", "Event planning with Inés"],
+        body: "Book one of five meeting rooms in seconds, or hand a reception, offsite or dinner to our events team.",
+        points: ["Five rooms for 4 to 40", "Instant booking for most", "Event planning with Inés"],
         img: images.boardroomReal,
         cta: "Explore spaces",
         access: "Included with your building access",
@@ -244,7 +246,7 @@ const data: TenantData = {
       },
     },
     firstWeek: {
-      room: { d: "Four rooms, instant for most. Try Clay for a quiet one-on-one.", img: images.huddle },
+      room: { d: "Five rooms, instant for most. Try Clay for a quiet one-on-one.", img: images.huddle },
       event: { d: "The Pyramid at 54 is a great first one.", img: images.historyGallery },
       concierge: { img: images.lobbyDesk },
     },
@@ -254,10 +256,10 @@ const data: TenantData = {
     usuals: [
       { id: "ride", label: "Ride", icon: "bike", href: "/fitness/schedule?kind=ride" },
       { id: "strength", label: "Strength 45", icon: "fitness", href: "/fitness/schedule?kind=strength" },
-      { id: "washington", label: "Washington boardroom", icon: "spaces", href: "/spaces/washington" },
+      { id: "pereira", label: "Pereira Room", icon: "spaces", href: "/spaces/pereira" },
       { id: "clay", label: "Clay room", icon: "spaces", href: "/spaces/clay" },
     ],
-    seed: { room: "washington", event: "the-pyramid-at-54" },
+    seed: { room: "pereira", event: "the-pyramid-at-54" },
     policies: [
       { icon: "clock", t: "Evening events end by 11pm", d: "Load-in from 2pm on event days; load-out by midnight." },
       { icon: "glass", t: "Approved caterers", d: "Choose from four partner caterers, or bring your own with a kitchen fee." },

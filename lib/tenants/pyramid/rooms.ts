@@ -48,14 +48,16 @@ export const rooms: Room[] = [
     tags: ["video", "whiteboard"],
     plate: { w: 9, d: 6, windows: "east" },
   },
+  // Foster and Pereira are the member rooms in Core staging, with their capacities. Their floor, setups and kit aren't confirmed;
+  // Clay, Jackson and Merchant are samples.
   {
-    slug: "washington",
-    name: "Washington",
-    namesake: "Washington Street, to the south",
+    slug: "pereira",
+    name: "Pereira Room",
+    namesake: "William Pereira, who designed the tower",
     level: 6,
-    capacity: 14,
+    capacity: 16,
     setups: ["boardroom", "classroom", "reception"],
-    summary: "The boardroom: a long oak table for fourteen, leather chairs and a wall display under a sculpted plaster ceiling.",
+    summary: "The boardroom: a long oak table for sixteen, leather chairs and a wall display under a sculpted plaster ceiling.",
     amenities: [
       { icon: "view", label: "City views" },
       { icon: "video", label: "Video-call kit" },
@@ -66,6 +68,25 @@ export const rooms: Room[] = [
     approval: "instant",
     tags: ["views", "video", "large"],
     plate: { w: 12, d: 7, windows: "north" },
+  },
+  {
+    slug: "foster",
+    name: "Foster Room",
+    namesake: "Foster + Partners, who reopened the tower in 2024",
+    level: 6,
+    capacity: 18,
+    setups: ["boardroom", "classroom", "theater", "reception"],
+    summary: "Eighteen around a table or in rows. The room for workshops, board meetings and anything with a deck.",
+    amenities: [
+      { icon: "video", label: "Video-call kit", detail: "Camera, mics and one-touch join" },
+      { icon: "screen", label: "Dual displays" },
+      { icon: "whiteboard", label: "Glass board" },
+      { icon: "coffee", label: "Catering credenza" },
+    ],
+    image: boardroom,
+    approval: "instant",
+    tags: ["large", "video", "whiteboard"],
+    plate: { w: 13, d: 8, windows: "wrap" },
   },
   {
     slug: "merchant",

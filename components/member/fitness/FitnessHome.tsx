@@ -72,6 +72,13 @@ function AccessCard() {
   );
 }
 
+/** A headline over two lines, broken at the space nearest its middle */
+function halves(s: string): string[] {
+  const mid = s.length / 2;
+  const at = [...s].reduce((best, c, i) => (c === " " && Math.abs(i - mid) < Math.abs(best - mid) ? i : best), -1);
+  return at < 0 ? [s] : [s.slice(0, at), s.slice(at + 1)];
+}
+
 export function FitnessHome() {
   const s = useDemo();
   const tenant = useTenant();
@@ -135,7 +142,7 @@ export function FitnessHome() {
             <p className="t-lead text-moon/80 animate-rise">
               {fit.name} · Level {fit.level}
             </p>
-            <LineReveal as="h1" className="t-mega mt-4" lines={["Two floors down", "from your desk."]} />
+            <LineReveal as="h1" className="t-mega mt-4" lines={halves(fit.pitch.title)} />
           </div>
           <Reveal delay={0.3} className="col-span-12 flex flex-wrap items-end gap-3 lg:col-span-3 lg:justify-end">
             <ButtonLink href="/fitness/schedule" variant="light" size="lg" icon="arrow-right">

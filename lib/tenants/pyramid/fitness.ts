@@ -120,15 +120,17 @@ const resources: Resource[] = [
 ];
 
 const membership = {
-  name: "Pyramid Fitness",
+  name: "Wellness center",
   price: "$65/month",
   note: "Sample pricing. Billed through your company or card.",
   perks: ["Unlimited classes", "Open gym 6am–9pm", "Ride studio & recovery lounge bookings", "Towel service and lockers"],
 };
 
 export const fitness: FitnessBundle = {
-  name: "Pyramid Fitness",
-  level: 2,
+  // Level 26 per press since the 2024 reopening; not yet confirmed by the building (docs/member-experience.md).
+  // The class names, schedule, coaches and price below are samples.
+  name: "The wellness center",
+  level: 26,
   templates,
   weekly,
   // Noon Ride is always popular; it's the demo's "full" class.
@@ -137,11 +139,11 @@ export const fitness: FitnessBundle = {
   membership,
   hero: images.gym,
   pitch: {
-    title: "Two floors down from your desk.",
-    body: "Coached classes, a Ride studio you can book between meetings, and a recovery lounge with a sauna and cold plunge.",
+    title: "Five floors down from your desk.",
+    body: "Coached classes, a yoga studio, a Ride studio you can book between meetings, and steam and sauna before you head back up.",
     points: ["Classes every weekday", "Ride studio & recovery bookings", "Personal training intros"],
     img: images.ride,
-    cta: "See Pyramid Fitness",
-    access: "Pyramid Fitness membership",
+    cta: "See the wellness center",
+    access: "Wellness center membership",
   },
 };
