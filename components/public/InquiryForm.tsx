@@ -2,12 +2,11 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import Image from "@/components/ui/SmoothImage";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 import { budgetOptions } from "@/lib/core/inquiry/budget";
-import { MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/contract";
+import { LIMITS, MAX_VENUES, NOT_SURE, type InquiryInput } from "@/lib/core/inquiry/contract";
 import { getPublicCampaign } from "@/lib/core/inquiry/campaign";
 import { INQUIRY_CLIENT_TIMEOUT_MS } from "@/lib/core/inquiry/timeouts";
 import { START_TIMES, dateText } from "@/lib/core/inquiry/when";
@@ -22,21 +21,7 @@ import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { DatePicker, formatDate } from "./DatePicker";
 import { GuestStepper } from "./GuestStepper";
-import { LineReveal } from "@/components/motion/Reveal";
-import {
-  BLANKS,
-  BLANK_KEY,
-  EVENT_PHRASE,
-  GUEST_PRESETS,
-  LEAD,
-  STEPS,
-  isLayout,
-  validateStep,
-  type Blank,
-  type Errors,
-  type InquiryLayout,
-  type Values,
-} from "./inquiry-model";
+import { GUEST_PRESETS, LEAD, STEPS, validateStep, type Errors, type Values } from "./inquiry-model";
 import { Chips, Field } from "./inquiry-fields";
 /**
  * The public inquiry, OpenTable-style: the event first, contact details last, no account
@@ -45,7 +30,13 @@ import { Chips, Field } from "./inquiry-fields";
  * Budget ranges below the chosen spaces' minimum aren't offered, so an inquiry can't go out below the floor.
  */
 
-export type InquiryInitial = { venue?: string; guests?: string; date?: string; time?: string; layout?: string; setup?: string };
+export type InquiryInitial = { venue?: string; guests?: string; date?: string; time?: string; setup?: string };
+
+/** Today as YYYY-MM-DD in this browser, so a date carried in a link can't be in the past */
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
 
 /**
  * `onClose` puts the form in a modal over a venue's page: the focused card without its page backdrop,
@@ -65,7 +56,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   // Coming from a venue's 3D space with a setup picked: start the note with it, for them to keep or edit
   const fromSetup = all.find((x) => x.slug === initial.venue)?.layout?.setups[initial.setup as Setup] ? (initial.setup as Setup) : undefined;
   const [v, setV] = useState<Values>({
-    date: /^\d{4}-\d{2}-\d{2}$/.test(initial.date ?? "") ? initial.date! : "",
+    date: /^\d{4}-\d{2}-\d{2}$/.test(initial.date ?? "") && initial.date! >= today() ? initial.date! : "",
     time: START_TIMES.includes(initial.time ?? "") ? initial.time! : "",
     flexible: false,
     guests: /^\d{1,6}$/.test(initial.guests ?? "") ? initial.guests! : "",
@@ -81,10 +72,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     privacy: false,
     news: false,
   });
-  // Focused is the inquiry; ?layout= still opens the other explorations.
-  const layout: InquiryLayout = modal ? "focused" : isLayout(initial.layout) ? initial.layout : "focused";
   // A date and a headcount already chosen on the venue's page count as the first step answered
-  const start = layout !== "sentence" && v.date && v.guests ? 1 : 0;
+  const start = v.date && v.guests ? 1 : 0;
   const [step, setStep] = useState(start);
   const [reached, setReached] = useState(start);
   const [sent, setSent] = useState<{ ref: string; preview: boolean } | null>(null);
@@ -95,7 +84,6 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   const [simulateFail, setSimulateFail] = useState(false);
   const [website, setWebsite] = useState("");
   const [touchedVenues, setTouchedVenues] = useState(initialVenue.length > 0);
-  const [blank, setBlank] = useState<Blank | null>("event");
   const startedAt = useRef("");
   // An unchanged retry reuses its key, so Core never files the same inquiry twice.
   const attempt = useRef<{ payload: string; key: string } | null>(null);
@@ -112,20 +100,6 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   const budget = budgets.includes(v.budget) ? v.budget : "";
   const values = { ...v, venues, budget };
   const largest = chosen.reduce<(typeof chosen)[number] | undefined>((a, x) => ((x.capacity ?? 0) > (a?.capacity ?? 0) ? x : a), undefined);
-
-  // The sentence layout folds the first three steps into one sentence: its steps are 0 (the event) and 3 (you).
-  const sentence = layout === "sentence" && step < 3;
-  const filled: Record<Blank, boolean> = {
-    event: !!v.eventType,
-    guests: !!v.guests,
-    date: !!v.date,
-    venue: venues.length > 0,
-    budget: !!budget,
-    note: !!v.message.trim(),
-  };
-  /** The next blank after this one that still needs an answer, or none. */
-  const after = (b: Blank) => BLANKS.slice(BLANKS.indexOf(b) + 1).find((x) => !filled[x]) ?? null;
-  const advance = (b: Blank) => layout === "sentence" && setBlank(after(b));
 
   // A headcount set elsewhere on the site fills in here when the link didn't bring one (read once the browser's store is up)
   const [seeded, setSeeded] = useState(false);
@@ -160,9 +134,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     if (s.shortlist.includes(slug)) actions.toggleShortlist(slug);
   };
 
+  // A step change moves focus to the new step's title, so screen readers hear where they are
+  const focusStep = useRef(false);
   const go = (to: number) => {
     setStep(to);
     setErrors({});
+    focusStep.current = true;
     // Only brings the steps back when they've scrolled out of view above; a step change otherwise leaves the page where it is
     requestAnimationFrame(() => {
       const el = top.current;
@@ -172,20 +149,18 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     });
   };
   const next = () => {
-    const checks = sentence ? [0, 1, 2] : [step];
-    const e: Errors = Object.assign({}, ...checks.map((k) => validateStep(k, values)));
+    const e = validateStep(step, values);
     setErrors(e);
     if (Object.keys(e).length) {
       const first = Object.keys(e)[0] as keyof Values;
-      if (sentence) setBlank(BLANKS.find((b) => BLANK_KEY[b] === first) ?? null);
       requestAnimationFrame(() => document.getElementById(`${uid}-${first}`)?.focus());
       return;
     }
-    const to = sentence ? 3 : step + 1;
+    const to = step + 1;
     setReached((r) => Math.max(r, to));
     go(to);
   };
-  const back = () => go(layout === "sentence" && step === 3 ? 0 : step - 1);
+  const back = () => go(step - 1);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,9 +245,18 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         setErrors(mapped);
         const stepOf = (k: string) => (["date", "guests"].includes(k) ? 0 : k === "venues" ? 1 : ["budget", "eventType", "message"].includes(k) ? 2 : 3);
         const earliest = Math.min(...Object.keys(mapped).map(stepOf));
-        if (earliest < 3) setStep(layout === "sentence" ? 0 : earliest);
+        if (earliest < 3) go(earliest);
+        // After go(), which clears errors: the server's say wins, and the first field it flagged takes focus
+        setErrors(mapped);
+        const first = Object.keys(mapped)[0];
+        if (first) setTimeout(() => document.getElementById(`${uid}-${first}`)?.focus(), earliest < 3 ? 450 : 0);
       }
-      setServerMessage(result.message ?? "Please check your details and try again.");
+      // Anything that isn't about the details (blocked, unavailable, down) says so, rather than blaming the form
+      setServerMessage(
+        result.errors
+          ? (result.message ?? "Please check your details and try again.")
+          : "We couldn't send it just now. Your details are all still here; try again in a moment.",
+      );
     } catch {
       setNetError(true);
     }
@@ -280,8 +264,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   };
 
   const id = (k: string) => `${uid}-${k}`;
-  /** Space between a step's title and its fields: tighter on the focused inquiry */
-  const gap = layout === "focused" ? "mt-5" : "mt-8";
+  /** Space between a step's title and its fields */
+  const gap = "mt-5";
   const invalid = (k: keyof Values) => (errors[k] ? { "aria-invalid": true as const, "aria-describedby": `${id(k)}-error` } : {});
   const hero = chosen[0]?.hero ?? building.hero;
   const title = chosen.length > 1 ? `${chosen.length} venues` : (chosen[0]?.name ?? (venues.includes(NOT_SURE) ? "The right space for you" : building.name));
@@ -292,47 +276,12 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     { k: "Budget", s: 2, val: budget },
   ];
 
-  /* ---------- Shared pieces: every layout arranges the same controls ---------- */
-
-  const progressSteps =
-    layout === "sentence"
-      ? [
-          { i: 0, short: "Your event" },
-          { i: 3, short: "Your details" },
-        ]
-      : STEPS.map((st, i) => ({ i, short: st.short }));
-  const progress = (
-    <ol className="flex gap-2" aria-label="Inquiry steps">
-      {progressSteps.map((st, k) => (
-        <li key={st.short} className="flex-1">
-          <button
-            type="button"
-            onClick={() => st.i <= reached && go(st.i)}
-            disabled={st.i > reached}
-            aria-current={st.i === (sentence ? 0 : step) ? "step" : undefined}
-            className="group w-full text-left disabled:cursor-default"
-          >
-            <span
-              className={cn("block h-[3px] rounded-full transition-colors duration-500", st.i <= step ? "bg-ink" : st.i <= reached ? "bg-ink/35" : "bg-line-2")}
-            />
-            <span className={cn("t-meta mt-2 block", st.i === (sentence ? 0 : step) && "font-medium text-ink")}>
-              {k + 1}. {st.short}
-            </span>
-          </button>
-        </li>
-      ))}
-    </ol>
-  );
-
   const dateControl = (
     <Field id={id("date")} label="Preferred date" error={errors.date}>
       <DatePicker
         id={id("date")}
         value={v.date}
-        onChange={(x) => {
-          set("date", x);
-          if (x) advance("date");
-        }}
+        onChange={(x) => set("date", x)}
         invalid={!!errors.date}
         describedBy={errors.date ? `${id("date")}-error` : undefined}
       />
@@ -376,10 +325,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           name="Common guest counts"
           options={GUEST_PRESETS}
           value={GUEST_PRESETS.find((p) => parseInt(p) === Number(v.guests)) ?? ""}
-          onChange={(x) => {
-            set("guests", x ? String(parseInt(x)) : "");
-            if (x) advance("guests");
-          }}
+          onChange={(x) => set("guests", x ? String(parseInt(x)) : "")}
         />
       </div>
     </Field>
@@ -452,16 +398,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
       <p className="mb-2.5 text-[0.875rem] font-medium outline-none" id={id("budget")} tabIndex={-1}>
         Budget range <span className="t-meta font-normal">· all in: the space, rentals, catering and drinks</span>
       </p>
-      <Chips
-        name="Budget range"
-        options={budgets}
-        value={budget}
-        onChange={(x) => {
-          set("budget", x);
-          if (x) advance("budget");
-        }}
-        invalid={!!errors.budget}
-      />
+      <Chips name="Budget range" options={budgets} value={budget} onChange={(x) => set("budget", x)} invalid={!!errors.budget} />
       {errors.budget && (
         <p className="t-small flex items-center gap-1.5 pt-3 text-accent">
           <Icon name="alert" size={16} />
@@ -476,15 +413,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
       <p className="mb-2.5 flex items-baseline justify-between text-[0.875rem] font-medium">
         Type of event <span className="t-meta font-normal">Optional</span>
       </p>
-      <Chips
-        name="Type of event"
-        options={eventTypes}
-        value={v.eventType}
-        onChange={(x) => {
-          set("eventType", x);
-          if (x) advance("event");
-        }}
-      />
+      <Chips name="Type of event" options={eventTypes} value={v.eventType} onChange={(x) => set("eventType", x)} />
     </div>
   );
 
@@ -493,6 +422,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
       <textarea
         id={id("message")}
         rows={3}
+        maxLength={LIMITS.details}
         className="field resize-y"
         placeholder="The occasion, the setup, catering or AV needs, a site visit…"
         value={v.message}
@@ -509,6 +439,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             id={id("firstName")}
             className="field"
             autoComplete="given-name"
+            maxLength={LIMITS.firstName}
             value={v.firstName}
             onChange={(e) => set("firstName", e.target.value)}
             {...invalid("firstName")}
@@ -519,6 +450,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             id={id("lastName")}
             className="field"
             autoComplete="family-name"
+            maxLength={LIMITS.lastName}
             value={v.lastName}
             onChange={(e) => set("lastName", e.target.value)}
             {...invalid("lastName")}
@@ -532,16 +464,17 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             className="field"
             placeholder="Any address, work or personal"
             autoComplete="email"
+            maxLength={LIMITS.email}
             value={v.email}
             onChange={(e) => set("email", e.target.value)}
             {...invalid("email")}
           />
         </Field>
         <Field id={id("phone")} label="Phone" optional>
-          <input id={id("phone")} type="tel" className="field" autoComplete="tel" value={v.phone} onChange={(e) => set("phone", e.target.value)} />
+          <input id={id("phone")} type="tel" className="field" autoComplete="tel" maxLength={LIMITS.phone} value={v.phone} onChange={(e) => set("phone", e.target.value)} />
         </Field>
         <Field id={id("company")} label="Company" optional>
-          <input id={id("company")} className="field" autoComplete="organization" value={v.company} onChange={(e) => set("company", e.target.value)} />
+          <input id={id("company")} className="field" autoComplete="organization" maxLength={LIMITS.company} value={v.company} onChange={(e) => set("company", e.target.value)} />
         </Field>
       </div>
 
@@ -574,12 +507,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           </p>
         )}
         <label className="flex cursor-pointer items-center gap-3">
-          <input
-            type="checkbox"
-            checked={v.news}
-            onChange={(e) => set("news", e.target.checked)}
-            className="size-4 shrink-0 accent-[var(--color-ink)]"
-          />
+          <input type="checkbox" checked={v.news} onChange={(e) => set("news", e.target.checked)} className="size-4 shrink-0 accent-[var(--color-ink)]" />
           <span className="text-[0.8125rem] leading-snug text-stone">Send me the occasional note about new spaces and open dates.</span>
         </label>
       </div>
@@ -624,118 +552,48 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     </div>
   );
 
-  /* ---------- The sentence ---------- */
-
-  const blankText: Record<Blank, string> = {
-    event: v.eventType ? (EVENT_PHRASE[v.eventType] ?? `a ${v.eventType.toLowerCase()}`) : "an event",
-    guests: v.guests ? Number(v.guests).toLocaleString("en-US") : "how many",
-    date: v.date ? `${formatDate(v.date)}${v.flexible ? " (or so)" : ""}` : "which date",
-    venue: venues.includes(NOT_SURE)
-      ? "whichever space fits"
-      : chosen.length
-        ? new Intl.ListFormat("en", { type: "disjunction" }).format(chosen.map((x) => x.name))
-        : "which venue",
-    budget: budget === "Not sure yet" ? "TBD" : budget || "how much",
-    note: "",
-  };
-  const B = (b: Blank) => {
-    const on = blank === b;
-    const err = !!errors[BLANK_KEY[b]];
-    return (
-      <button
-        type="button"
-        onClick={() => setBlank(on ? null : b)}
-        aria-expanded={on}
-        className={cn(
-          "rounded-[0.25em] px-[0.1em] underline decoration-[0.06em] underline-offset-[0.14em] transition-colors duration-200",
-          filled[b] ? "text-ink decoration-line-2 hover:decoration-ink" : "text-stone-2 decoration-stone-2 decoration-dashed hover:text-stone",
-          err && "text-accent decoration-accent",
-          on && "bg-accent-soft text-accent-deep decoration-accent",
-        )}
-      >
-        {blankText[b]}
-      </button>
-    );
-  };
-  const blankPanel: Record<Blank, React.ReactNode> = {
-    event: eventControl,
-    guests: guestsControl,
-    date: dateControl,
-    venue: venuePicker,
-    budget: budgetControl,
-    note: messageControl,
-  };
-  const sentenceStep = (
-    <div className="mt-2">
-      <p className="t-h1 !leading-[1.22] text-stone">
-        I&apos;m planning {B("event")} for {B("guests")} guests on {B("date")}, at {B("venue")}, with a budget of {B("budget")}.
-      </p>
-      {!blank && (
-        <button type="button" onClick={() => setBlank("note")} className="t-small mt-6 inline-flex items-center gap-1.5 font-medium text-stone hover:text-ink">
-          <Icon name={filled.note ? "check" : "plus"} size={16} />
-          {filled.note ? "Note added for the team" : "Add a note for the team"}
-        </button>
-      )}
-      <AnimatePresence mode="wait" initial={false}>
-        {blank && (
-          <motion.div
-            key={blank}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="mt-8 rounded-[var(--radius-card)] bg-paper p-5 shadow-[var(--shadow-soft)] sm:p-6"
-          >
-            {blankPanel[blank]}
-            <div className="mt-5 flex justify-end">
-              <button type="button" onClick={() => setBlank(after(blank))} className="t-small font-medium text-stone hover:text-ink">
-                {blank === "event" && !filled.event ? "Skip" : "Done"}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-
   /* ---------- Steps, and the buttons that move between them ---------- */
 
-  // The focused page sets date and guests side by side, so every step fits on one screen
-  const stacked = layout !== "split" && (layout !== "focused" || modal);
-  const legendClass = { split: "t-h1", focused: "t-h3", card: "t-h2", sentence: "t-h1" }[layout];
+  // The page sets date and guests side by side, so every step fits on one screen; the modal stacks them
+  const stacked = modal;
   const fieldset = (
     <AnimatePresence mode="wait" initial={false}>
       <motion.fieldset
-        key={sentence ? "sentence" : step}
+        key={step}
         initial={{ opacity: 0, x: 16 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -16 }}
         transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       >
-        <legend className={sentence ? "sr-only" : legendClass}>{sentence ? "Your event" : STEPS[step].title}</legend>
+        <legend
+          tabIndex={-1}
+          className="t-h3 outline-none"
+          ref={(el) => {
+            if (el && focusStep.current) {
+              focusStep.current = false;
+              el.focus({ preventScroll: true });
+            }
+          }}
+        >
+          {STEPS[step].title}
+        </legend>
         {modal && step === 0 && <p className="t-small mt-2 max-w-[48ch] text-stone">{LEAD}</p>}
 
-        {sentence ? (
-          sentenceStep
-        ) : (
-          <>
-            {step === 0 && (
-              <div className={cn(gap, "grid gap-6", !stacked && "sm:grid-cols-2")}>
-                {dateControl}
-                {guestsControl}
-              </div>
-            )}
-            {step === 1 && <div className={gap}>{venuePicker}</div>}
-            {step === 2 && (
-              <div className={cn(gap, "space-y-6")}>
-                {budgetControl}
-                {eventControl}
-                {messageControl}
-              </div>
-            )}
-            {step === 3 && detailsStep}
-          </>
+        {step === 0 && (
+          <div className={cn(gap, "grid gap-6", !stacked && "sm:grid-cols-2")}>
+            {dateControl}
+            {guestsControl}
+          </div>
         )}
+        {step === 1 && <div className={gap}>{venuePicker}</div>}
+        {step === 2 && (
+          <div className={cn(gap, "space-y-6")}>
+            {budgetControl}
+            {eventControl}
+            {messageControl}
+          </div>
+        )}
+        {step === 3 && detailsStep}
       </motion.fieldset>
     </AnimatePresence>
   );
@@ -749,489 +607,317 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     ) : (
       <span />
     );
-  const submitButton = (
-    <div className="flex flex-col items-stretch gap-3 sm:items-end">
-      <button
-        type="submit"
-        disabled={sending}
-        className="flex h-14 items-center justify-center gap-2 rounded-full bg-accent px-8 font-medium text-paper transition-colors hover:bg-accent-deep disabled:opacity-60"
-      >
-        {sending ? (
-          <>
-            <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
-            Sending…
-          </>
-        ) : step < 3 ? (
-          <>
-            Continue
-            <Icon name="arrow-right" size={18} />
-          </>
-        ) : netError ? (
-          "Try again"
-        ) : (
-          <>
-            Send inquiry
-            <Icon name="arrow-right" size={18} />
-          </>
-        )}
-      </button>
-      {isDemo && step === 3 && (
-        <label className="t-meta flex cursor-pointer items-center gap-2">
-          <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
-          Demo: simulate a connection error
-        </label>
-      )}
-    </div>
-  );
-  const navRow = (
-    <div className="mt-10 flex flex-col-reverse gap-4 border-t hairline pt-8 sm:flex-row sm:items-center sm:justify-between">
-      {backButton}
-      {submitButton}
-    </div>
-  );
   const formProps = { ref: top, noValidate: true, onSubmit: submit };
 
-  /* ---------- Layouts ---------- */
+  /* ---------- The page, or the modal ---------- */
 
-  if (layout === "focused") {
-    const answered = rows.filter((r) => r.val && r.s !== step);
-    /** The chosen space, crossfading as the venues change */
-    const scene = (sizes: string) => (
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={hero.src}
-          className="absolute inset-0"
-          initial={{ opacity: 0, scale: 1.08 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-        >
-          <Image src={hero.src} alt="" fill sizes={sizes} className="object-cover" style={{ objectPosition: hero.pos }} />
-        </motion.div>
-      </AnimatePresence>
-    );
-    const titleText = (className: string) => (
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.p
-          key={title}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-          className={className}
-        >
-          {title}
-        </motion.p>
-      </AnimatePresence>
-    );
-    const pills = (list: typeof rows) =>
-      list.map((r) => (
-        <button
-          key={r.k}
-          type="button"
-          onClick={() => r.s <= reached && go(r.s)}
-          disabled={!!sent || r.s > reached}
-          title={sent ? undefined : `Edit ${r.k.toLowerCase()}`}
-          className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25 disabled:hover:bg-white/15"
-        >
-          {r.val}
-        </button>
-      ));
-    /* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */
-    const stepper = (
-      <ol className="grid grid-cols-4 gap-2" aria-label="Inquiry steps">
-        {STEPS.map((st, k) => (
-          <li key={st.short}>
+  const answered = rows.filter((r) => r.val && r.s !== step);
+  /** The chosen space, crossfading as the venues change */
+  const scene = (sizes: string) => (
+    <AnimatePresence initial={false}>
+      <motion.div
+        key={hero.src}
+        className="absolute inset-0"
+        initial={{ opacity: 0, scale: 1.08 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <Image src={hero.src} alt="" fill sizes={sizes} className="object-cover" style={{ objectPosition: hero.pos }} />
+      </motion.div>
+    </AnimatePresence>
+  );
+  const titleText = (className: string) => (
+    <AnimatePresence mode="wait" initial={false}>
+      <motion.p
+        key={title}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6 }}
+        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+        className={className}
+      >
+        {title}
+      </motion.p>
+    </AnimatePresence>
+  );
+  const pills = (list: typeof rows) =>
+    list.map((r) => (
+      <button
+        key={r.k}
+        type="button"
+        onClick={() => r.s <= reached && go(r.s)}
+        disabled={!!sent || r.s > reached}
+        title={sent ? undefined : `Edit ${r.k.toLowerCase()}`}
+        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-white/15 px-3 text-[0.8125rem] font-medium text-moon backdrop-blur-md transition-colors hover:bg-white/25 disabled:hover:bg-white/15"
+      >
+        {r.val}
+      </button>
+    ));
+  /* Stepper: the current step fills in the accent; done steps stay ink and can be revisited */
+  const stepper = (
+    <ol className="grid grid-cols-4 gap-2" aria-label="Inquiry steps">
+      {STEPS.map((st, k) => (
+        <li key={st.short}>
+          <button
+            type="button"
+            onClick={() => k <= reached && go(k)}
+            disabled={k > reached}
+            aria-current={k === step ? "step" : undefined}
+            className="group w-full text-left disabled:cursor-default"
+          >
+            <span className="relative block h-1 overflow-hidden rounded-full bg-fog">
+              <motion.span
+                className={cn("absolute inset-0 origin-left rounded-full", k === step ? "bg-accent" : "bg-ink")}
+                initial={false}
+                animate={{ scaleX: k <= step ? 1 : k <= reached ? 0.35 : 0 }}
+                transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+              />
+            </span>
+            <span
+              className={cn(
+                "mt-2 block text-[0.8125rem] font-medium transition-colors",
+                k === step ? "text-accent" : k <= reached ? "text-ink-2 group-hover:text-ink" : "text-stone-2",
+              )}
+            >
+              {st.short}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ol>
+  );
+  const sendButton = (
+    <button
+      type="submit"
+      disabled={sending}
+      className="group flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper shadow-[0_8px_24px_-8px_var(--color-accent)] transition-[background-color,transform] hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60"
+    >
+      {sending ? (
+        <>
+          <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
+          Sending…
+        </>
+      ) : (
+        <>
+          {step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
+          <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
+        </>
+      )}
+    </button>
+  );
+  const simulate = isDemo && step === 3 && (
+    <label className="t-meta mt-5 flex cursor-pointer items-center gap-2">
+      <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
+      Demo: simulate a connection error
+    </label>
+  );
+
+  if (!modal) {
+    const one = chosen.length === 1 ? chosen[0] : undefined;
+    /** Each venue in the inquiry, with its own x */
+    const venueList = chosen.length > 0 && (
+      <ul aria-label="Venues in this inquiry">
+        {chosen.map((x) => (
+          <li key={x.slug} className="flex items-center gap-3 border-t hairline py-3 first:border-t-0">
+            <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-fog">
+              <Image src={x.hero.src} alt="" fill sizes="48px" className="object-cover" style={{ objectPosition: x.hero.pos }} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-medium">{x.name}</span>
+              <span className="t-meta block first-letter:uppercase">
+                {x.levelLabel} · {guestsShort(x)}
+              </span>
+            </span>
             <button
               type="button"
-              onClick={() => k <= reached && go(k)}
-              disabled={k > reached}
-              aria-current={k === step ? "step" : undefined}
-              className="group w-full text-left disabled:cursor-default"
+              onClick={() => removeVenue(x.slug)}
+              aria-label={`Remove ${x.name} from this inquiry`}
+              className="grid size-9 shrink-0 place-items-center rounded-full text-stone transition-colors hover:bg-fog hover:text-ink"
             >
-              <span className="relative block h-1 overflow-hidden rounded-full bg-fog">
-                <motion.span
-                  className={cn("absolute inset-0 origin-left rounded-full", k === step ? "bg-accent" : "bg-ink")}
-                  initial={false}
-                  animate={{ scaleX: k <= step ? 1 : k <= reached ? 0.35 : 0 }}
-                  transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-                />
-              </span>
-              <span
-                className={cn(
-                  "mt-2 block text-[0.8125rem] font-medium transition-colors",
-                  k === step ? "text-accent" : k <= reached ? "text-ink-2 group-hover:text-ink" : "text-stone-2",
-                )}
-              >
-                {st.short}
-              </span>
+              <Icon name="close" size={16} />
             </button>
           </li>
         ))}
-      </ol>
+      </ul>
     );
-    const sendButton = (
-      <button
-        type="submit"
-        disabled={sending}
-        className="group flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-7 font-medium text-paper shadow-[0_8px_24px_-8px_var(--color-accent)] transition-[background-color,transform] hover:bg-accent-deep active:scale-[0.98] disabled:opacity-60"
-      >
-        {sending ? (
-          <>
-            <span className="keep-round size-4 animate-spin rounded-full border-2 border-paper/30 border-t-paper" />
-            Sending…
-          </>
-        ) : (
-          <>
-            {step < 3 ? "Continue" : netError ? "Try again" : "Send inquiry"}
-            <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
-          </>
-        )}
-      </button>
+    const noVenue = (
+      <p className="t-small py-4 text-stone">
+        {venues.includes(NOT_SURE) ? "The events team will suggest the right space." : "No venue yet. Pick one on the Where step, or let the team suggest one."}
+      </p>
     );
-    const simulate = isDemo && step === 3 && (
-      <label className="t-meta mt-5 flex cursor-pointer items-center gap-2">
-        <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
-        Demo: simulate a connection error
-      </label>
-    );
-
-    if (!modal) {
-      const one = chosen.length === 1 ? chosen[0] : undefined;
-      /** Each venue in the inquiry, with its own x */
-      const venueList = chosen.length > 0 && (
-        <ul aria-label="Venues in this inquiry">
-          {chosen.map((x) => (
-            <li key={x.slug} className="flex items-center gap-3 border-t hairline py-3 first:border-t-0">
-              <span className="relative size-12 shrink-0 overflow-hidden rounded-xl bg-fog">
-                <Image src={x.hero.src} alt="" fill sizes="48px" className="object-cover" style={{ objectPosition: x.hero.pos }} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium">{x.name}</span>
-                <span className="t-meta block first-letter:uppercase">
-                  {x.levelLabel} · {guestsShort(x)}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => removeVenue(x.slug)}
-                aria-label={`Remove ${x.name} from this inquiry`}
-                className="grid size-9 shrink-0 place-items-center rounded-full text-stone transition-colors hover:bg-fog hover:text-ink"
-              >
-                <Icon name="close" size={16} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      );
-      const noVenue = (
-        <p className="t-small py-4 text-stone">
-          {venues.includes(NOT_SURE) ? "The events team will suggest the right space." : "No venue yet. Pick one on the Where step, or let the team suggest one."}
-        </p>
-      );
-      /* The inquiry so far, beside the form: the space, the venues (each removable) and the answers, which jump back to their step */
-      const summary = (
-        <div className="overflow-hidden rounded-[28px] bg-paper shadow-[var(--shadow-soft)]">
-          <div className="theme-night relative aspect-[16/10] overflow-hidden bg-night">
-            {scene("(min-width:1024px) 34vw, 100vw")}
-            <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-              <p className="t-small font-medium text-moon/85 first-letter:uppercase">{one ? one.levelLabel : "Your inquiry"}</p>
-              {titleText("t-h2 mt-1 text-moon")}
-            </div>
-          </div>
-          <div className="px-5 pb-3 sm:px-6">
-            <div className="pt-2">{venueList || noVenue}</div>
-            <dl className="border-t hairline py-2">
-              {rows
-                .filter((r) => r.k !== "Where")
-                .map((r) => (
-                  <div key={r.k} className="flex items-baseline justify-between gap-4 py-2.5">
-                    <dt className="t-small text-stone">{r.k}</dt>
-                    <dd className="text-right text-[0.9375rem]">
-                      {r.val ? (
-                        <button
-                          type="button"
-                          onClick={() => r.s <= reached && go(r.s)}
-                          disabled={r.s > reached}
-                          className="font-medium underline-offset-2 hover:underline disabled:no-underline"
-                        >
-                          {r.val}
-                        </button>
-                      ) : (
-                        <span className="text-stone-2">—</span>
-                      )}
-                    </dd>
-                  </div>
-                ))}
-            </dl>
-            <p className="t-meta border-t hairline py-3.5">{LEAD}</p>
+    /* The inquiry so far, beside the form: the space, the venues (each removable) and the answers, which jump back to their step */
+    const summary = (
+      <div className="overflow-hidden rounded-[28px] bg-paper shadow-[var(--shadow-soft)]">
+        <div className="theme-night relative aspect-[16/10] overflow-hidden bg-night">
+          {scene("(min-width:1024px) 34vw, 100vw")}
+          <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/40 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+            <p className="t-small font-medium text-moon/85 first-letter:uppercase">{one ? one.levelLabel : "Your inquiry"}</p>
+            {titleText("t-h2 mt-1 text-moon")}
           </div>
         </div>
-      );
-
-      return (
-        <div className="frame grid min-h-[100svh] content-start gap-y-8 pb-16 pt-[calc(var(--nav-h)+32px)] lg:grid-cols-12 lg:gap-x-[var(--col-gap)] lg:pt-[calc(var(--nav-h)+56px)]">
-          <div className="lg:col-span-7">
-            <header>
-              <p className="t-small font-medium text-accent">Event inquiry · {building.name}</p>
-              <h1 className="t-h2 mt-2">Plan your event.</h1>
-            </header>
-
-            {/* Phones: the venues sit above the form, where the card would be */}
-            {chosen.length > 0 && <div className="mt-8 rounded-[20px] bg-paper px-4 py-1 shadow-[var(--shadow-soft)] lg:hidden">{venueList}</div>}
-
-            {/* The steps in a card of their own, a match for the summary beside it */}
-            <form
-              {...formProps}
-              className="soft mt-6 scroll-mt-[calc(var(--nav-h)+16px)] rounded-[24px] bg-paper shadow-[var(--shadow-soft)] lg:mt-8 lg:rounded-[28px]"
-            >
-              <div className="px-5 pb-6 pt-6 sm:px-8 sm:pt-7">
-                {stepper}
-                <div className="mt-7">{fieldset}</div>
-                {simulate}
-              </div>
-              {/* Actions stay in reach at the bottom of the screen on long steps */}
-              <div className="sticky bottom-0 z-10 rounded-b-[24px] bg-paper/90 px-5 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 backdrop-blur-xl sm:px-8 sm:pb-6 lg:rounded-b-[28px]">
-                <div className="flex items-center justify-between gap-4">
-                  {backButton}
-                  {sendButton}
+        <div className="px-5 pb-3 sm:px-6">
+          <div className="pt-2">{venueList || noVenue}</div>
+          <dl className="border-t hairline py-2">
+            {rows
+              .filter((r) => r.k !== "Where")
+              .map((r) => (
+                <div key={r.k} className="flex items-baseline justify-between gap-4 py-2.5">
+                  <dt className="t-small text-stone">{r.k}</dt>
+                  <dd className="text-right text-[0.9375rem]">
+                    {r.val ? (
+                      <button
+                        type="button"
+                        onClick={() => r.s <= reached && go(r.s)}
+                        disabled={r.s > reached}
+                        className="font-medium underline-offset-2 hover:underline disabled:no-underline"
+                      >
+                        {r.val}
+                      </button>
+                    ) : (
+                      <span className="text-stone-2">—</span>
+                    )}
+                  </dd>
                 </div>
-              </div>
-            </form>
-          </div>
-
-          <aside aria-label="Your inquiry" className="hidden pb-28 lg:col-span-5 lg:col-start-8 lg:block xl:col-span-4 xl:col-start-9">
-            <div className="sticky top-[calc(var(--nav-h)+32px)]">{summary}</div>
-          </aside>
+              ))}
+          </dl>
+          <p className="t-meta border-t hairline py-3.5">{LEAD}</p>
         </div>
-      );
-    }
+      </div>
+    );
 
     return (
-      <form {...formProps} className="relative rounded-t-[28px] bg-paper lg:rounded-[28px]">
-        {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
-        <div className="theme-night relative h-[184px] overflow-hidden rounded-t-[28px] bg-night sm:h-[208px]">
-          {scene("(min-width:1024px) 720px, 580px")}
-          <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
-          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-5 sm:px-8">
-            <h2 id={id("title")} className="t-meta !text-moon/85">
-              Event inquiry
-            </h2>
-            <span className="flex items-center gap-2">
-              <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
-                {sent ? "Sent" : `${step + 1} / ${STEPS.length}`}
-              </span>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                className="-mr-1.5 grid size-9 place-items-center rounded-full bg-white/15 text-moon backdrop-blur-md transition-colors hover:bg-white/25"
-              >
-                <Icon name="close" size={18} />
-              </button>
-            </span>
-          </div>
-          <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
-            {titleText("t-h2 text-moon")}
-            <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
-              {pills(answered)}
-              {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
-            </div>
-          </div>
-        </div>
+      <div className="frame grid min-h-[100svh] content-start gap-y-8 pb-16 pt-[calc(var(--nav-h)+32px)] lg:grid-cols-12 lg:gap-x-[var(--col-gap)] lg:pt-[calc(var(--nav-h)+56px)]">
+        <div className="lg:col-span-7">
+          <header>
+            <p className="t-small font-medium text-accent">Event inquiry · {building.name}</p>
+            <h1 className="t-h2 mt-2">Plan your event.</h1>
+          </header>
 
-        {sent ? (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="px-5 pb-8 pt-8 sm:px-8"
-            role="status"
+          {/* Phones: the venues sit above the form, where the card would be */}
+          {chosen.length > 0 && <div className="mt-8 rounded-[20px] bg-paper px-4 py-1 shadow-[var(--shadow-soft)] lg:hidden">{venueList}</div>}
+
+          {/* The steps in a card of their own, a match for the summary beside it */}
+          <form
+            {...formProps}
+            className="soft mt-6 scroll-mt-[calc(var(--nav-h)+16px)] rounded-[24px] bg-paper shadow-[var(--shadow-soft)] lg:mt-8 lg:rounded-[28px]"
           >
-            <motion.span
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
-              className="grid size-14 place-items-center rounded-full bg-accent text-paper"
-            >
-              <Icon name="check" size={26} strokeWidth={2} />
-            </motion.span>
-            <p className="t-h2 mt-6">{sent.preview ? "Preview complete." : "Inquiry received."}</p>
-            <p className="t-body mt-3 max-w-[46ch] text-stone">
-              {sent.preview
-                ? "It was checked but not sent, so no one on the events team has received it. On the live site, they'd now follow up by email."
-                : `${host ? `${host.name.split(" ")[0]} and the events team` : "The events team"} will follow up at ${v.email.trim()}. Nothing is reserved until you say so.`}
-            </p>
-            <p className="mt-5 inline-flex items-center gap-3 rounded-full bg-quartz px-4 py-2 shadow-[var(--shadow-ring)]">
-              <span className="t-meta">Reference</span>
-              <span className="t-num font-medium">{sent.ref}</span>
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Button onClick={onClose}>Done</Button>
-              {chosen.length > 0 && (
-                <ButtonLink
-                  href={briefHref({
-                    venues: chosen.map((x) => x.slug),
-                    guests: Number(v.guests) || undefined,
-                    date: v.date || undefined,
-                    time: v.time || undefined,
-                  })}
-                  variant="outline"
-                  icon="share"
-                >
-                  Share a brief with your team
-                </ButtonLink>
-              )}
-            </div>
-          </motion.div>
-        ) : (
-          <>
-            <div className="px-5 pt-6 sm:px-8">{stepper}</div>
-
-            <div className="px-5 pb-8 pt-7 sm:px-8">
-              {fieldset}
+            <div className="px-5 pb-6 pt-6 sm:px-8 sm:pt-7">
+              {stepper}
+              <div className="mt-7">{fieldset}</div>
               {simulate}
             </div>
-
-            {/* Actions live in the card; on long steps they stick to the bottom of the screen */}
-            <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5 lg:rounded-b-[28px]">
-              {backButton}
-              {sendButton}
+            {/* Actions stay in reach at the bottom of the screen on long steps */}
+            <div className="sticky bottom-0 z-10 rounded-b-[24px] bg-paper/90 px-5 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 backdrop-blur-xl sm:px-8 sm:pb-6 lg:rounded-b-[28px]">
+              <div className="flex items-center justify-between gap-4">
+                {backButton}
+                {sendButton}
+              </div>
             </div>
-          </>
-        )}
-      </form>
+          </form>
+        </div>
+
+        <aside aria-label="Your inquiry" className="hidden pb-28 lg:col-span-5 lg:col-start-8 lg:block xl:col-span-4 xl:col-start-9">
+          <div className="sticky top-[calc(var(--nav-h)+32px)]">{summary}</div>
+        </aside>
+      </div>
     );
   }
 
-  if (layout === "card")
-    return (
-      <>
-        <div className="relative grid min-h-[calc(100svh-var(--nav-h)-48px)] place-items-center overflow-hidden rounded-[var(--radius-media)] bg-night px-3 py-12 sm:px-8 lg:py-20">
-          <AnimatePresence initial={false}>
-            <motion.div
-              key={hero.src}
-              className="absolute inset-0"
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+  return (
+    <form {...formProps} className="relative rounded-t-[28px] bg-paper lg:rounded-[28px]">
+      {/* Photo header: where it's happening, and the answers so far as pills that jump back */}
+      <div className="theme-night relative h-[184px] overflow-hidden rounded-t-[28px] bg-night sm:h-[208px]">
+        {scene("(min-width:1024px) 720px, 580px")}
+        <div className="absolute inset-0 bg-gradient-to-t from-night/90 via-night/35 to-night/10" />
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-3 p-5 sm:px-8">
+          <h2 id={id("title")} className="t-meta !text-moon/85">
+            Event inquiry
+          </h2>
+          <span className="flex items-center gap-2">
+            <span className="t-meta rounded-full bg-white/15 px-2.5 py-1 font-medium !text-moon tabular-nums backdrop-blur-md">
+              {sent ? "Sent" : `${step + 1} / ${STEPS.length}`}
+            </span>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="-mr-1.5 grid size-9 place-items-center rounded-full bg-white/15 text-moon backdrop-blur-md transition-colors hover:bg-white/25"
             >
-              <Image src={hero.src} alt="" fill sizes="100vw" className="object-cover" style={{ objectPosition: hero.pos }} />
-            </motion.div>
-          </AnimatePresence>
-          <div className="absolute inset-0 bg-gradient-to-b from-night/60 via-night/35 to-night/70" />
-          <div className="relative w-full max-w-[680px]">
-            <div className="mb-8 text-center text-moon">
-              <h1 className="t-h1">Tell us about your event.</h1>
-              <p className="t-small mx-auto mt-3 max-w-[44ch] text-moon/75">{LEAD}</p>
-            </div>
-            <form {...formProps} className="scroll-mt-[calc(var(--nav-h)+16px)] rounded-[28px] bg-paper p-6 shadow-[var(--shadow-float)] sm:p-10">
-              <div className="mb-8">{progress}</div>
-              {fieldset}
-              {navRow}
-            </form>
-            <p className="t-small mt-5 text-center text-moon/75">{[title, ...rows.map((r) => r.val).filter(Boolean)].join(" · ")}</p>
+              <Icon name="close" size={18} />
+            </button>
+          </span>
+        </div>
+        <div className="absolute inset-x-0 bottom-0 p-5 sm:px-8 sm:pb-6">
+          {titleText("t-h2 text-moon")}
+          <div className="mt-3 flex min-h-8 flex-wrap gap-1.5">
+            {pills(answered)}
+            {!answered.length && <p className="t-small self-center text-moon/75">Four quick steps. No account, nothing reserved.</p>}
           </div>
         </div>
-      </>
-    );
-
-  if (layout === "sentence")
-    return (
-      <>
-        <form {...formProps} className="mx-auto max-w-[920px] scroll-mt-[calc(var(--nav-h)+16px)]">
-          <div className="mb-10 flex items-end justify-between gap-6">
-            <h1 className="t-meta">Tell us about your event</h1>
-            <div className="w-full max-w-[280px]">{progress}</div>
-          </div>
-          {sentence ? fieldset : <div className="mx-auto max-w-[640px]">{fieldset}</div>}
-          <div className={cn(!sentence && "mx-auto max-w-[640px]")}>{navRow}</div>
-          {sentence && <p className="t-meta mt-6 text-center">{LEAD}</p>}
-        </form>
-      </>
-    );
-
-  return (
-    <>
-      {/* Phones: the headline leads. Wide screens: it moves into the sticky panel beside the form. */}
-      <div className="mb-12 lg:hidden">
-        <LineReveal as="h1" className="t-hero" lines={["Tell us about", "your event."]} />
-        <p className="t-lead mt-4 max-w-[40ch] text-stone">{LEAD}</p>
       </div>
-      <div className="grid-12 gap-y-10">
-        {/* Summary: follows the answers, and every answer can be edited from here */}
-        <aside className="order-2 col-span-12 lg:sticky lg:top-[calc(var(--nav-h)+24px)] lg:order-none lg:col-span-5 lg:flex lg:h-[calc(100svh-var(--nav-h)-48px)] lg:flex-col lg:gap-8 lg:self-start">
-          <div className="hidden shrink-0 lg:block">
-            <LineReveal as="h1" className="t-hero" lines={["Tell us about", "your event."]} />
-            <p className="t-lead mt-4 max-w-[40ch] text-stone">{LEAD}</p>
-          </div>
-          <div className="theme-night overflow-hidden rounded-[var(--radius-media)] lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
-            {/* The photo is for wide screens and takes whatever height the panel has left; on phones the answers alone keep the form close to the top */}
-            <div className="relative hidden min-h-[220px] flex-1 lg:block">
-              <AnimatePresence initial={false}>
-                <motion.div
-                  key={hero.src}
-                  className="absolute inset-0"
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  <Image src={hero.src} alt="" fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover" style={{ objectPosition: hero.pos }} />
-                </motion.div>
-              </AnimatePresence>
-              <div className="absolute inset-0 bg-gradient-to-t from-night via-night/30 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-6">
-                <p className="t-meta">Your inquiry</p>
-                <p className="t-h2 mt-1">{title}</p>
-              </div>
-            </div>
-            <p className="t-meta px-6 pt-5 lg:hidden">Your inquiry</p>
-            <dl className="shrink-0 divide-y divide-night-line px-6">
-              {rows.map((row) => (
-                <div key={row.k} className="flex items-baseline justify-between gap-4 py-3.5">
-                  <dt className="t-meta w-16 shrink-0">{row.k}</dt>
-                  <dd className={cn("min-w-0 flex-1 text-[0.9375rem]", !row.val && "text-moon-2")}>{row.val || "Not yet"}</dd>
-                  {reached >= row.s && step !== row.s && (
-                    <button type="button" onClick={() => go(row.s)} className="t-small shrink-0 font-medium text-moon underline-offset-2 hover:underline">
-                      Edit
-                    </button>
-                  )}
-                </div>
-              ))}
-            </dl>
+
+      {sent ? (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="px-5 pb-8 pt-8 sm:px-8"
+          role="status"
+        >
+          <motion.span
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 18, delay: 0.1 }}
+            className="grid size-14 place-items-center rounded-full bg-accent text-paper"
+          >
+            <Icon name="check" size={26} strokeWidth={2} />
+          </motion.span>
+          <p className="t-h2 mt-6">{sent.preview ? "Preview complete." : "Inquiry received."}</p>
+          <p className="t-body mt-3 max-w-[46ch] text-stone">
+            {sent.preview
+              ? "It was checked but not sent, so no one on the events team has received it. On the live site, they'd now follow up by email."
+              : `${host ? `${host.name.split(" ")[0]} and the events team` : "The events team"} will follow up at ${v.email.trim()}. Nothing is reserved until you say so.`}
+          </p>
+          <p className="mt-5 inline-flex items-center gap-3 rounded-full bg-quartz px-4 py-2 shadow-[var(--shadow-ring)]">
+            <span className="t-meta">Reference</span>
+            <span className="t-num font-medium">{sent.ref}</span>
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Button onClick={onClose}>Done</Button>
             {chosen.length > 0 && (
-              <div className="shrink-0 border-t border-night-line px-6 py-4">
-                <Link
-                  href={briefHref({
-                    venues: chosen.map((x) => x.slug),
-                    guests: Number(v.guests) || undefined,
-                    date: v.date || undefined,
-                    time: v.time || undefined,
-                  })}
-                  className="t-small inline-flex items-center gap-1.5 font-medium text-moon underline-offset-2 hover:underline"
-                >
-                  <Icon name="share" size={15} />
-                  {chosen.length > 1 ? "Compare these as a brief to share" : "Make a brief to share"}
-                </Link>
-              </div>
+              <ButtonLink
+                href={briefHref({
+                  venues: chosen.map((x) => x.slug),
+                  guests: Number(v.guests) || undefined,
+                  date: v.date || undefined,
+                  time: v.time || undefined,
+                })}
+                variant="outline"
+                icon="share"
+              >
+                Share a brief with your team
+              </ButtonLink>
             )}
-            <div className="hidden shrink-0 border-t border-night-line px-6 py-5 lg:block">
-              <p className="t-small text-moon-2">
-                {host ? `${host.name.split(" ")[0]} and the events team` : "The events team"} follow up by email. An inquiry doesn&apos;t reserve anything.
-              </p>
-            </div>
           </div>
-        </aside>
+        </motion.div>
+      ) : (
+        <>
+          <div className="px-5 pt-6 sm:px-8">{stepper}</div>
 
-        <form {...formProps} className="col-span-12 scroll-mt-[calc(var(--nav-h)+16px)] lg:col-span-6 lg:col-start-7">
-          <div className="mb-10">{progress}</div>
-          {fieldset}
-          {navRow}
-        </form>
-      </div>
-    </>
+          <div className="px-5 pb-8 pt-7 sm:px-8">
+            {fieldset}
+            {simulate}
+          </div>
+
+          {/* Actions live in the card; on long steps they stick to the bottom of the screen */}
+          <div className="sticky bottom-0 z-10 flex items-center justify-between gap-4 border-t hairline bg-paper/95 px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+16px)] backdrop-blur-xl sm:px-8 sm:pb-5 lg:rounded-b-[28px]">
+            {backButton}
+            {sendButton}
+          </div>
+        </>
+      )}
+    </form>
   );
 }

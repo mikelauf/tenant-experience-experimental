@@ -57,7 +57,8 @@ export type CorePublicInquiry = {
   consent: { privacy_policy_version: string; marketing_opt_in: boolean };
 };
 
-const limits: Record<string, number> = {
+/** Longest accepted value per field; the form sets the same as `maxLength` */
+export const LIMITS = {
   firstName: 100,
   lastName: 100,
   email: 254,
@@ -83,7 +84,7 @@ export function validateInquiry(
   const record = value as Record<string, unknown>;
   const fields: Record<string, string> = {};
   const errors: InquiryErrors = {};
-  for (const [key, limit] of Object.entries(limits)) {
+  for (const [key, limit] of Object.entries(LIMITS)) {
     const raw = record[key];
     if (raw !== undefined && typeof raw !== "string")
       errors[key as keyof InquiryInput] = "Enter a valid value.";

@@ -1,4 +1,4 @@
-/** The inquiry's shape: its fields, steps and checks, and the words the sentence layout fills its blanks with. */
+/** The inquiry's shape: its fields, steps and checks. */
 
 export type Values = {
   date: string;
@@ -49,34 +49,4 @@ export function validateStep(step: number, v: Values): Errors {
   return e;
 }
 
-export type InquiryLayout = "split" | "focused" | "card" | "sentence";
-const LAYOUTS: { key: InquiryLayout; label: string }[] = [
-  { key: "split", label: "Split" },
-  { key: "focused", label: "Focused" },
-  { key: "card", label: "Card" },
-  { key: "sentence", label: "Sentence" },
-];
-export const isLayout = (x: string | undefined): x is InquiryLayout => LAYOUTS.some((l) => l.key === x);
-
 export const LEAD = "No account needed. The events team follows up, and nothing is reserved until you say so.";
-
-/** Sentence layout: each blank in "I'm planning [a dinner] for [80] guests…" opens its own control. */
-export type Blank = "event" | "guests" | "date" | "venue" | "budget" | "note";
-export const BLANKS: Blank[] = ["event", "guests", "date", "venue", "budget"];
-export const BLANK_KEY: Record<Blank, keyof Values> = {
-  event: "eventType",
-  guests: "guests",
-  date: "date",
-  venue: "venues",
-  budget: "budget",
-  note: "message",
-};
-export const EVENT_PHRASE: Record<string, string> = {
-  Reception: "a reception",
-  Dinner: "a dinner",
-  "Offsite or meeting": "an offsite",
-  "Launch or press": "a launch",
-  "Holiday party": "a holiday party",
-  "Panel or talk": "a panel or talk",
-  "Something else": "an event",
-};
