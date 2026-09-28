@@ -10,11 +10,24 @@ declare global {
   }
 }
 
+let popped = false;
+
 export function SmoothScroll() {
   const path = usePathname();
 
+  // Back and forward restore where you were; a link to a new page starts at its top
+  useEffect(() => {
+    const onPop = () => (popped = true);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   // New page, new scroll position (Lenis would otherwise carry the old one over)
   useEffect(() => {
+    if (popped) {
+      popped = false;
+      return;
+    }
     if (window.location.hash) return;
     window.__lenis?.scrollTo(0, { immediate: true, force: true });
     window.scrollTo(0, 0);

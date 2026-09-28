@@ -52,7 +52,7 @@ export function Button({
   ...rest
 }: Common & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button className={cn(base, variants[variant], sizes[size], className)} {...rest}>
+    <button type="button" className={cn(base, variants[variant], sizes[size], className)} {...rest}>
       <Inner icon={icon} iconLeft={iconLeft}>
         {children}
       </Inner>
@@ -89,7 +89,7 @@ export function IconButton({
   ...rest
 }: { icon: AnyIcon; label: string; variant?: Variant; size?: number } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button aria-label={label} title={label} className={cn(base, variants[variant], "shrink-0 p-0", className)} style={{ width: size, height: size }} {...rest}>
+    <button type="button" aria-label={label} title={label} className={cn(base, variants[variant], "shrink-0 p-0", className)} style={{ width: size, height: size }} {...rest}>
       <Icon name={icon} size={Math.round(size * 0.45)} />
     </button>
   );

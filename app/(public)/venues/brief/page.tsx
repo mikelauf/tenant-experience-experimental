@@ -185,9 +185,9 @@ function VenueBrief({ x, v, n, total, setsInView }: { x: BriefVenue; v: Venue; n
               [v.sqft ? v.sqft.toLocaleString("en-US") : "—", "Square feet"],
               [v.level === 0 ? "Street" : String(v.level), v.level === 0 ? "Level" : "Floor"],
             ].map(([val, k]) => (
-              <div key={k}>
+              <div key={k} className="flex flex-col">
+                <dt className="t-meta order-last mt-1.5">{k}</dt>
                 <dd className="t-num text-[1.625rem] font-medium leading-none">{val}</dd>
-                <dt className="t-meta mt-1.5">{k}</dt>
               </div>
             ))}
           </dl>

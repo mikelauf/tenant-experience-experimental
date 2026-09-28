@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type HTMLMotionProps } from "motion/react";
+import { motion, useReducedMotion, type HTMLMotionProps } from "motion/react";
 import { useShape } from "@/lib/shape";
 
 const ease = [0.16, 1, 0.3, 1] as const;
@@ -60,6 +60,8 @@ export function LineReveal({ lines, className, as = "h2", delay = 0 }: { lines: 
 /** Image wrapper that unmasks from the bottom with a slight settle-in scale. */
 export function ClipReveal({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   const r = useShape() === "flat" ? 0 : 22;
+  // The wipe is a clip, which reduced-motion settings don't cover on their own
+  if (useReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <motion.div
       className={className}

@@ -48,17 +48,19 @@ export function Faq() {
       </div>
 
       <ul className="mt-8 border-t hairline">
-        {shown.map((f) => {
+        {shown.map((f, i) => {
           const on = open === f.q;
+          const panel = `faq-${i}`;
           return (
             <li key={f.q} className="border-b hairline">
-              <button onClick={() => setOpen(on ? null : f.q)} aria-expanded={on} className="flex w-full items-center justify-between gap-6 py-5 text-left">
+              <button onClick={() => setOpen(on ? null : f.q)} aria-expanded={on} aria-controls={panel} className="flex w-full items-center justify-between gap-6 py-5 text-left">
                 <span className="t-h3">{f.q}</span>
                 <Icon name="plus" size={20} className={cn("shrink-0 transition-transform duration-300", on && "rotate-45")} />
               </button>
               <AnimatePresence initial={false}>
                 {on && (
                   <motion.div
+                    id={panel}
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}

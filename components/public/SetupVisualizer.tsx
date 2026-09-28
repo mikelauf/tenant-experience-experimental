@@ -373,6 +373,7 @@ export function SetupVisualizer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const uid = useId();
+  const sliderId = `${uid}-guests`;
   const shown = Math.min(guests, spec.max);
   const deferred = useDeferredValue(shown);
 
@@ -480,11 +481,11 @@ export function SetupVisualizer({
 
   const slider = (
     <div>
-      <label htmlFor={`guests-${title}`} className="sr-only">
+      <label htmlFor={sliderId} className="sr-only">
         Guests
       </label>
       <input
-        id={`guests-${title}`}
+        id={sliderId}
         type="range"
         min={min}
         max={spec.max}
