@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { gateHref } from "@/lib/access";
 import { cn } from "@/lib/cn";
 import { kindLabel } from "@/lib/commit";
 import type { Commitment } from "@/lib/data/types";
@@ -19,6 +20,8 @@ import { EventCard } from "./EventCard";
 import { ActivityCenter } from "./home/ActivityCenter";
 import { DayHero } from "./home/DayHero";
 import { InsideTheBuilding } from "./home/InsideTheBuilding";
+import { SignInClose } from "./home/SignInClose";
+import { SignInUnlocks } from "./home/SignInUnlocks";
 import { WhatYouCanUse } from "./home/WhatYouCanUse";
 
 function greeting(now: number) {
@@ -27,7 +30,7 @@ function greeting(now: number) {
 }
 
 
-function EventsRail({ title }: { title?: string }) {
+function EventsRail({ title, gate }: { title?: string; gate?: boolean }) {
   const t = useTenant();
   const now = useClock(60000);
   const list = useMemo(
@@ -42,9 +45,19 @@ function EventsRail({ title }: { title?: string }) {
   return (
     <section className="py-20 lg:py-28" aria-labelledby="ev-h">
       <div className="frame flex items-end justify-between gap-6">
-        <h2 id="ev-h" className="t-h1">
-          {title ?? `This week at ${t.copy.the}`}
-        </h2>
+        <div>
+          <h2 id="ev-h" className="t-h1">
+            {title ?? `This week at ${t.copy.the}`}
+          </h2>
+          {gate && (
+            <p className="t-lead mt-3 text-stone">
+              <Link href={gateHref("/programming")} className="font-medium text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink">
+                Sign in to RSVP
+              </Link>
+              . Some events are just for your company.
+            </p>
+          )}
+        </div>
         <Link href="/programming" className="group hidden items-center gap-1.5 font-medium sm:flex">
           All events <Icon name="arrow-right" size={18} className="transition-transform group-hover:translate-x-0.5" />
         </Link>
@@ -66,21 +79,26 @@ function SignedOut() {
     <>
       <DayHero
         lines={copy.memberHero.lines}
-        lead="Browse everything first. Sign in when you want to book, and confirm where you work once."
+        lead={`Work at ${copy.the}? The gym, the lounge, rooms to book and the park come with the job. Look around, then sign in with your work email to use them.`}
         actions={
           <>
-            <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="light" size="lg" icon="arrow-right">
-              Sign in
+            <ButtonLink href={gateHref("/home")} variant="light" size="lg" icon="arrow-right">
+              Sign in with your work email
             </ButtonLink>
             <ButtonLink href="#inside" variant="glass" size="lg">
               Look inside
             </ButtonLink>
+            <Link href="/venues" className="group inline-flex items-center gap-1.5 text-[0.9375rem] font-medium text-moon/80 hover:text-moon">
+              Planning an event? See the venues
+              <Icon name="arrow-right" size={16} className="transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </>
         }
       />
-      <WhatYouCanUse />
+      <SignInUnlocks />
       <InsideTheBuilding />
-      <EventsRail />
+      <EventsRail gate />
+      <SignInClose />
     </>
   );
 }
@@ -311,7 +329,7 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
         </section>
       )}
 
-      <InsideTheBuilding personal />
+      <InsideTheBuilding />
       <EventsRail />
       <WhatYouCanUse heading="Everything that's here" />
     </>
@@ -393,7 +411,7 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
       )}
 
       <div className="pt-20 lg:pt-28">
-        <InsideTheBuilding personal />
+        <InsideTheBuilding />
       </div>
       <EventsRail title="Happening this week" />
       <WhatYouCanUse heading="Explore the building" />
@@ -449,7 +467,8 @@ export function Home() {
   if (!hydrated) return <div className="min-h-[100svh]" aria-busy="true" />;
 
   return (
-    <div className="pb-tab lg:pb-24">
+    // Signed out ends on a full-bleed band that meets the footer; the other states end on content that needs room
+    <div className={s.persona === "signed-out" ? undefined : "pb-tab lg:pb-24"}>
       {s.persona === "signed-out" ? (
         <SignedOut />
       ) : s.persona === "public" ? (
