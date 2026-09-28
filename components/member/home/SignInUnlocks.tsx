@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { gateHref } from "@/lib/access";
+import { cn } from "@/lib/cn";
 import type { Img } from "@/lib/data/types";
 import { classSeats } from "@/lib/commit";
 import { useDemo, useHydrated } from "@/lib/store";
@@ -14,20 +15,27 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import Image from "@/components/ui/SmoothImage";
 
-type Unlock = { img?: Img; icon: AnyIcon; title: string; detail: string; verb: string; returnTo: string };
+export type Unlock = {
+  kind: "room" | "class" | "event" | "plan";
+  img?: Img;
+  icon: AnyIcon;
+  title: string;
+  detail: string;
+  verb: string;
+  returnTo: string;
+};
 
 /**
- * Right under the signed-out hero: what signing in turns on, as real things you could do today (a room, the next
- * class with spots, an event, planning something bigger). Each one signs you in and carries on with that task
- * (Wayfinder #336). Times only fill in once the page is in the browser, so the server and client agree.
+ * Real things you could do today: a room, the next class with spots, the next open event, planning something bigger.
+ * Times only fill in once the page is in the browser, so the server and client agree.
  */
-export function SignInUnlocks() {
+export function useUnlockItems() {
   const t = useTenant();
   const s = useDemo();
   const hydrated = useHydrated();
   const now = useNow(60000);
 
-  const list = useMemo<Unlock[]>(() => {
+  return useMemo<Unlock[]>(() => {
     const out: Unlock[] = [];
 
     if (t.rooms.length) {
@@ -36,6 +44,7 @@ export function SignInUnlocks() {
       const big = bySize.at(-1)!;
       const levels = [...new Set(t.rooms.map((r) => r.level))].sort((a, b) => a - b);
       out.push({
+        kind: "room",
         img: t.amenities.find((a) => a.group === "meet" && a.level != null)?.img ?? big.image,
         icon: "people",
         title: `Book one of ${t.rooms.length} meeting rooms`,
@@ -58,6 +67,7 @@ export function SignInUnlocks() {
       out.push(
         next
           ? {
+              kind: "class",
               img: t.template(next.c.kind).image,
               icon: "bike",
               title: `${t.template(next.c.kind).name}, ${fmtDay(next.c.startsAt)} at ${fmtTime(next.c.startsAt)}`,
@@ -66,6 +76,7 @@ export function SignInUnlocks() {
               returnTo: `/fitness/schedule?class=${next.c.id}`,
             }
           : {
+              kind: "class",
               img: gym,
               icon: "bike",
               title: "Save a spot in a class",
@@ -81,6 +92,7 @@ export function SignInUnlocks() {
       out.push(
         ev
           ? {
+              kind: "event",
               img: ev.image,
               icon: "ticket",
               title: `RSVP to ${ev.name}`,
@@ -89,6 +101,7 @@ export function SignInUnlocks() {
               returnTo: `/programming/${ev.slug}`,
             }
           : {
+              kind: "event",
               img: t.amenities.find((a) => a.group === "gather")?.img,
               icon: "ticket",
               title: "RSVP to what's on",
@@ -100,6 +113,7 @@ export function SignInUnlocks() {
     }
 
     out.push({
+      kind: "plan",
       img: t.venues[0]?.hero,
       icon: "star",
       title: "Plan something bigger",
@@ -109,6 +123,20 @@ export function SignInUnlocks() {
     });
     return out;
   }, [t, s, hydrated, now]);
+}
+
+/**
+ * Right under the signed-out hero: what signing in turns on. Each one signs you in and carries on with that task
+ * (Wayfinder #336).
+ */
+export function SignInUnlocks() {
+  const t = useTenant();
+  const s = useDemo();
+  const list = useUnlockItems();
+
+  // Verifying: already signed in, so the same list reads as what opens up once the building team confirms access
+  const waiting = s.persona === "verifying";
+  const status = "/sign-in?returnTo=%2Fhome";
 
   return (
     <section className="py-20 lg:py-28" aria-labelledby="unlocks-h">
@@ -116,23 +144,34 @@ export function SignInUnlocks() {
         <div className="col-span-12 lg:col-span-4">
           <div className="lg:sticky lg:top-[calc(var(--nav-h)+32px)]">
             <h2 id="unlocks-h" className="t-h1">
-              Sign in with your work email.
+              {waiting ? "Your access is being verified." : "Sign in with your work email."}
             </h2>
-            <p className="t-lead mt-4 max-w-[36ch] text-stone">Working at {t.copy.the} comes with more than a desk. Once you&apos;re in, you can:</p>
+            <p className="t-lead mt-4 max-w-[36ch] text-stone">
+              {waiting
+                ? "Look around in the meantime. Once the building team confirms it, you can:"
+                : <>Working at {t.copy.the} comes with more than a desk. Once you&apos;re in, you can:</>}
+            </p>
             <ol className="mt-8 space-y-3 border-t hairline pt-6">
-              {[
-                "Sign in with an email code, or Google, Apple or Microsoft.",
-                "Confirm your work email once. That's how we know you work here.",
-                "Book, reserve and RSVP. You land right back where you were.",
-              ].map((line, i) => (
+              {(waiting
+                ? [
+                    "You're signed in. That part's done.",
+                    "The building team is checking your work email. It usually takes a working day, and we'll email you.",
+                    "Then book, reserve and RSVP. All of this opens up.",
+                  ]
+                : [
+                    "Sign in with an email code, or Google, Apple or Microsoft.",
+                    "Confirm your work email once. That's how we know you work here.",
+                    "Book, reserve and RSVP. You land right back where you were.",
+                  ]
+              ).map((line, i) => (
                 <li key={line} className="flex gap-3 text-[0.9375rem]">
                   <span className="t-num w-4 shrink-0 text-accent">{i + 1}</span>
                   <span className="text-ink-2">{line}</span>
                 </li>
               ))}
             </ol>
-            <ButtonLink href={gateHref("/home")} size="lg" icon="arrow-right" className="mt-8">
-              Sign in
+            <ButtonLink href={waiting ? status : gateHref("/home")} size="lg" icon="arrow-right" className="mt-8">
+              {waiting ? "See the status" : "Sign in"}
             </ButtonLink>
           </div>
         </div>
@@ -140,39 +179,79 @@ export function SignInUnlocks() {
         <ul className="col-span-12 grid gap-4 sm:grid-cols-2 lg:col-span-8 lg:col-start-5 lg:gap-5">
           {list.map((u, i) => (
             <RevealItem key={u.verb} delay={i * 0.06} className="h-full">
-              <Link
-                href={gateHref(u.returnTo)}
-                className="group flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-paper shadow-[var(--shadow-ring)] transition-shadow duration-300 hover:shadow-[var(--shadow-soft)]"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden bg-fog">
-                  {u.img && (
-                    <Image
-                      src={u.img.src}
-                      alt=""
-                      fill
-                      sizes="(min-width:1024px) 30vw, (min-width:640px) 45vw, 90vw"
-                      className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
-                      style={{ objectPosition: u.img.pos }}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
-                  <span className="absolute bottom-3 left-3 grid size-10 place-items-center rounded-full bg-paper/95 text-accent shadow-[var(--shadow-soft)]">
-                    <Icon name={u.icon} size={19} />
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-5 lg:p-6">
-                  <p className="t-h3">{u.title}</p>
-                  <p className="t-small mt-2 flex-1 text-stone">{u.detail}</p>
-                  <span className="mt-5 inline-flex items-center gap-2 self-start rounded-full bg-ink px-4 py-2 text-[0.875rem] font-medium text-paper transition-colors group-hover:bg-accent">
-                    Sign in to {u.verb}
-                    <Icon name="arrow-right" size={15} className="transition-transform group-hover:translate-x-0.5" />
-                  </span>
-                </div>
-              </Link>
+              <UnlockCard u={u} href={waiting ? u.returnTo : gateHref(u.returnTo)} cta={waiting ? "Take a look" : `Sign in to ${u.verb}`} />
             </RevealItem>
           ))}
         </ul>
       </div>
     </section>
+  );
+}
+
+/** One of the unlock cards: a photo with the task's icon, what it is, and a pill to do it. `done` checks it off. */
+export function UnlockCard({
+  u,
+  href,
+  onClick,
+  cta,
+  done,
+}: {
+  u: Pick<Unlock, "img" | "icon" | "title" | "detail">;
+  href?: string;
+  onClick?: () => void;
+  cta: string;
+  done?: boolean;
+}) {
+  const body = (
+    <>
+      <div className="relative aspect-[16/10] overflow-hidden bg-fog">
+        {u.img && (
+          <Image
+            src={u.img.src}
+            alt=""
+            fill
+            sizes="(min-width:1024px) 30vw, (min-width:640px) 45vw, 90vw"
+            className="object-cover transition-transform duration-700 ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
+            style={{ objectPosition: u.img.pos }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-transparent" />
+        <span
+          className={cn(
+            "absolute bottom-3 left-3 grid size-10 place-items-center rounded-full shadow-[var(--shadow-soft)]",
+            done ? "bg-ok text-paper" : "bg-paper/95 text-accent",
+          )}
+        >
+          <Icon name={done ? "check" : u.icon} size={19} strokeWidth={done ? 2.2 : undefined} />
+        </span>
+      </div>
+      <div className="flex flex-1 flex-col p-5 lg:p-6">
+        <p className="t-h3">{u.title}</p>
+        <p className="t-small mt-2 flex-1 text-stone">{u.detail}</p>
+        {done ? (
+          <span className="mt-5 inline-flex items-center gap-1.5 self-start text-[0.875rem] font-medium text-ok">
+            <Icon name="check" size={15} strokeWidth={2.2} /> {cta}
+          </span>
+        ) : (
+          <span className="mt-5 inline-flex items-center gap-2 self-start rounded-full bg-ink px-4 py-2 text-[0.875rem] font-medium text-paper transition-colors group-hover:bg-accent">
+            {cta}
+            <Icon name="arrow-right" size={15} className="transition-transform group-hover:translate-x-0.5" />
+          </span>
+        )}
+      </div>
+    </>
+  );
+  const cls = cn(
+    "group flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-card)] bg-paper text-left shadow-[var(--shadow-ring)] transition-[box-shadow,opacity] duration-300 hover:shadow-[var(--shadow-soft)]",
+    done && "opacity-75 hover:opacity-100",
+  );
+  return href ? (
+    <Link href={href} className={cls}>
+      {body}
+    </Link>
+  ) : (
+    <button type="button" onClick={onClick} className={cls}>
+      {body}
+    </button>
   );
 }

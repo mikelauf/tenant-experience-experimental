@@ -42,7 +42,7 @@ export function SpacesHome() {
           <div className="grid-12 items-end gap-y-8">
             <div className="col-span-12 lg:col-span-7">
               <p className="t-meta">Spaces</p>
-              <h1 className="t-hero mt-3">
+              <h1 className="t-page mt-3">
                 Book a room for
                 <RoomUse rooms={list} />
               </h1>

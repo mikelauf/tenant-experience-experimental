@@ -7,6 +7,7 @@ import { useTenant } from "@/lib/tenants/client";
 import { useBuildingDay } from "@/lib/useBuildingDay";
 import { LineReveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
+import { MemberBadges } from "../MemberBadges";
 
 /** How long each place holds before the next, in ms */
 const HOLD = 7000;
@@ -105,8 +106,9 @@ export function DayHero({
               </motion.p>
             </AnimatePresence>
           </div>
-          <LineReveal as="h1" className="t-hero mt-4 max-w-[14ch]" lines={lines} />
+          <LineReveal as="h1" className="t-page mt-4 max-w-[14ch]" lines={lines} />
           {lead && <div className="t-lead mt-5 max-w-[44ch] text-moon/80">{lead}</div>}
+          <MemberBadges className="mt-6" />
           {actions && <div className="mt-8 flex flex-wrap items-center gap-3">{actions}</div>}
         </div>
         {aside && <div className="col-span-12 lg:col-span-5 lg:col-start-8 xl:col-span-4 xl:col-start-9">{aside}</div>}

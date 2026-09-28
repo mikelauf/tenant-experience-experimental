@@ -72,7 +72,7 @@ export function PlanEvent() {
           <Link href="/spaces" className="t-small inline-flex items-center gap-1.5 text-moon/80 hover:text-moon">
             <Icon name="arrow-left" size={16} /> Spaces
           </Link>
-          <LineReveal as="h1" className="t-mega mt-6 max-w-[12ch]" lines={["Bigger than", "a meeting?"]} />
+          <LineReveal as="h1" className="t-page mt-6 max-w-[12ch]" lines={["Bigger than", "a meeting?"]} />
           <Reveal delay={0.3}>
             <p className="t-lead mt-6 max-w-[46ch] text-moon/85">
               For receptions, offsites and team dinners, you tell us the shape of it and our events team plans the rest with you. There&apos;s no booking widget

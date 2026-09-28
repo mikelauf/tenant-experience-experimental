@@ -37,7 +37,7 @@ export function EventDetail({ slug }: { slug: string }) {
     if (!isMember(s.persona))
       return (
         <Link href={gateHref(`/programming/${e.slug}`)} className={`${cls} bg-ink text-paper hover:bg-ink-2`}>
-          {gateLabel(s.persona, "RSVP")}
+          {gateLabel(s.persona, full ? "join the waitlist" : "RSVP")}
         </Link>
       );
     if (mine)
@@ -83,11 +83,11 @@ export function EventDetail({ slug }: { slug: string }) {
   })();
 
   return (
-    <div className="pb-tab lg:pb-28">
+    <div className="pb-[calc(var(--tab-h)+env(safe-area-inset-bottom)+96px)] lg:pb-28">
       {/* Split hero: the photo keeps its native proportions instead of being stretched full-bleed */}
       <section data-nav-over className="theme-night relative overflow-hidden">
         <div className="frame grid gap-8 pb-10 pt-[calc(var(--nav-h)+24px)] lg:grid-cols-12 lg:gap-[var(--col-gap)] lg:pb-14 lg:pt-[calc(var(--nav-h)+40px)]">
-          <div className="flex flex-col justify-end lg:order-1 lg:col-span-6 lg:min-h-[72svh] lg:pb-4">
+          <div className="flex flex-col justify-end lg:order-1 lg:col-span-6 lg:pb-4">
             <Link href="/programming" className="t-small inline-flex items-center gap-1.5 self-start text-moon/80 hover:text-moon">
               <Icon name="arrow-left" size={16} /> All events
             </Link>
@@ -114,7 +114,7 @@ export function EventDetail({ slug }: { slug: string }) {
               ))}
             </dl>
           </div>
-          <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-media)] sm:aspect-[16/11] lg:order-2 lg:col-span-6 lg:aspect-auto lg:min-h-[72svh]">
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[var(--radius-media)] sm:aspect-[16/11] lg:order-2 lg:col-span-6 lg:aspect-[3/2]">
             <ViewTransition name={`event-${e.slug}`} share="morph" default="none">
               <div className="absolute inset-0">
                 <Image
@@ -153,7 +153,7 @@ export function EventDetail({ slug }: { slug: string }) {
         </div>
 
         <aside className="col-span-12 lg:col-span-4 lg:col-start-9">
-          <div className="card sticky top-[calc(var(--nav-h)+20px)] p-6 shadow-[var(--shadow-soft)]">
+          <div id="rsvp" className="card sticky top-[calc(var(--nav-h)+20px)] scroll-mt-[calc(var(--nav-h)+20px)] p-6 shadow-[var(--shadow-soft)]">
             <div className="flex items-baseline justify-between">
               <p className="font-medium">{full && !mine ? "Full" : `${Math.max(0, e.capacity - going)} spots left`}</p>
               <p className="t-meta tabular">
@@ -186,6 +186,40 @@ export function EventDetail({ slug }: { slug: string }) {
             <div className="mt-6">{action}</div>
           </div>
         </aside>
+      </div>
+
+      {/* Phones: the RSVP card sits below the write-up, so keep the action in reach */}
+      <div className="fixed inset-x-0 bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom))] z-40 border-t hairline bg-paper/92 px-4 py-3 backdrop-blur-xl lg:hidden">
+        <div className="flex items-center justify-between gap-4 pl-[52px]">
+          <div className="min-w-0">
+            <p className="truncate font-medium">{e.name}</p>
+            <p className="t-meta">
+              {mine
+                ? mine.status === "waitlist"
+                  ? `On the waitlist · #${mine.waitlistPos}`
+                  : "You're going"
+                : full
+                  ? "Full · waitlist open"
+                  : `${Math.max(0, e.capacity - going)} spots left`}
+            </p>
+          </div>
+          {hydrated && !isMember(s.persona) ? (
+            <Link href={gateHref(`/programming/${e.slug}`)} className="flex h-11 shrink-0 items-center rounded-full bg-ink px-5 font-medium text-paper">
+              {s.persona === "signed-out" ? "Sign in" : gateLabel(s.persona, "RSVP")}
+            </Link>
+          ) : hydrated && !mine && canAttend(e, t.member) ? (
+            <button
+              onClick={() => rsvpEvent(e, full)}
+              className={`flex h-11 shrink-0 items-center rounded-full px-5 font-medium ${full ? "shadow-[inset_0_0_0_1px_var(--color-ink)]" : "bg-accent text-paper"}`}
+            >
+              {full ? "Join waitlist" : "RSVP"}
+            </button>
+          ) : (
+            <a href="#rsvp" className="flex h-11 shrink-0 items-center rounded-full bg-fog px-5 font-medium">
+              Details
+            </a>
+          )}
+        </div>
       </div>
 
       {others.length > 0 && (

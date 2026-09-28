@@ -203,6 +203,14 @@
     line-height: 0.92;
     letter-spacing: -0.04em;
   }
+  /* The member app's page headlines (Home, Spaces, Fitness, Events): a step up from t-hero */
+  .t-page {
+    font-stretch: 85%;
+    font-weight: 540;
+    font-size: clamp(3rem, 1.5rem + 5.8vw, 7rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+  }
   .t-h1 {
     font-stretch: 87%;
     font-weight: 540;

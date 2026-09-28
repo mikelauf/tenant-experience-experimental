@@ -1,13 +1,11 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { gateHref } from "@/lib/access";
-import { cn } from "@/lib/cn";
 import { kindLabel } from "@/lib/commit";
 import type { Commitment } from "@/lib/data/types";
-import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 
 import { fmtDay, fmtRange, until } from "@/lib/time";
@@ -20,7 +18,8 @@ import { EventCard } from "./EventCard";
 import { ActivityCenter } from "./home/ActivityCenter";
 import { DayHero } from "./home/DayHero";
 import { InsideTheBuilding } from "./home/InsideTheBuilding";
-import { SignInClose } from "./home/SignInClose";
+import { FirstWeek } from "./home/FirstWeek";
+import { MemberClose, SignInClose } from "./home/SignInClose";
 import { SignInUnlocks } from "./home/SignInUnlocks";
 import { WhatYouCanUse } from "./home/WhatYouCanUse";
 
@@ -32,6 +31,7 @@ function greeting(now: number) {
 
 function EventsRail({ title, gate }: { title?: string; gate?: boolean }) {
   const t = useTenant();
+  const waiting = useDemo().persona === "verifying";
   const now = useClock(60000);
   const list = useMemo(
     () =>
@@ -51,9 +51,13 @@ function EventsRail({ title, gate }: { title?: string; gate?: boolean }) {
           </h2>
           {gate && (
             <p className="t-lead mt-3 text-stone">
-              <Link href={gateHref("/programming")} className="font-medium text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink">
-                Sign in to RSVP
-              </Link>
+              {waiting ? (
+                "RSVPs open once your access is confirmed"
+              ) : (
+                <Link href={gateHref("/programming")} className="font-medium text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink">
+                  Sign in to RSVP
+                </Link>
+              )}
               . Some events are just for your company.
             </p>
           )}
@@ -160,9 +164,11 @@ function Verifying() {
           </HeroCard>
         }
       />
-      <WhatYouCanUse />
+      {/* The same browse as signed out, worded for waiting on the building team */}
+      <SignInUnlocks />
       <InsideTheBuilding />
-      <EventsRail />
+      <EventsRail gate />
+      <SignInClose />
     </>
   );
 }
@@ -170,168 +176,31 @@ function Verifying() {
 /* ---------------- New member ---------------- */
 
 function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
-  const s = useDemo();
-  const { copy, fitness, member, building } = useTenant();
-  const now = useNow();
-  const reduce = useReducedMotion();
-  const upcoming = s.commitments.filter((c) => isUpcoming(c, now)).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
-  const has = (k: Commitment["kind"]) => s.commitments.some((c) => c.kind === k && c.status !== "cancelled");
-
-  const fw = copy.firstWeek;
-  const steps: { done: boolean; t: string; d: string; href?: string; img: string; cta: string; dismiss?: string }[] = [
-    ...(building.services.spaces ? [{ done: has("room"), t: "Book a room", d: fw.room.d, href: "/spaces", img: fw.room.img.src, cta: "Find a room" }] : []),
-    ...(building.services.programming
-      ? [{ done: has("event"), t: "Say yes to something", d: fw.event.d, href: "/programming", img: fw.event.img.src, cta: "See events" }]
-      : []),
-    ...(fitness
-      ? [
-          {
-            done: has("class") || s.fitnessMember,
-            t: `Try ${fitness.name}`,
-            d: s.fitnessMember ? "You're a member. Book your first class." : "Classes need a membership. See what's included first.",
-            href: "/fitness",
-            img: fitness.templates.strength.image.src,
-            cta: "Take a look",
-          },
-        ]
-      : []),
-    {
-      done: s.dismissed.includes("concierge"),
-      t: "Meet the concierge",
-      d: `${copy.concierge}. They can do almost anything.`,
-      img: fw.concierge.img.src,
-      cta: "Got it",
-      dismiss: "concierge",
-    },
-  ];
-  const doneCount = steps.filter((x) => x.done).length;
-  const first = steps.find((x) => !x.done);
-
+  const { copy, member } = useTenant();
   return (
     <>
       <DayHero
         lines={[`Welcome to ${copy.the},`, `${member.first}.`]}
         lead={
           <>
-            You&apos;re set up with {member.company} on {member.floor}.
+            You&apos;re set up with {member.company} on {member.floor}. The building&apos;s yours to use, starting today.
           </>
         }
-        aside={
-          first && (
-            <HeroCard>
-              <p className="t-meta text-moon-2">
-                A good first step · {doneCount + 1} of {steps.length}
-              </p>
-              <div className="mt-3 flex gap-4">
-                <span className="media relative size-16 shrink-0 overflow-hidden">
-                  <Image src={first.img} alt="" fill sizes="64px" className="object-cover" />
-                </span>
-                <span className="min-w-0">
-                  <span className="block font-medium">{first.t}</span>
-                  <span className="t-small mt-1 block text-moon/75">{first.d}</span>
-                </span>
-              </div>
-              <div className="mt-4 flex items-center justify-between gap-3">
-                {first.href ? (
-                  <Link href={first.href} className="group/l inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
-                    {first.cta} <Icon name="arrow-right" size={16} className="transition-transform group-hover/l:translate-x-0.5" />
-                  </Link>
-                ) : (
-                  <button onClick={() => actions.dismiss(first.dismiss!)} className="text-[0.9375rem] font-medium underline decoration-moon/30 underline-offset-4">
-                    {first.cta}
-                  </button>
-                )}
-                <a href="#first-h" className="t-small text-moon-2 hover:text-moon">
-                  Your first week
-                </a>
-              </div>
-            </HeroCard>
-          )
+        actions={
+          <>
+            <ButtonLink href="#first" variant="light" size="lg" icon="arrow-right">
+              Start your first week
+            </ButtonLink>
+            <ButtonLink href="#inside" variant="glass" size="lg">
+              Look inside
+            </ButtonLink>
+          </>
         }
       />
-
-      <section className="scroll-mt-[calc(var(--nav-h)+24px)] pt-20 lg:pt-28" aria-labelledby="first-h" id="first">
-        <div className="frame flex items-center justify-between gap-4">
-          <h2 id="first-h" className="t-h3">
-            Your first week
-          </h2>
-          <div className="flex items-center gap-3" aria-label={`${doneCount} of ${steps.length} done`}>
-            <span className="t-meta tabular">
-              {doneCount} of {steps.length}
-            </span>
-            <span className="h-1.5 w-28 overflow-hidden rounded-full bg-fog">
-              <motion.span
-                className="block h-full rounded-full bg-accent"
-                animate={{ width: `${(doneCount / steps.length) * 100}%` }}
-                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              />
-            </span>
-          </div>
-        </div>
-        <ol
-          className="no-scrollbar mt-6 flex snap-x snap-mandatory scroll-px-[var(--gutter)] gap-3 overflow-x-auto px-[var(--gutter)] pb-2 lg:grid lg:gap-[var(--col-gap)] lg:overflow-visible"
-          style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}
-        >
-          {steps.map((x, i) => (
-            <motion.li
-              key={x.t}
-              initial={reduce ? false : { opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 + i * 0.07, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-              className="w-[78vw] shrink-0 snap-start sm:w-[46vw] lg:w-auto"
-            >
-              <div className={cn("card group flex h-full flex-col overflow-hidden transition-opacity", x.done && "opacity-70")}>
-                <div className="relative aspect-[16/10]">
-                  <Image src={x.img} alt="" fill sizes="(min-width:1024px) 25vw, 78vw" className="object-cover" style={{ objectPosition: "50% 35%" }} />
-                  <span
-                    className={cn(
-                      "absolute left-3 top-3 grid size-8 place-items-center rounded-full text-[0.8125rem] font-semibold backdrop-blur",
-                      x.done ? "bg-ok text-paper" : "bg-paper/90 text-ink",
-                    )}
-                  >
-                    {x.done ? <Icon name="check" size={16} strokeWidth={2.2} /> : i + 1}
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <p className={cn("t-h3", x.done && "line-through decoration-stone-2 decoration-1")}>{x.t}</p>
-                  <p className="t-small mt-2 flex-1 text-stone">{x.d}</p>
-                  {!x.done &&
-                    (x.dismiss ? (
-                      <button
-                        onClick={() => actions.dismiss(x.dismiss!)}
-                        className="mt-5 self-start text-[0.9375rem] font-medium underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
-                      >
-                        {x.cta}
-                      </button>
-                    ) : (
-                      <Link href={x.href!} className="group/l mt-5 inline-flex items-center gap-1.5 self-start text-[0.9375rem] font-medium">
-                        {x.cta}
-                        <Icon name="arrow-right" size={17} className="transition-transform group-hover/l:translate-x-0.5" />
-                      </Link>
-                    ))}
-                </div>
-              </div>
-            </motion.li>
-          ))}
-        </ol>
-      </section>
-
-      {upcoming.length > 0 && (
-        <section className="frame pt-16" aria-labelledby="new-up">
-          <h2 id="new-up" className="t-h3">
-            Coming up
-          </h2>
-          <div className="mt-5 grid gap-3 lg:grid-cols-2">
-            {upcoming.map((c) => (
-              <CommitmentRow key={c.id} c={c} onOpen={onOpen} now={now} />
-            ))}
-          </div>
-        </section>
-      )}
-
+      <FirstWeek onOpen={onOpen} />
       <InsideTheBuilding />
       <EventsRail />
-      <WhatYouCanUse heading="Everything that's here" />
+      <MemberClose />
     </>
   );
 }
@@ -467,8 +336,8 @@ export function Home() {
   if (!hydrated) return <div className="min-h-[100svh]" aria-busy="true" />;
 
   return (
-    // Signed out ends on a full-bleed band that meets the footer; the other states end on content that needs room
-    <div className={s.persona === "signed-out" ? undefined : "pb-tab lg:pb-24"}>
+    // Signed out, verifying and new end on a full-bleed band that meets the footer; the other states end on content that needs room
+    <div className={s.persona === "signed-out" || s.persona === "verifying" || s.persona === "new" ? undefined : "pb-tab lg:pb-24"}>
       {s.persona === "signed-out" ? (
         <SignedOut />
       ) : s.persona === "public" ? (

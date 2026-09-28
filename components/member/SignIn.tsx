@@ -20,7 +20,7 @@ import { Mark } from "@/components/ui/Logo";
 function describe(path: string) {
   if (path.startsWith("/fitness")) return "reserving your class";
   if (path.startsWith("/spaces")) return "booking your room";
-  if (path.startsWith("/programming")) return "your RSVP";
+  if (path.startsWith("/programming")) return "the event";
   if (path.startsWith("/plans")) return "your plans";
   if (path.startsWith("/account")) return "your account";
   return null;

@@ -53,7 +53,7 @@ export function Programming() {
           <div className="grid-12 items-end gap-y-5">
             <div className="col-span-12 lg:col-span-7">
               <p className="t-meta">Events</p>
-              <h1 className="t-hero mt-3">What&apos;s on at {t.copy.the}.</h1>
+              <h1 className="t-page mt-3">What&apos;s on at {t.copy.the}.</h1>
             </div>
             <p className="t-body col-span-12 text-stone lg:col-span-4 lg:col-start-9">
               {t.copy.programmingLead}, for everyone who works here. Some are just for one company. Planning your own?{" "}
