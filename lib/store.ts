@@ -212,9 +212,11 @@ export const actions = {
    */
   signIn(account: Account) {
     setState((s) => {
+      // Signing back in picks up where they were: anyone with plans or history is a returning member
+      const known = s.persona === "returning" || s.history.length > 0 || s.commitments.some((c) => c.status !== "cancelled");
       const persona: Persona =
         account.workStatus === "verified"
-          ? s.persona === "returning"
+          ? known
             ? "returning"
             : "new"
           : account.workStatus === "pending"
@@ -227,6 +229,7 @@ export const actions = {
   approveAccess() {
     setState((s) => (s.persona === "verifying" && s.account ? { ...s, persona: "new", account: { ...s.account, workStatus: "verified" } } : s));
   },
+  /** Their plans stay with the account (hidden while signed out) and come back when they sign in again */
   signOut() {
     setState((s) => ({ ...s, persona: "signed-out", account: undefined }));
   },
@@ -242,9 +245,13 @@ export const actions = {
   },
   add(c: Omit<Commitment, "id" | "createdAt">, toast?: Omit<NonNullable<DemoState["toast"]>, "id">) {
     const id = `${c.kind}-${uid()}`;
+    // A class or event is one place per person, so a new one replaces the old; rooms and the rest can be booked
+    // again at other times, and only the very same slot is replaced
+    const one = c.kind === "class" || c.kind === "event";
+    const same = (x: Commitment) => x.kind === c.kind && x.refId === c.refId && (one || x.startsAt === c.startsAt);
     setState((s) => ({
       ...s,
-      commitments: [...s.commitments.filter((x) => !(x.refId === c.refId && x.kind === c.kind)), { ...c, id, createdAt: new Date().toISOString() }],
+      commitments: [...s.commitments.filter((x) => !same(x)), { ...c, id, createdAt: new Date().toISOString() }],
       history: s.history.includes(c.refId) ? s.history : [...s.history, c.refId],
       toast: toast ? { ...toast, id: uid() } : s.toast,
     }));

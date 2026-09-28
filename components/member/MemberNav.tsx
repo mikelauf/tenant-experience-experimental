@@ -31,8 +31,9 @@ function useUpcomingCount() {
   const s = useDemo();
   const hydrated = useHydrated();
   return useMemo(
-    () => (hydrated ? s.commitments.filter((c) => c.status !== "cancelled" && new Date(c.endsAt) > new Date()).length : 0),
-    [s.commitments, hydrated],
+    // Signed out, their plans are out of sight, and so is the count
+    () => (hydrated && s.account ? s.commitments.filter((c) => c.status !== "cancelled" && new Date(c.endsAt) > new Date()).length : 0),
+    [s.commitments, s.account, hydrated],
   );
 }
 
