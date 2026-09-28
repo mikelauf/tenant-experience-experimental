@@ -62,9 +62,10 @@ export function DemoDock() {
       ref={ref}
       className={cn(
         "fixed z-[70]",
-        // Public pages keep their own controls in the bottom corners (slideshows, the explorer, sticky inquiry bars),
-        // so there the dock is a small tab on the left edge
-        isPublic ? "left-0 top-[42%]" : "left-3 bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom)+10px)] lg:left-5 lg:bottom-5",
+        // The same dock on every page, member app or public venues
+        isPublic
+          ? "bottom-[calc(env(safe-area-inset-bottom)+12px)] left-3 lg:bottom-5 lg:left-5"
+          : "left-3 bottom-[calc(var(--tab-h)+env(safe-area-inset-bottom)+10px)] lg:left-5 lg:bottom-5",
       )}
     >
       <AnimatePresence>
@@ -77,8 +78,7 @@ export function DemoDock() {
             data-lenis-prevent
             className={cn(
               "theme-night absolute w-[min(340px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]",
-              // Public: opens below the edge tab, scrolling if the screen is short
-              isPublic ? "left-3 top-12 max-h-[calc(58svh-56px)] overflow-y-auto" : "bottom-12 left-0",
+              "bottom-12 left-0 max-h-[calc(100svh-120px)] overflow-y-auto",
             )}
             role="dialog"
             aria-label="Demo controls"
@@ -158,16 +158,52 @@ export function DemoDock() {
               </div>
             </div>
 
-            {isPublic ? (
-              <>
-                <div className="mt-5 rounded-2xl bg-night-2 p-4">
-                  <p className="text-[0.9375rem] font-medium">No sign-in on the public site</p>
-                  <p className="t-small mt-1 text-moon-2">
-                    Event organizers browse venues and send an inquiry without an account, so there are no member states here. Switch to the member app to try
-                    those.
-                  </p>
+            <>
+              <fieldset className="mt-5">
+                <legend className="t-small mb-2 font-medium">Member state</legend>
+                <div className="flex flex-col gap-1">
+                  {personas.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        actions.setPersona(p.id);
+                      }}
+                      aria-pressed={s.persona === p.id}
+                      className={cn(
+                        "flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors",
+                        s.persona === p.id ? "bg-night-3" : "hover:bg-night-2",
+                      )}
+                    >
+                      <span>
+                        <span className="block text-[0.9375rem] font-medium">{p.label}</span>
+                        <span className="block text-[0.8125rem] text-moon-2">{p.note}</span>
+                      </span>
+                      <span
+                        className={cn(
+                          "grid size-5 place-items-center rounded-full border",
+                          s.persona === p.id ? "border-accent-glow bg-accent-glow text-night" : "border-night-line",
+                        )}
+                      >
+                        {s.persona === p.id && <Icon name="check" size={12} strokeWidth={2.5} />}
+                      </span>
+                    </button>
+                  ))}
                 </div>
+              </fieldset>
 
+              {tenant.fitness && (
+                <label className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-night-2">
+                  <span>
+                    <span className="block text-[0.9375rem] font-medium">Fitness membership</span>
+                    <span className="block text-[0.8125rem] text-moon-2">Off shows the access-required state</span>
+                  </span>
+                  <input type="checkbox" className="peer sr-only" checked={s.fitnessMember} onChange={(e) => actions.setFitness(e.target.checked)} />
+                  <span className="relative h-6 w-10 rounded-full bg-night-line transition-colors peer-checked:bg-accent-glow peer-focus-visible:outline-2 peer-focus-visible:outline-accent-glow after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-moon after:transition-transform peer-checked:after:translate-x-4" />
+                </label>
+              )}
+            </>
+            {isPublic && (
+              <>
                 <div className="mt-3 flex items-center justify-between rounded-2xl px-3 py-2.5">
                   <span>
                     <span className="block text-[0.9375rem] font-medium">Shortlist</span>
@@ -184,51 +220,6 @@ export function DemoDock() {
                     </button>
                   )}
                 </div>
-              </>
-            ) : (
-              <>
-                <fieldset className="mt-5">
-                  <legend className="t-small mb-2 font-medium">Member state</legend>
-                  <div className="flex flex-col gap-1">
-                    {personas.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => {
-                          actions.setPersona(p.id);
-                        }}
-                        aria-pressed={s.persona === p.id}
-                        className={cn(
-                          "flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors",
-                          s.persona === p.id ? "bg-night-3" : "hover:bg-night-2",
-                        )}
-                      >
-                        <span>
-                          <span className="block text-[0.9375rem] font-medium">{p.label}</span>
-                          <span className="block text-[0.8125rem] text-moon-2">{p.note}</span>
-                        </span>
-                        <span
-                          className={cn(
-                            "grid size-5 place-items-center rounded-full border",
-                            s.persona === p.id ? "border-accent-glow bg-accent-glow text-night" : "border-night-line",
-                          )}
-                        >
-                          {s.persona === p.id && <Icon name="check" size={12} strokeWidth={2.5} />}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </fieldset>
-
-                {tenant.fitness && (
-                  <label className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-night-2">
-                    <span>
-                      <span className="block text-[0.9375rem] font-medium">Fitness membership</span>
-                      <span className="block text-[0.8125rem] text-moon-2">Off shows the access-required state</span>
-                    </span>
-                    <input type="checkbox" className="peer sr-only" checked={s.fitnessMember} onChange={(e) => actions.setFitness(e.target.checked)} />
-                    <span className="relative h-6 w-10 rounded-full bg-night-line transition-colors peer-checked:bg-accent-glow peer-focus-visible:outline-2 peer-focus-visible:outline-accent-glow after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-moon after:transition-transform peer-checked:after:translate-x-4" />
-                  </label>
-                )}
               </>
             )}
 
@@ -255,16 +246,15 @@ export function DemoDock() {
         aria-label="Demo controls"
         className={cn(
           "group flex h-10 items-center gap-2 bg-night p-1.5 text-[0.8125rem] font-medium text-moon shadow-[var(--shadow-float)] transition-transform active:scale-95",
-          isPublic ? "rounded-r-[999px] pl-2" : "rounded-full sm:pr-3.5",
+          "rounded-full sm:pr-3.5",
         )}
       >
         <span className="grid size-7 place-items-center rounded-full bg-accent-glow/20 text-accent-glow">
           <Icon name="sliders" size={15} />
         </span>
-        {/* The tab stays just the icon on public pages; its label shows on hover */}
-        <span className={cn("hidden sm:inline", isPublic && "sm:hidden sm:group-hover:inline")}>Demo</span>
-        <span className={cn("hidden text-moon-2 sm:inline", isPublic && "sm:hidden sm:group-hover:inline sm:pr-2")}>
-          · {tenant.copy.The} · {isPublic ? "Public" : personas.find((p) => p.id === s.persona)?.label}
+        <span className="hidden sm:inline">Demo</span>
+        <span className="hidden text-moon-2 sm:inline">
+          · {tenant.copy.The} · {personas.find((p) => p.id === s.persona)?.label}
         </span>
       </button>
     </div>
