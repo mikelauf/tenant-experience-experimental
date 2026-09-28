@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { isDemo } from "@/lib/flags";
 import { MemberTabBar, MemberTopNav } from "@/components/member/MemberNav";
-import { Footer } from "@/components/ui/Footer";
+import { MemberFooter } from "@/components/member/MemberFooter";
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   // The member app is demo-only until it's wired to Core; production serves the public venue site alone.
@@ -12,10 +12,10 @@ export default async function MemberLayout({ children }: { children: React.React
   return (
     <>
       <MemberTopNav />
-      <main id="main" className="min-h-dvh">
+      <main id="main" className="min-h-[60svh]">
         {children}
       </main>
-      <Footer variant="member" />
+      <MemberFooter />
       <MemberTabBar />
     </>
   );

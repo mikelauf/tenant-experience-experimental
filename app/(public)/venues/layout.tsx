@@ -18,7 +18,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <main id="main" className="min-h-dvh">
         {children}
       </main>
-      <Footer variant="public" />
+      <Footer />
       <Shortlist />
     </>
   );

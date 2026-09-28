@@ -3,49 +3,28 @@ import { isDemo } from "@/lib/flags";
 import { getTenant } from "@/lib/tenants/server";
 import { Mark, PoweredBy } from "./Logo";
 
-export async function Footer({ variant }: { variant: "member" | "public" }) {
+/** The public venue site's footer. The member app has its own (`components/member/MemberFooter.tsx`). */
+export async function Footer() {
   const t = await getTenant();
   const { building, copy } = t;
-  const on = building.services;
-  const links =
-    variant === "member"
-      ? [
-          ...(on.spaces
-            ? [
-                { href: "/spaces", label: "Meeting rooms" },
-                { href: "/spaces/plan-an-event", label: "Plan an event" },
-              ]
-            : []),
-          ...(t.fitness ? [{ href: "/fitness", label: t.fitness.name }] : []),
-          ...(on.programming ? [{ href: "/programming", label: "Events" }] : []),
-          { href: "/plans", label: "Your plans" },
-          { href: "/venues", label: "Public venues site" },
-        ]
-      : [
-          { href: "/venues#collection", label: "All venues" },
-          ...t.venues.map((v) => ({ href: `/venues/${v.slug}`, label: v.name })),
-          { href: "/venues/inquire", label: "Start an inquiry" },
-          ...(copy.public.faq?.length ? [{ href: "/venues/faq", label: "Questions & answers" }] : []),
-          ...(isDemo ? [{ href: "/home", label: "Work here? Member site" }] : []),
-        ];
-  // The member footer shows the concierge desk; the public one only shows a confirmed events contact.
-  const contact =
-    variant === "member"
-      ? { title: "Concierge", lines: [building.concierge.phone, building.concierge.email, building.concierge.hours] }
-      : copy.public.contact
-        ? { title: "Events team", lines: [copy.public.contact.phone, copy.public.contact.email].filter((x): x is string => !!x) }
-        : null;
+  const links = [
+    { href: "/venues#collection", label: "All venues" },
+    ...t.venues.map((v) => ({ href: `/venues/${v.slug}`, label: v.name })),
+    { href: "/venues/inquire", label: "Start an inquiry" },
+    ...(copy.public.faq?.length ? [{ href: "/venues/faq", label: "Questions & answers" }] : []),
+    ...(isDemo ? [{ href: "/home", label: "Work here? Member site" }] : []),
+  ];
+  // Only a confirmed events contact is shown
+  const contact = copy.public.contact
+    ? { title: "Events team", lines: [copy.public.contact.phone, copy.public.contact.email].filter((x): x is string => !!x) }
+    : null;
 
   return (
-    <footer data-noprint className={`theme-night relative overflow-hidden ${variant === "member" ? "max-lg:pb-[calc(var(--tab-h)+env(safe-area-inset-bottom))]" : ""}`}>
+    <footer data-noprint className="theme-night relative overflow-hidden">
       <div className="frame grid-12 gap-y-12 pb-10 pt-20 lg:pt-28">
         <div className="col-span-12 lg:col-span-5">
           <Mark size={40} className="text-moon" />
-          <p className="t-h2 mt-8 max-w-[18ch]">
-            {variant === "member"
-              ? `The concierge desk is on ${copy.concierge}, and always happy to help.`
-              : "Tell us about your event. We'll take it from there."}
-          </p>
+          <p className="t-h2 mt-8 max-w-[18ch]">Tell us about your event. We&apos;ll take it from there.</p>
         </div>
         {contact && (
           <div className="col-span-6 lg:col-span-3 lg:col-start-7">
@@ -83,8 +62,8 @@ export async function Footer({ variant }: { variant: "member" | "public" }) {
       <div className="frame flex flex-col gap-3 border-t hairline py-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="t-meta">
           {building.address}, {building.city}
-          {isDemo && (variant === "member" ? " · A design prototype. Schedules and people are sample content." : " · Demo build")}
-          {variant === "public" && copy.public.privacyUrl && (
+          {isDemo && " · Demo build"}
+          {copy.public.privacyUrl && (
             <>
               {" · "}
               <a href={copy.public.privacyUrl} className="underline-offset-2 hover:underline">
