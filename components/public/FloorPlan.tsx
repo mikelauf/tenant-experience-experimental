@@ -2,8 +2,9 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import NextImage from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { useOverlay } from "@/lib/useOverlay";
 import type { Venue } from "@/lib/data/types";
 import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/Button";
@@ -84,18 +85,8 @@ export function PlanViewer({ plan, title, onClose }: { plan: Plans[number] | nul
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!plan) return;
-    window.__lenis?.stop();
-    document.documentElement.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.__lenis?.start();
-      document.documentElement.style.overflow = "";
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [plan, close]);
+  const panel = useRef<HTMLDivElement>(null);
+  useOverlay(!!plan, close, panel);
 
   return (
     <AnimatePresence>
@@ -104,10 +95,12 @@ export function PlanViewer({ plan, title, onClose }: { plan: Plans[number] | nul
           role="dialog"
           aria-modal="true"
           aria-label={title}
+          ref={panel}
+          tabIndex={-1}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[90] flex flex-col bg-[#fdf7f4]"
+          className="fixed inset-0 z-[90] flex flex-col bg-[#fdf7f4] outline-none"
           data-lenis-prevent
         >
           <div className="flex items-center justify-between gap-4 border-b border-ink/10 px-4 py-3 lg:px-8">
@@ -125,7 +118,7 @@ export function PlanViewer({ plan, title, onClose }: { plan: Plans[number] | nul
               className={cn("relative block", zoom ? "h-[250%] w-[250%] cursor-zoom-out" : "h-full w-full cursor-zoom-in")}
               aria-label={zoom ? "Zoom out" : "Zoom in"}
             >
-              <NextImage src={plan.src} alt={plan.alt} fill sizes="250vw" quality={90} className="object-contain p-4 mix-blend-multiply lg:p-10" />
+              <NextImage src={plan.src} alt={plan.alt} fill sizes="(min-width:1024px) 250vw, 200vw" quality={90} className="object-contain p-4 mix-blend-multiply lg:p-10" />
             </button>
           </div>
           <p className="t-meta border-t border-ink/10 px-4 py-3 lg:px-8">{plan.alt} From the building&apos;s venue booklet.</p>

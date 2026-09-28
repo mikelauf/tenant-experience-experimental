@@ -2,9 +2,10 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useHydrated } from "@/lib/store";
+import { useOverlay } from "@/lib/useOverlay";
 import { InquiryForm, type InquiryInitial } from "./InquiryForm";
 
 /**
@@ -58,23 +59,7 @@ function InquiryModal({ open, onClose, children }: { open: boolean; onClose: () 
   const reduce = useReducedMotion();
   const hydrated = useHydrated();
   const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const last = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    window.__lenis?.stop();
-    document.documentElement.style.overflow = "hidden";
-    const t = setTimeout(() => panel.current?.focus(), 30);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-      window.__lenis?.start();
-      document.documentElement.style.overflow = "";
-      last?.focus?.();
-    };
-  }, [open, onClose]);
+  useOverlay(open, onClose, panel);
 
   if (!hydrated) return null;
 

@@ -52,7 +52,16 @@ export function PublicNav() {
   const { over, scrolled } = useNavOver();
   const s = useDemo();
   const hydrated = useHydrated();
-  const [open, setOpen] = useState(false);
+  // The menu belongs to the page it was opened on, so any way of leaving (Inquire, the logo, back) closes it
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === path;
+  const setOpen = (v: boolean | ((o: boolean) => boolean)) => setOpenOn((typeof v === "function" ? v(open) : v) ? path : null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenOn(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
   const hidden = useHideOnScroll(path) && !open;
   const { building, venues, copy } = useTenant();
   const hasFaq = !!copy.public.faq?.length;
@@ -147,6 +156,7 @@ export function PublicNav() {
             <button
               className="grid size-10 place-items-center rounded-full md:hidden"
               aria-expanded={open}
+              aria-controls="venues-menu"
               aria-label={open ? "Close menu" : "Open menu"}
               onClick={() => setOpen((o) => !o)}
             >
@@ -167,6 +177,7 @@ export function PublicNav() {
         <AnimatePresence>
           {open && (
             <motion.nav
+              id="venues-menu"
               aria-label="Venues"
               initial={{ height: 0 }}
               animate={{ height: "auto" }}

@@ -1,15 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { useHydrated } from "@/lib/store";
+import { useOverlay } from "@/lib/useOverlay";
 import { IconButton } from "./Button";
 
 /**
  * Bottom sheet on phones, side panel on desktop (Mindtrip-style detail drawer).
- * Traps focus loosely, closes on Escape and backdrop.
+ * Keeps focus inside while open, closes on Escape and backdrop.
  */
 export function Sheet({
   open,
@@ -31,25 +32,8 @@ export function Sheet({
   const reduce = useReducedMotion();
   const id = useId();
   const panel = useRef<HTMLDivElement>(null);
-  const lastFocus = useRef<HTMLElement | null>(null);
   const hydrated = useHydrated();
-
-  useEffect(() => {
-    if (!open) return;
-    lastFocus.current = document.activeElement as HTMLElement;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    window.__lenis?.stop();
-    document.documentElement.style.overflow = "hidden";
-    const t = setTimeout(() => panel.current?.focus(), 30);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-      window.__lenis?.start();
-      document.documentElement.style.overflow = "";
-      lastFocus.current?.focus?.();
-    };
-  }, [open, onClose]);
+  useOverlay(open, onClose, panel);
 
   if (!hydrated) return null;
 

@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "@/components/ui/SmoothImage";
 import { BRIEF_MAX, briefHref } from "@/lib/brief";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/cn";
 import { guestsShort, setupLabels } from "@/lib/data/shared";
 import type { Setup, Venue } from "@/lib/data/types";
 import { actions, useDemo, useHydrated } from "@/lib/store";
+import { useOverlay } from "@/lib/useOverlay";
 import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -28,7 +29,10 @@ export function Shortlist() {
   const hydrated = useHydrated();
   const path = usePathname();
   const { over } = useNavOver();
-  const [open, setOpen] = useState(false);
+  // The comparison belongs to the page it was opened on: its links (inquire, brief) close it by leaving
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === path;
+  const setOpen = (v: boolean) => setOpenOn(v ? path : null);
   const saved = hydrated ? venues.filter((v) => s.shortlist.includes(v.slug)).slice(0, BRIEF_MAX) : [];
   // The inquiry and the brief already show the venues picked; the hero has its own buttons
   const own = path.startsWith("/venues/inquire") || path.startsWith("/venues/brief");
@@ -107,23 +111,7 @@ function Compare({ open, onClose, saved }: { open: boolean; onClose: () => void;
   const reduce = useReducedMotion();
   const hydrated = useHydrated();
   const panel = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const last = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    window.__lenis?.stop();
-    document.documentElement.style.overflow = "hidden";
-    const t = setTimeout(() => panel.current?.focus(), 30);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("keydown", onKey);
-      window.__lenis?.start();
-      document.documentElement.style.overflow = "";
-      last?.focus?.();
-    };
-  }, [open, onClose]);
+  useOverlay(open, onClose, panel);
 
   if (!hydrated) return null;
   const setups = setupsOf(saved);
