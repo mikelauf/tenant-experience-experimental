@@ -7,6 +7,7 @@ import { cn } from "@/lib/cn";
 import type { Commitment } from "@/lib/data/types";
 import { useTenant } from "@/lib/tenants/client";
 import { useDemo, useHydrated } from "@/lib/store";
+import { gateHref } from "@/lib/access";
 import { fmtLongDay, fmtMonth } from "@/lib/time";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -44,16 +45,7 @@ export function Plans() {
   const live = open ? (s.commitments.find((c) => c.id === open) ?? null) : null;
   if (!hydrated) return <div className="min-h-[80svh]" />;
 
-  if (s.persona === "signed-out")
-    return (
-      <div className="frame flex min-h-[70svh] flex-col items-start justify-center pt-[var(--nav-h)]">
-        <h1 className="t-h1">Sign in to see your plans.</h1>
-        <p className="t-lead mt-3 text-stone">Rooms, classes and RSVPs all land here.</p>
-        <ButtonLink href="/sign-in?returnTo=%2Fplans" className="mt-8" icon="arrow-right">
-          Sign in
-        </ButtonLink>
-      </div>
-    );
+  if (s.persona === "signed-out") return <SignedOutPlans />;
 
   const list = tab === "upcoming" ? upcoming : past;
   const [first, ...rest] = upcoming;
@@ -181,6 +173,48 @@ export function Plans() {
       </AnimatePresence>
 
       <CommitmentSheet c={live} onClose={() => setOpen(null)} />
+    </div>
+  );
+}
+
+/** Plans before signing in: what the page is for, the sign-in, and a few places to start */
+function SignedOutPlans() {
+  const t = useTenant();
+  const on = t.building.services;
+  const starts = [
+    on.spaces && { icon: "spaces" as const, label: "Book a room", href: "/spaces" },
+    t.fitness && { icon: "fitness" as const, label: "Reserve a class", href: "/fitness" },
+    on.programming && { icon: "ticket" as const, label: "RSVP to an event", href: "/programming" },
+  ].filter((x): x is { icon: "spaces" | "fitness" | "ticket"; label: string; href: string } => !!x);
+
+  return (
+    <div className="frame flex min-h-[64svh] flex-col items-center justify-center pb-16 pt-[calc(var(--nav-h)+32px)] text-center lg:pb-20">
+      <span className="grid size-14 place-items-center bg-[#e9e6df] text-ink">
+        <Icon name="calendar" size={24} />
+      </span>
+      <h1 className="t-h1 mt-6">Your plans</h1>
+      <p className="t-lead mt-3 max-w-[36ch] text-stone">Sign in and every room, class and RSVP you book shows up here, with where to go.</p>
+      <ButtonLink href={gateHref("/plans")} size="lg" icon="arrow-right" className="mt-8">
+        Sign in
+      </ButtonLink>
+      {starts.length > 0 && (
+        <>
+          <p className="t-meta mt-14">Or start with</p>
+          <ul className="mt-4 flex flex-wrap justify-center gap-2">
+            {starts.map((x) => (
+              <li key={x.href}>
+                <Link
+                  href={x.href}
+                  className="inline-flex h-11 items-center gap-2 rounded-full bg-paper px-5 text-[0.9375rem] font-medium shadow-[var(--shadow-ring)] transition-shadow hover:shadow-[inset_0_0_0_1px_var(--color-ink)]"
+                >
+                  <Icon name={x.icon} size={17} className="text-stone" />
+                  {x.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
