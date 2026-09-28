@@ -8,24 +8,33 @@ import { cn } from "@/lib/cn";
 import type { Persona } from "@/lib/data/types";
 import { setShape, useShape } from "@/lib/shape";
 import { actions, useDemo, useHydrated } from "@/lib/store";
-import { TENANTS, tenantById, type TenantId } from "@/lib/tenants";
+import { DEFAULT_TENANT, tenantById, type TenantId } from "@/lib/tenants";
 import { switchTenant, useTenant } from "@/lib/tenants/client";
 import { Icon } from "./Icon";
 
-const personas: { id: Persona; label: string; note: string }[] = [
-  { id: "signed-out", label: "Signed out", note: "Browsing before sign-in" },
-  { id: "public", label: "Public account", note: "Inquired about a venue; no work email yet" },
-  { id: "verifying", label: "Verifying", note: "Work email waiting on the building team" },
-  { id: "new", label: "New member", note: "First week, nothing booked" },
-  { id: "returning", label: "Returning", note: "Regular with plans on the books" },
+const personas: { id: Persona; label: string; note: string; main: boolean }[] = [
+  { id: "signed-out", label: "Signed out", note: "Hasn't signed in yet", main: true },
+  { id: "new", label: "New member", note: "Just verified, nothing booked", main: true },
+  { id: "returning", label: "Returning", note: "A regular, with plans on the books", main: true },
+  { id: "public", label: "Public account", note: "Inquired about a venue; no work email", main: false },
+  { id: "verifying", label: "Verifying", note: "Work email under review", main: false },
 ];
 
-/** Reviewer controls. Not part of the product. */
+const sites = [
+  { id: "venues", href: "/venues", label: "Public venues", note: "What anyone planning an event sees. No sign-in." },
+  { id: "member", href: "/home", label: "Member app", note: "What people who work in the building see." },
+] as const;
+
+/**
+ * Reviewer controls, not part of the product. One choice first (which site), then only what changes that site:
+ * who's looking and their fitness membership in the member app, the saved venues on the public site.
+ */
 export function DemoDock() {
   const s = useDemo();
   const shape = useShape();
   const hydrated = useHydrated();
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const path = usePathname();
   const router = useRouter();
   const ref = useRef<HTMLDivElement>(null);
@@ -56,6 +65,34 @@ export function DemoDock() {
 
   if (!hydrated) return null;
 
+  const persona = personas.find((p) => p.id === s.persona)!;
+  const member = s.persona === "new" || s.persona === "returning";
+  // The two rarer states open their drawer when one of them is the one showing
+  const showMore = moreOpen || !persona.main;
+  const pill = isPublic
+    ? "Public venues"
+    : `Member app · ${persona.label}${member && tenant.fitness && s.fitnessMember ? " · Fitness" : ""}`;
+
+  const choice = (p: (typeof personas)[number]) => {
+    const on = s.persona === p.id;
+    return (
+      <button
+        key={p.id}
+        onClick={() => actions.setPersona(p.id)}
+        aria-pressed={on}
+        className={cn("flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors", on ? "bg-night-3" : "hover:bg-night-2")}
+      >
+        <span>
+          <span className="block text-[0.9375rem] font-medium">{p.label}</span>
+          <span className="block text-[0.8125rem] text-moon-2">{p.note}</span>
+        </span>
+        <span className={cn("grid size-5 shrink-0 place-items-center rounded-full border", on ? "border-accent-glow bg-accent-glow text-night" : "border-night-line")}>
+          {on && <Icon name="check" size={12} strokeWidth={2.5} />}
+        </span>
+      </button>
+    );
+  };
+
   return (
     <div
       data-noprint
@@ -77,66 +114,119 @@ export function DemoDock() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             data-lenis-prevent
             className={cn(
-              "theme-night absolute w-[min(340px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]",
+              "theme-night absolute w-[min(360px,calc(100vw-24px))] rounded-[22px] p-4 shadow-[var(--shadow-float)]",
               "bottom-12 left-0 max-h-[calc(100svh-120px)] overflow-y-auto",
             )}
             role="dialog"
             aria-label="Demo controls"
           >
-            <p className="t-small text-moon-2">Prototype controls. Nothing here is real.</p>
+            <p className="font-medium">Demo controls</p>
+            <p className="t-small mt-0.5 text-moon-2">Switch what you&apos;re looking at. Nothing here is real.</p>
+
+            {/* Only reachable if a browser still carries the sample building from before it left the dock */}
+            {tenant.id !== DEFAULT_TENANT && (
+              <button
+                onClick={() => go(DEFAULT_TENANT)}
+                className="mt-4 flex w-full items-center justify-between gap-3 rounded-2xl bg-night-3 px-3 py-2.5 text-left text-[0.8125rem] hover:bg-night-2"
+              >
+                <span className="text-moon-2">
+                  You&apos;re viewing {tenant.copy.The} (a sample building).
+                </span>
+                <span className="shrink-0 font-medium text-moon">Back to the Pyramid</span>
+              </button>
+            )}
 
             <fieldset className="mt-4">
-              <legend className="t-small mb-2 font-medium">Building</legend>
+              <legend className="t-small mb-2 font-medium text-moon-2">Which site</legend>
               <div className="grid grid-cols-2 gap-1.5">
-                {Object.values(TENANTS).map((t) => {
-                  const on = t.id === tenant.id;
+                {sites.map((x) => {
+                  const on = x.id === "venues" ? isPublic : !isPublic;
                   return (
-                    <button
-                      key={t.id}
-                      onClick={() => go(t.id)}
-                      aria-pressed={on}
+                    <Link
+                      key={x.id}
+                      href={x.href}
+                      aria-current={on ? "page" : undefined}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-2xl p-2.5 text-left transition-colors",
-                        on ? "bg-night-3 shadow-[inset_0_0_0_1px_var(--color-night-line)]" : "hover:bg-night-2",
+                        "rounded-2xl p-3 transition-colors",
+                        on ? "bg-moon text-night" : "bg-night-2 text-moon hover:bg-night-3",
                       )}
                     >
-                      <span className="grid size-9 shrink-0 place-items-center rounded-xl" style={{ background: t.theme.deep }}>
-                        <MarkOf id={t.id} size={20} />
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[0.875rem] font-medium">{t.copy.The}</span>
-                        <span className="block truncate text-[0.75rem] text-moon-2">
-                          {t.building.city} · {Object.values(t.building.services).filter(Boolean).length} services
-                        </span>
-                      </span>
-                    </button>
+                      <span className="block text-[0.9375rem] font-medium">{x.label}</span>
+                      <span className={cn("mt-0.5 block text-[0.75rem] leading-snug", on ? "text-night/70" : "text-moon-2")}>{x.note}</span>
+                    </Link>
                   );
                 })}
               </div>
             </fieldset>
 
-            <div className="mt-4 grid grid-cols-2 gap-1 rounded-full bg-night-3 p-1 text-[0.875rem]">
-              {[
-                { href: "/home", label: "Member app", on: !isPublic },
-                { href: "/venues", label: "Public venues", on: isPublic },
-              ].map((x) => (
-                <Link
-                  key={x.href}
-                  href={x.href}
-                  onClick={() => setOpen(false)}
-                  className={cn("rounded-full py-2 text-center font-medium transition-colors", x.on ? "bg-moon text-night" : "text-moon-2 hover:text-moon")}
-                >
-                  {x.label}
-                </Link>
-              ))}
-            </div>
+            {!isPublic && (
+              <>
+                <fieldset className="mt-5">
+                  <legend className="t-small mb-2 font-medium text-moon-2">Who&apos;s looking?</legend>
+                  <div className="flex flex-col gap-1">{personas.filter((p) => p.main).map(choice)}</div>
+                  <button
+                    onClick={() => setMoreOpen((o) => !o)}
+                    aria-expanded={showMore}
+                    className="mt-1 flex w-full items-center gap-1.5 px-3 py-2 text-[0.8125rem] font-medium text-moon-2 hover:text-moon"
+                  >
+                    <Icon name="chevron-down" size={14} className={cn("transition-transform", showMore && "rotate-180")} />
+                    More states
+                  </button>
+                  {showMore && <div className="flex flex-col gap-1">{personas.filter((p) => !p.main).map(choice)}</div>}
+                </fieldset>
 
-            <div className="mt-4 flex items-center justify-between gap-3 px-1">
-              <span className="text-[0.9375rem] font-medium">Style</span>
-              <div role="radiogroup" aria-label="Corner style" className="grid grid-cols-2 gap-1 rounded-full bg-night-3 p-1 text-[0.8125rem]">
+                {tenant.fitness && (
+                  <label
+                    className={cn(
+                      "mt-3 flex items-center justify-between gap-3 rounded-2xl px-3 py-2.5",
+                      member ? "cursor-pointer hover:bg-night-2" : "cursor-not-allowed opacity-50",
+                    )}
+                  >
+                    <span>
+                      <span className="block text-[0.9375rem] font-medium">Has the fitness membership</span>
+                      <span className="block text-[0.8125rem] text-moon-2">
+                        {member ? "On: can reserve classes. Off: asked to join first." : "Sign in as a member to change this"}
+                      </span>
+                    </span>
+                    <input
+                      type="checkbox"
+                      role="switch"
+                      className="peer sr-only"
+                      disabled={!member}
+                      checked={member && s.fitnessMember}
+                      onChange={(e) => actions.setFitness(e.target.checked)}
+                    />
+                    <span className="relative h-6 w-10 shrink-0 rounded-full bg-night-line transition-colors peer-checked:bg-accent-glow peer-focus-visible:outline-2 peer-focus-visible:outline-accent-glow after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-moon after:transition-transform peer-checked:after:translate-x-4" />
+                  </label>
+                )}
+              </>
+            )}
+
+            {isPublic && (
+              <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-night-2 px-3 py-2.5">
+                <span>
+                  <span className="block text-[0.9375rem] font-medium">Saved venues</span>
+                  <span className="block text-[0.8125rem] text-moon-2">
+                    {s.shortlist.length ? `${s.shortlist.length} saved, carried into the inquiry` : "Tap the heart on a venue to save it"}
+                  </span>
+                </span>
+                {s.shortlist.length > 0 && (
+                  <button
+                    onClick={() => actions.clearShortlist()}
+                    className="shrink-0 rounded-full border border-night-line px-3 py-1.5 text-[0.8125rem] font-medium hover:bg-night-3"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* The small print: corner style and a clean slate */}
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-night-line pt-3.5">
+              <div role="radiogroup" aria-label="Corner style" className="flex items-center gap-1 rounded-full bg-night-3 p-1 text-[0.75rem]">
                 {(
                   [
-                    { id: "rounded", label: "Rounded", glyph: "rounded-[5px]" },
+                    { id: "rounded", label: "Rounded", glyph: "rounded-[4px]" },
                     { id: "flat", label: "Flat", glyph: "" },
                   ] as const
                 ).map((x) => (
@@ -146,94 +236,28 @@ export function DemoDock() {
                     aria-checked={shape === x.id}
                     onClick={() => setShape(x.id)}
                     className={cn(
-                      "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-medium transition-colors",
+                      "flex items-center gap-1.5 rounded-full px-2.5 py-1 font-medium transition-colors",
                       shape === x.id ? "bg-moon text-night" : "text-moon-2 hover:text-moon",
                     )}
                   >
                     {/* keep-round so the swatch still shows the difference once flat is on */}
-                    <span aria-hidden className={cn("size-3 border-[1.5px] border-current", x.glyph && `keep-round ${x.glyph}`)} />
+                    <span aria-hidden className={cn("size-2.5 border-[1.5px] border-current", x.glyph && `keep-round ${x.glyph}`)} />
                     {x.label}
                   </button>
                 ))}
               </div>
+              <button
+                onClick={() => {
+                  actions.reset();
+                  setOpen(false);
+                  router.push(isPublic ? "/venues" : "/home");
+                }}
+                className="flex items-center gap-1.5 text-[0.8125rem] font-medium text-moon-2 hover:text-moon"
+              >
+                <Icon name="refresh" size={14} />
+                Reset demo
+              </button>
             </div>
-
-            <>
-              <fieldset className="mt-5">
-                <legend className="t-small mb-2 font-medium">Member state</legend>
-                <div className="flex flex-col gap-1">
-                  {personas.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        actions.setPersona(p.id);
-                      }}
-                      aria-pressed={s.persona === p.id}
-                      className={cn(
-                        "flex items-center justify-between rounded-2xl px-3 py-2.5 text-left transition-colors",
-                        s.persona === p.id ? "bg-night-3" : "hover:bg-night-2",
-                      )}
-                    >
-                      <span>
-                        <span className="block text-[0.9375rem] font-medium">{p.label}</span>
-                        <span className="block text-[0.8125rem] text-moon-2">{p.note}</span>
-                      </span>
-                      <span
-                        className={cn(
-                          "grid size-5 place-items-center rounded-full border",
-                          s.persona === p.id ? "border-accent-glow bg-accent-glow text-night" : "border-night-line",
-                        )}
-                      >
-                        {s.persona === p.id && <Icon name="check" size={12} strokeWidth={2.5} />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-
-              {tenant.fitness && (
-                <label className="mt-4 flex cursor-pointer items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-night-2">
-                  <span>
-                    <span className="block text-[0.9375rem] font-medium">Fitness membership</span>
-                    <span className="block text-[0.8125rem] text-moon-2">Off shows the access-required state</span>
-                  </span>
-                  <input type="checkbox" className="peer sr-only" checked={s.fitnessMember} onChange={(e) => actions.setFitness(e.target.checked)} />
-                  <span className="relative h-6 w-10 rounded-full bg-night-line transition-colors peer-checked:bg-accent-glow peer-focus-visible:outline-2 peer-focus-visible:outline-accent-glow after:absolute after:left-0.5 after:top-0.5 after:size-5 after:rounded-full after:bg-moon after:transition-transform peer-checked:after:translate-x-4" />
-                </label>
-              )}
-            </>
-            {isPublic && (
-              <>
-                <div className="mt-3 flex items-center justify-between rounded-2xl px-3 py-2.5">
-                  <span>
-                    <span className="block text-[0.9375rem] font-medium">Shortlist</span>
-                    <span className="block text-[0.8125rem] text-moon-2">
-                      {s.shortlist.length ? `${s.shortlist.length} saved · carried into the inquiry form` : "Heart a venue to save it"}
-                    </span>
-                  </span>
-                  {s.shortlist.length > 0 && (
-                    <button
-                      onClick={() => actions.clearShortlist()}
-                      className="rounded-full border border-night-line px-3 py-1.5 text-[0.8125rem] font-medium hover:bg-night-2"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
-
-            <button
-              onClick={() => {
-                actions.reset();
-                setOpen(false);
-                router.push(isPublic ? "/venues" : "/home");
-              }}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-night-line py-2.5 text-[0.875rem] font-medium text-moon hover:bg-night-2"
-            >
-              <Icon name="refresh" size={16} />
-              Reset demo
-            </button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -243,7 +267,7 @@ export function DemoDock() {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label="Demo controls"
+        aria-label={`Demo controls: ${pill}`}
         className={cn(
           "group flex h-10 items-center gap-2 bg-night p-1.5 text-[0.8125rem] font-medium text-moon shadow-[var(--shadow-float)] transition-transform active:scale-95",
           "rounded-full sm:pr-3.5",
@@ -253,9 +277,7 @@ export function DemoDock() {
           <Icon name="sliders" size={15} />
         </span>
         <span className="hidden sm:inline">Demo</span>
-        <span className="hidden text-moon-2 sm:inline">
-          · {tenant.copy.The} · {personas.find((p) => p.id === s.persona)?.label}
-        </span>
+        <span className="hidden text-moon-2 sm:inline">· {pill}</span>
       </button>
     </div>
   );

@@ -37,17 +37,19 @@ NEXT_PUBLIC_SITE_MODE=production npm run build   # the launch build: public venu
 6. **Events:** RSVP to *The Pyramid at 54*. *Morning cupping* is full (waitlist), the *Northline* social is company-only (you're at Northline, so you can go), and *Chef's table* is invite-only.
 7. **Manage:** in Plans, open any item to add it to your calendar (a real `.ics` file) or cancel it with a two-step confirm. The change shows up everywhere.
 8. **Inside the building:** on the member Home, scroll through the floor-by-floor spotlights. The wellness center and Sky Lounge are rooms in 3D with their real kit; Sky Bar and the park come from their venue plans.
-9. **Another building:** open **Demo**, then **Building**, then **The Meridian**. Everything changes: the name, the logo mark, the accent color, the stepped 3D tower, the venues, rooms, events and people. Fitness isn't offered there, so it drops out of the navigation, service tabs, footer, Home and Account, and `/fitness` explains that it isn't available. Each building keeps its own plans.
+9. **Another building** (hidden from the dock; set the `pb-building=meridian` cookie): Everything changes: the name, the logo mark, the accent color, the stepped 3D tower, the venues, rooms, events and people. Fitness isn't offered there, so it drops out of the navigation, service tabs, footer, Home and Account, and `/fitness` explains that it isn't available. Each building keeps its own plans.
 
 ## Demo controls
 
-The **Demo** button (bottom corner) switches between:
+The **Demo** pill (bottom-left) says what you're looking at, e.g. "Public venues" or "Member app · Returning · Fitness". Open it to switch:
 
-- **Building:** the Transamerica Pyramid or The Meridian. This sets a `pb-building` cookie, standing in for the hostname that picks the building in production, and reloads.
-- **Member app** and **Public venues**
-- **Signed out**, **New member** (nothing booked, orientation steps), or **Returning** (plans on the books, "book again")
-- **Fitness membership** on or off (off shows the access-required state)
-- **Reset demo** (clears everything saved in this browser)
+- **Which site:** Public venues (what anyone planning an event sees) or the Member app (what people who work in the building see).
+- **Who's looking?** (member app only): Signed out, New member or Returning. **More states** holds Public account and Verifying.
+- **Has the fitness membership** (member app, for members): on to reserve classes, off to see the join step.
+- **Saved venues** (public venues only): how many are hearted, with Clear.
+- At the bottom: the corner style (Rounded or Flat) and **Reset demo**.
+
+The Meridian, the fictional second building, is no longer in the dock. Its bundle stays in `lib/tenants/meridian/` for a multi-building demo, and a browser still set to it gets a "Back to the Pyramid" line.
 
 State lives in `localStorage`, one key per building (`pyramid-demo-v2:<building>`), so bookings persist across reloads, sync across tabs, and stay separate for each property.
 
