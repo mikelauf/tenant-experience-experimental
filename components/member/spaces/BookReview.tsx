@@ -11,11 +11,12 @@ import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { dayKey, fmtLongDay, fmtTime, onDay, week } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
+import { SignInFirst } from "@/components/member/SignInFirst";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { BOOK_AHEAD, isBusy } from "./Availability";
-import { gateHref, gateLabel, isMember } from "@/lib/access";
+import { isMember } from "@/lib/access";
 
 /** Airbnb "Review and continue", then an in-place confirmation. */
 export function BookReview({ slug }: { slug: string }) {
@@ -41,15 +42,9 @@ export function BookReview({ slug }: { slug: string }) {
   const invalid = !params.get("start") || offset < 0 || isBusy(r.slug, offset, start, start + dur);
   const request = r.approval === "request";
 
-  if (hydrated && !isMember(s.persona))
-    return (
-      <div className="frame flex min-h-[70svh] flex-col items-start justify-center pt-[var(--nav-h)]">
-        <h1 className="t-h1">{s.persona === "signed-out" ? "Sign in to finish booking." : "Confirm your building access to finish booking."}</h1>
-        <ButtonLink href={gateHref(`/spaces/${r.slug}/book?${params}`)} className="mt-6" icon="arrow-right">
-          {s.persona === "signed-out" ? "Sign in" : gateLabel(s.persona, "book")}
-        </ButtonLink>
-      </div>
-    );
+  // The review is only for members: until the store loads, hold the space rather than flash it to someone who can't book
+  if (!hydrated) return <div className="min-h-[70svh]" aria-busy="true" />;
+  if (!isMember(s.persona)) return <SignInFirst title="Sign in to finish booking." returnTo={`/spaces/${r.slug}/book?${params}`} verb="book" />;
 
   const confirm = async () => {
     setStage("working");

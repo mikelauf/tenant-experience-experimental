@@ -87,7 +87,7 @@ export function SignInClose() {
       }
       actions={
         <>
-          <ButtonLink href={waiting ? "/sign-in?returnTo=%2Fhome" : gateHref("/home")} variant="light" size="lg" icon="arrow-right">
+          <ButtonLink href={gateHref("/home")} variant="light" size="lg" icon="arrow-right">
             {waiting ? "See the status" : "Sign in with your work email"}
           </ButtonLink>
           <Link href="/venues" className={linkCls}>

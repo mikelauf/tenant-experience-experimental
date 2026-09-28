@@ -136,7 +136,7 @@ export function SignInUnlocks() {
 
   // Verifying: already signed in, so the same list reads as what opens up once the building team confirms access
   const waiting = s.persona === "verifying";
-  const status = "/sign-in?returnTo=%2Fhome";
+  const status = gateHref("/home");
 
   return (
     <section className="py-20 lg:py-28" aria-labelledby="unlocks-h">

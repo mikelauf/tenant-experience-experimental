@@ -7,9 +7,6 @@ import type { Persona } from "./data/types";
  */
 export const isMember = (p: Persona) => p === "new" || p === "returning";
 
-/** Signed in at all: members, people waiting on verification, and public customers */
-export const isSignedIn = (p: Persona) => p !== "signed-out";
-
 /** The words on a member action that someone can't take yet, e.g. `gateLabel(p, "reserve")` */
 export function gateLabel(p: Persona, verb: string) {
   if (p === "public") return "Verify your work email";
@@ -19,3 +16,6 @@ export function gateLabel(p: Persona, verb: string) {
 
 /** Where that action goes: sign-in, which returns to `returnTo` once access is confirmed */
 export const gateHref = (returnTo: string) => `/sign-in?returnTo=${encodeURIComponent(returnTo)}`;
+
+/** A `returnTo` from the URL, kept only if it's a path on this site (never another origin) */
+export const safeReturn = (raw: string | null | undefined, fallback: string) => (raw && raw.startsWith("/") && !raw.startsWith("//") ? raw : fallback);

@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { isMember } from "@/lib/access";
+import { isMember, safeReturn } from "@/lib/access";
 import type { Account } from "@/lib/data/types";
 import { actions, emailsFor, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
@@ -35,8 +35,7 @@ type Step = "start" | "code" | "work" | "work-sent" | "pending" | "done";
 export function SignIn() {
   const router = useRouter();
   const params = useSearchParams();
-  const raw = params.get("returnTo") ?? "/home";
-  const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/home";
+  const returnTo = safeReturn(params.get("returnTo"), "/home");
   const t = useTenant();
   const s = useDemo();
   const hydrated = useHydrated();
@@ -135,7 +134,8 @@ export function SignIn() {
 
   const skipWork = () => {
     if (account && s.persona !== "public") actions.signIn(account);
-    router.replace("/home");
+    // Back to whatever they were doing; the page there says what's still needed
+    router.replace(returnTo);
   };
 
   const back = () => {
@@ -296,7 +296,7 @@ export function SignIn() {
                 </p>
                 <p className="t-small mt-4 text-stone">Until then you can browse everything, and use anything that&apos;s open to the public.</p>
                 <div className="mt-8 grid gap-2.5 sm:grid-cols-2">
-                  <button onClick={() => router.replace("/home")} className="h-13 rounded-full bg-ink font-medium text-paper transition-colors hover:bg-ink-2">
+                  <button onClick={() => router.replace(returnTo)} className="h-13 rounded-full bg-ink font-medium text-paper transition-colors hover:bg-ink-2">
                     Keep browsing
                   </button>
                   <button

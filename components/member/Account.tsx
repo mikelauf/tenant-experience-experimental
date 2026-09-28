@@ -10,30 +10,40 @@ import { useTenant } from "@/lib/tenants/client";
 import { Button, ButtonLink } from "@/components/ui/Button";
 import { Icon, type AnyIcon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
-import { isMember } from "@/lib/access";
-
-function SignedOutNote({ returnTo }: { returnTo: string }) {
-  return (
-    <div className="frame flex min-h-[70svh] flex-col items-start justify-center pt-[var(--nav-h)]">
-      <h1 className="t-h1">Sign in to see your account.</h1>
-      <p className="t-lead mt-3 text-stone">Your access, memberships and plans live here.</p>
-      <ButtonLink href={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} className="mt-8" icon="arrow-right">
-        Sign in
-      </ButtonLink>
-    </div>
-  );
-}
+import { gateHref, isMember, safeReturn } from "@/lib/access";
+import { SignInFirst } from "./SignInFirst";
 
 export function Account() {
   const s = useDemo();
   const hydrated = useHydrated();
   const { member: currentMember, fitness, building, copy } = useTenant();
   if (!hydrated) return <div className="min-h-[80svh]" />;
-  if (s.persona === "signed-out") return <SignedOutNote returnTo="/account" />;
+  if (s.persona === "signed-out")
+    return <SignInFirst title="Sign in to see your account." lead="Your access, memberships and plans live here." returnTo="/account" verb="continue" />;
 
-  const access: { icon: AnyIcon; t: string; d: string; on: boolean; href?: string; cta?: string }[] = [
-    { icon: "access", t: "Building access", d: `${currentMember.company} · ${currentMember.floor}. Rooms, events and the concierge.`, on: true },
-    ...(fitness
+  const member = isMember(s.persona);
+  // Building access reads as it stands: active for members, waiting while verified, or one step away for public accounts
+  const buildingAccess = member
+    ? { icon: "access" as const, t: "Building access", d: `${currentMember.company} · ${currentMember.floor}. Rooms, events and the concierge.`, on: true }
+    : s.persona === "verifying"
+      ? {
+          icon: "access" as const,
+          t: "Building access",
+          d: `${s.account?.work ?? "Your work email"} is being verified. It usually takes a few minutes.`,
+          on: false,
+          status: "Pending",
+        }
+      : {
+          icon: "access" as const,
+          t: "Building access",
+          d: `Work in ${copy.the}? Verify your work email for rooms, classes and events.`,
+          on: false,
+          href: gateHref("/account"),
+          cta: "Verify",
+        };
+  const access: { icon: AnyIcon; t: string; d: string; on: boolean; status?: string; href?: string; cta?: string }[] = [
+    buildingAccess,
+    ...(fitness && member
       ? [
           {
             icon: "fitness" as const,
@@ -60,10 +70,12 @@ export function Account() {
             <h1 className="t-h1 mt-6">
               {currentMember.first} {currentMember.last}
             </h1>
-            <p className="t-body mt-2 text-stone">{currentMember.email}</p>
-            <p className="t-body text-stone">
-              {currentMember.company} · {currentMember.floor}
-            </p>
+            <p className="t-body mt-2 text-stone">{s.account?.primary ?? currentMember.email}</p>
+            {member && (
+              <p className="t-body text-stone">
+                {currentMember.company} · {currentMember.floor}
+              </p>
+            )}
             <div className="mt-8 flex flex-wrap gap-2">
               <ButtonLink href="/plans" iconLeft="plans">
                 Your plans
@@ -94,7 +106,7 @@ export function Account() {
                           Active
                         </Pill>
                       ) : (
-                        <Pill>Not active</Pill>
+                        <Pill tone={a.status ? "hold" : undefined}>{a.status ?? "Not active"}</Pill>
                       )}
                     </div>
                     <p className="t-small mt-0.5 text-stone">{a.d}</p>
@@ -152,15 +164,22 @@ export function MembershipFlow() {
   const hydrated = useHydrated();
   const router = useRouter();
   const params = useSearchParams();
-  const raw = params.get("returnTo") ?? "/fitness";
-  const returnTo = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/fitness";
+  const returnTo = safeReturn(params.get("returnTo"), "/fitness");
   const [stage, setStage] = useState<"idle" | "working" | "done">("idle");
   const [billing, setBilling] = useState<"company" | "card">("company");
   const { member: currentMember, fitness } = useTenant();
   const membership = fitness!.membership;
 
   if (!hydrated) return <div className="min-h-[80svh]" />;
-  if (!isMember(s.persona)) return <SignedOutNote returnTo={`/account/membership?returnTo=${encodeURIComponent(returnTo)}`} />;
+  if (!isMember(s.persona))
+    return (
+      <SignInFirst
+        title="Sign in to start your membership."
+        lead={`${membership.name}: ${membership.price}, for people who work in the building.`}
+        returnTo={`/account/membership?returnTo=${encodeURIComponent(returnTo)}`}
+        verb="continue"
+      />
+    );
 
   const start = async () => {
     setStage("working");

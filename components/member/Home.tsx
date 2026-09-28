@@ -122,7 +122,7 @@ function PublicAccount() {
         }
         actions={
           <>
-            <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="light" size="lg" icon="arrow-right">
+            <ButtonLink href={gateHref("/home")} variant="light" size="lg" icon="arrow-right">
               Verify your work email
             </ButtonLink>
             <ButtonLink href="/venues/inquire" variant="glass" size="lg">
@@ -158,7 +158,7 @@ function Verifying() {
               The building team is checking {domain ? <span className="text-moon">{domain}</span> : "your work email"} for {copy.the}. It usually takes a
               working day, and we&apos;ll email you.
             </p>
-            <Link href="/sign-in?returnTo=%2Fhome" className="group/l mt-4 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
+            <Link href={gateHref("/home")} className="group/l mt-4 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
               See the status <Icon name="arrow-right" size={16} className="transition-transform group-hover/l:translate-x-0.5" />
             </Link>
           </HeroCard>

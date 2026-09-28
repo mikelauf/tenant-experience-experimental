@@ -8,7 +8,8 @@ import { eventTypes, guestsShort } from "@/lib/data/shared";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { Avatar } from "@/components/ui/Avatar";
-import { at, addMin } from "@/lib/time";
+import { at, addMin, dayKey, onDay } from "@/lib/time";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
 import { LineReveal, Reveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
@@ -27,7 +28,8 @@ export function PlanEvent() {
   const [v, setV] = useState({ venue: "unsure", date: "", guests: "", type: "", note: "" });
   const [err, setErr] = useState("");
   const [sent, setSent] = useState(false);
-  const signedOut = hydrated && s.persona === "signed-out";
+  // Planning through the building is for members; everyone else gets the right next step (a placeholder until the store loads)
+  const member = hydrated && isMember(s.persona);
 
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +39,7 @@ export function PlanEvent() {
     }
     setErr("");
     const venueName = venues.find((x) => x.slug === v.venue)?.name ?? "Venue to be suggested";
-    const start = v.date ? new Date(`${v.date}T17:00`).toISOString() : at(21, 17 * 60);
+    const start = v.date ? onDay(`${v.date}T12:00:00Z`, 17 * 60) : at(21, 17 * 60);
     actions.add(
       {
         kind: "inquiry",
@@ -151,19 +153,45 @@ export function PlanEvent() {
                   </button>
                 </div>
               </motion.div>
-            ) : signedOut ? (
+            ) : !hydrated ? (
+              <div className="min-h-[420px]" aria-busy="true" />
+            ) : !member ? (
               <div>
-                <p className="t-h2">Sign in to start planning</p>
-                <p className="t-body mt-2 text-stone">We&apos;ll fill in your company and contact details for you.</p>
-                <ButtonLink href="/sign-in?returnTo=%2Fspaces%2Fplan-an-event" className="mt-6" icon="arrow-right">
-                  Sign in
-                </ButtonLink>
+                <p className="t-h2">
+                  {s.persona === "verifying"
+                    ? "Your building access is being verified"
+                    : s.persona === "public"
+                      ? "Planning for the building?"
+                      : "Sign in to start planning"}
+                </p>
+                <p className="t-body mt-2 text-stone">
+                  {s.persona === "public"
+                    ? "Planning through the events team here is for people who work in the building. Anyone can use the public inquiry."
+                    : "We'll fill in your company and contact details for you."}
+                </p>
+                {s.persona === "public" ? (
+                  <ButtonLink href="/venues/inquire" className="mt-6" icon="arrow-right">
+                    Start a public inquiry
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={gateHref("/spaces/plan-an-event")} className="mt-6" icon="arrow-right">
+                    {s.persona === "verifying" ? "See the status" : "Sign in"}
+                  </ButtonLink>
+                )}
                 <p className="t-small mt-6 text-stone">
-                  Not in the building?{" "}
-                  <Link href="/venues/inquire" className="underline underline-offset-4">
-                    Use the public inquiry form
-                  </Link>
-                  .
+                  {s.persona === "public" ? (
+                    <Link href={gateHref("/spaces/plan-an-event")} className="underline underline-offset-4">
+                      {gateLabel(s.persona, "plan")} instead
+                    </Link>
+                  ) : (
+                    <>
+                      Not in the building?{" "}
+                      <Link href="/venues/inquire" className="underline underline-offset-4">
+                        Use the public inquiry form
+                      </Link>
+                      .
+                    </>
+                  )}
                 </p>
               </div>
             ) : (
@@ -186,7 +214,7 @@ export function PlanEvent() {
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-[0.9375rem] font-medium">Date</span>
-                    <input type="date" className="field" value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
+                    <input type="date" className="field" min={dayKey(new Date())} value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} />
                   </label>
                   <label className="block">
                     <span className="mb-2 block text-[0.9375rem] font-medium">Guests</span>

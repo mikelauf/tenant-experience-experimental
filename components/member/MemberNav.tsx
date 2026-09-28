@@ -1,5 +1,6 @@
 "use client";
 
+import { gateHref } from "@/lib/access";
 import { motion, useAnimationControls } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -148,7 +149,7 @@ export function MemberTopNav() {
             </Link>
           ) : (
             <Link
-              href={`/sign-in?returnTo=${encodeURIComponent(path)}`}
+              href={gateHref(path)}
               className={cn("inline-flex h-10 items-center rounded-full px-4 text-[0.9375rem] font-medium", over ? "bg-white text-ink" : "bg-ink text-paper")}
             >
               Sign in
