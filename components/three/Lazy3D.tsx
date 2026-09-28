@@ -21,7 +21,8 @@ const hasWebGLCached = () => (webgl ??= hasWebGL());
  * only while visible, and shows a poster for reduced motion / no WebGL / loading.
  *
  * `eager` scenes mount as soon as the page is idle instead, so they're drawn before anyone scrolls to
- * them. Phones skip the idle load to spare their GPU and memory, and mount about a screen and a half
+ * them; a number waits that many ms first, so several eager scenes on one page don't all start together.
+ * Phones skip the idle load to spare their GPU and memory, and mount about a screen and a half
  * early instead. `placeholder` replaces the poster while loading (the poster stays the no-3D fallback).
  */
 export function Lazy3D({
@@ -34,7 +35,7 @@ export function Lazy3D({
   className?: string;
   poster: React.ReactNode;
   placeholder?: React.ReactNode;
-  eager?: boolean;
+  eager?: boolean | number;
   children: (s: { active: boolean; onReady: () => void }) => React.ReactNode;
 }) {
   const reduce = useReducedMotion();
@@ -53,12 +54,16 @@ export function Lazy3D({
       io.observe(el);
       return () => io.disconnect();
     }
-    if (typeof requestIdleCallback === "undefined") {
-      const t = setTimeout(() => setIdle(true), 200);
-      return () => clearTimeout(t);
-    }
-    const h = requestIdleCallback(() => setIdle(true), { timeout: 1500 });
-    return () => cancelIdleCallback(h);
+    const wait = typeof eager === "number" ? eager : 0;
+    let h = 0;
+    const t = setTimeout(() => {
+      if (typeof requestIdleCallback === "undefined") setIdle(true);
+      else h = requestIdleCallback(() => setIdle(true), { timeout: 1500 });
+    }, wait || 200);
+    return () => {
+      clearTimeout(t);
+      if (h) cancelIdleCallback(h);
+    };
   }, [eager]);
 
   useEffect(() => {

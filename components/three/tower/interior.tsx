@@ -13,7 +13,7 @@ export const PLATE = 0.12;
 /** Interiors stand a little taller than true scale, so a floor reads from outside the building */
 const TALL = 1.6;
 
-const TONE: Record<InteriorPiece["tone"], { color: string; opacity?: number; rough?: number; metal?: number }> = {
+export const TONE: Record<InteriorPiece["tone"], { color: string; opacity?: number; rough?: number; metal?: number }> = {
   wall: { color: "#ebe6de", rough: 0.9 },
   glass: { color: "#cfe3ea", opacity: 0.3, rough: 0.1, metal: 0.1 },
   wood: { color: "#a9794b", rough: 0.7 },

@@ -124,7 +124,7 @@ const sandbox: VenueLayout = {
     fixed: {
       bars: [sx.r(270, 132, 326, 152, "Bar"), sx.r(662, 136, 718, 156, "Bar")],
       screen: sx.seg(210, 318, 585, 318),
-      marks: [{ ...sx.r(100, 600, 340, 890, "Catering area"), note: "Where catering sets up, beside the kitchen." }, { ...sx.r(662, 305, 718, 325, "Check-in"), note: "Guest check-in, from the building's cocktail plan." }, sx.r(835, 385, 855, 585, "Buffet")],
+      marks: [{ ...sx.r(100, 600, 340, 890, "Catering area"), event: true, note: "Where catering sets up, beside the kitchen." }, { ...sx.r(662, 305, 718, 325, "Check-in"), event: true, note: "Guest check-in, from the building's cocktail plan." }, { ...sx.r(835, 385, 855, 585, "Buffet"), event: true }],
     },
     streets,
     finish: "concrete",
@@ -140,7 +140,7 @@ const sandbox: VenueLayout = {
 /* ---------- Redwood Park, street level (redwood-park.webp, 1517 × 1048). The park east of the tower. ~18,000 sq ft ---------- */
 
 const rp = tracer(0.075, 1100, 520);
-const stage = { ...rp.r(975, 515, 1075, 590, "Stage"), always: true };
+const stage = { ...rp.r(975, 515, 1075, 590, "Stage"), always: true, event: true };
 const kiosk = { ...rp.r(1035, 170, 1110, 212, "Kiosk bar"), always: true };
 /** The plan doesn't draw the fountain. Placed from the photos: east of the stage, with the Pyramid's base across the grove behind it. */
 const fountain = { ...rp.r(1095, 505, 1145, 550, "Fountain"), note: "The fountain and its bronze animals, under the redwoods." };
@@ -182,7 +182,7 @@ const redwoodPark: VenueLayout = {
     fixed: {
       stage,
       bars: [kiosk],
-      marks: [fountain, { ...rp.r(1392, 500, 1412, 540, "Check-in"), note: "Guest check-in for park events, off Mark Twain Alley by Sansome Street." }, { ...rp.r(1285, 64, 1410, 92, "Food trucks"), note: "Food trucks park along Washington Street." }, { ...rp.r(980, 64, 1190, 92, "Restrooms"), note: "Portable restrooms along Washington Street." }],
+      marks: [fountain, { ...rp.r(1392, 500, 1412, 540, "Check-in"), event: true, note: "Guest check-in for park events, off Mark Twain Alley by Sansome Street." }, { ...rp.r(1285, 64, 1410, 92, "Food trucks"), event: true, note: "Food trucks park along Washington Street." }, { ...rp.r(980, 64, 1190, 92, "Restrooms"), event: true, note: "Portable restrooms along Washington Street." }],
       trees: redwoods,
     },
     streets: { n: "Washington St", s: "Clay St", w: "Transamerica Pyramid", e: "Sansome St" },

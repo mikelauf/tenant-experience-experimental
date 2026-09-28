@@ -10,12 +10,14 @@ import { venues } from "./venues";
  */
 
 const hero = (slug: string) => venues.find((v) => v.slug === slug)?.hero;
+const gallery = (slug: string, n: number) => venues.find((v) => v.slug === slug)?.gallery?.slice(0, n);
 
 const PRESS = "Time Out SF and Haute Living, 2024–25";
 
 export const amenities: Amenity[] = [
   {
     id: "wellness",
+    spotlight: 2,
     name: "The wellness center",
     group: "move",
     level: 26,
@@ -32,6 +34,7 @@ export const amenities: Amenity[] = [
   },
   {
     id: "sky-lounge",
+    spotlight: 1,
     name: "Sky Lounge",
     group: "work",
     level: 27,
@@ -46,6 +49,8 @@ export const amenities: Amenity[] = [
   },
   {
     id: "meeting-rooms",
+    spotlight: 3,
+    gallery: [images.huddle, images.montgomeryHall],
     name: "Meeting rooms",
     group: "meet",
     level: 6,
@@ -74,6 +79,8 @@ export const amenities: Amenity[] = [
   },
   {
     id: "sky-bar",
+    spotlight: 4,
+    venue: "sky-bar",
     name: "Sky Bar",
     group: "gather",
     level: 48,
@@ -86,6 +93,8 @@ export const amenities: Amenity[] = [
   },
   {
     id: "lobby",
+    spotlight: 5,
+    gallery: [images.lobbyDesk, images.lobbyLounge],
     name: "Lobby coffee bar",
     group: "eat",
     level: 1,
@@ -110,6 +119,9 @@ export const amenities: Amenity[] = [
   },
   {
     id: "park",
+    spotlight: 6,
+    venue: "redwood-park",
+    gallery: gallery("redwood-park", 3)?.slice(1),
     name: "Transamerica Redwood Park",
     group: "gather",
     level: 0,

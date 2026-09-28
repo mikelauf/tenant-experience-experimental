@@ -51,13 +51,44 @@ export type InteriorPiece = {
   h: number;
   tone: "wall" | "glass" | "wood" | "dark" | "metal" | "soft" | "green" | "mat" | "warm";
   round?: boolean;
+  /** What it is, so the room view can draw the real thing; without one it's drawn as a block */
+  kind?: PropKind;
+  /** Which way it faces, radians about the vertical (0 faces −z, the north windows) */
+  rot?: number;
+  /** Length in meters, for pieces that come in runs (counters, banquettes, mirrors, desks) */
+  len?: number;
 };
+
+export type PropKind =
+  | "treadmill"
+  | "bike"
+  | "rower"
+  | "rack"
+  | "bench"
+  | "dumbbells"
+  | "mat"
+  | "mirror"
+  | "podium"
+  | "sauna"
+  | "steam"
+  | "locker"
+  | "counter"
+  | "espresso"
+  | "stool"
+  | "banquette"
+  | "armchair"
+  | "cafe-table"
+  | "desk"
+  | "chair"
+  | "plant";
 
 /** A floor, opened up: its finish, its pieces, and the places worth naming */
 export type Interior = {
   floor: "wood" | "stone" | "rubber";
   pieces: InteriorPiece[];
-  labels: { x: number; z: number; text: string }[];
+  labels: { x: number; z: number; text: string; note?: string }[];
+  /** The plate's size in meters, roughly, for the room view */
+  plate: { w: number; d: number };
   /** Where the plan came from, said wherever it's shown */
   note: string;
 };
@@ -78,8 +109,14 @@ export type Amenity = {
   /** The next step: a member page, a venue, or the concierge */
   href?: string;
   cta?: string;
-  /** The floor opened up in the tower, when there's a plan (even an illustrative one) */
+  /** The floor opened up as a room in 3D, when there's a plan (even an illustrative one) */
   inside?: Interior;
+  /** A venue whose traced floor plan shows this place in 3D, when there's no `inside` */
+  venue?: string;
+  /** More photos of it, for its spotlight on the Home */
+  gallery?: Img[];
+  /** Its place in the Home's floor-by-floor spotlights; left out, it isn't spotlighted */
+  spotlight?: number;
   /** False until the building confirms it; unconfirmed facts are listed in docs/member-experience.md */
   confirmed: boolean;
   source: string;
@@ -101,7 +138,7 @@ export type Feature = { icon: IconName; label: string; detail?: string };
 export type Plate = { w: number; d: number; windows: "north" | "east" | "wrap" | "none"; outdoor?: boolean };
 
 /** An axis-aligned rectangle in meters: center and size. */
-export type Rect = { x: number; z: number; w: number; d: number; label?: string; /** A line about it, shown when its label is tapped in 3D */ note?: string };
+export type Rect = { x: number; z: number; w: number; d: number; label?: string; /** A line about it, shown when its label is tapped in 3D */ note?: string; /** Only there for events (check-in, catering, food trucks), so an everyday view leaves its label off */ event?: boolean };
 /** A line segment in meters: x0, z0, x1, z1 */
 export type Seg = [number, number, number, number];
 
@@ -231,6 +268,8 @@ export type Venue = {
 export type Room = {
   slug: string;
   name: string;
+  /** What it's best for, as a few words that finish "a room for…", e.g. "one-on-ones" */
+  use?: string;
   level: number;
   capacity: number;
   setups: Setup[];

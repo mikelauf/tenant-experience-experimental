@@ -17,7 +17,7 @@ The public venue site is in good shape. This doc covers the next surface, the si
 
 | State | Who | Home leads with |
 |---|---|---|
-| Signed out | A tenant employee browsing | The tower, what's on each floor, access labels, "Verify your work email" |
+| Signed out | A tenant employee browsing | Hero with "Sign in with your work email"; "Sign in, and it's yours" (real rooms, the next class, an event, planning, each signing in and returning to the task); the floor-by-floor spotlights with a sign-in button on each; this week, with "Sign in to RSVP"; a closing sign-in band. No "What you can use" (it repeated the spotlights). A link to /venues for anyone planning an event |
 | Verifying | Signed in, work email under review | The same discovery, an "access being verified" banner, public offerings usable |
 | New | Verified, no first action yet | Your first week (Wayfinder #307 measures a first action in 30 days) |
 | Returning | Has activity | Up next, today in the building, book again |
@@ -30,19 +30,20 @@ _Last updated: 2026-09-27._
 - [x] 1. Real amenity content: `amenities` on every tenant (`lib/tenants/pyramid/amenities.ts`). Fitness moves to L26. The Foster and Pereira rooms (names and capacities from Core staging) replace Washington. The demo's storage key moves to v2.
 - [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
 - [x] 3. Building Home rewrite (`components/member/home/`).
-  - **Hero (`DayHero`), revised 2026-09-27 per Mike: the 3D was too much up top.** A full-bleed photo follows the building's day: the lobby coffee bar in the morning, L26 at midday, L27 at golden hour, Sky Bar after dark, the park on weekends. It's picked by SF's clock and the real sun (`copy.day`, `lib/useBuildingDay.ts`).
+  - **Hero (`DayHero`), revised 2026-09-27 per Mike: the 3D was too much up top.** A full-bleed photo follows the building's day: the lobby coffee bar in the morning, L26 at midday, L27 at golden hour, Sky Bar after dark, the park on weekends. It opens on the scene picked by SF's clock and the real sun (`copy.day`, `lib/useBuildingDay.ts`), then cycles through the others every 7 s with a slow drift, with a clickable progress line naming each place. The "Right now" strip is gone (2026-09-27).
   - **"Right now" line:** the next class with room, what's on today, and sunset.
   - **Your card:** members get theirs in front of the hero (up next, a first step, verification status, or the Activity Center).
-  - **Inside the building (`InsideTheBuilding`), further down:** a line drawing of the tower is the floor list, sharing its geometry with `TowerLocator` (`lib/elevation.ts`). The 3D tower sits beside it and loads as you scroll near. Picking a floor flies there; L26 and L27 open up.
-  - **What you can use (`WhatYouCanUse`)** is grouped by Move, Work, Meet, Gather and Eat.
+  - **Inside the building (`InsideTheBuilding`), further down, revised 2026-09-27 per Mike: spotlights, not a picker.** One row per place, the words and the place trading sides as you scroll, in the order of each amenity's `spotlight`. It runs Sky Lounge (3D room), wellness center (3D room), meeting rooms (photos), Sky Bar (3D, from its venue plan), lobby coffee bar (photos), then Redwood Park (3D, from its venue plan). 3D rows put a photo of the real room in the text column. The rooms come from `components/three/room/RoomCanvas.tsx` with the real kit (`props.ts`); Sky Bar and the park reuse the venue `SetupCanvas` at an everyday headcount.
+  - **What you can use (`WhatYouCanUse`)** is grouped by Move, Work, Meet, Gather and Eat. The tabs follow the scroll. The tower line drawing sits at the bottom of the sticky column, with the group's floors lit.
 - [ ] 4. 3D, in order:
-  - [x] open the floor: pick L26 or L27 on the Home. The floors above lift seven floors, the slab thins to a plate, and an illustrative interior grows on it with its areas named (`lib/tenants/pyramid/interiors.ts`, `components/three/tower/interior.tsx`, `open` on `TowerCanvas`). The camera looks down into it. Phones hide the labels.
+  - [x] ~~open the floor~~ (replaced 2026-09-27 by the standalone rooms above; the tower code stays but is unused): pick L26 or L27 on the Home. The floors above lift seven floors, the slab thins to a plate, and an illustrative interior grows on it with its areas named (`lib/tenants/pyramid/interiors.ts`, `components/three/tower/interior.tsx`, `open` on `TowerCanvas`). The camera looks down into it. Phones hide the labels.
   - pick your bike
   - getting there
   - your floor, your view
   - your day in the Pyramid
   - inside the Pyramid
 - [ ] 5. Service pages up to public quality: fitness, spaces, programming, Activity, account, `NotHere`
+  - [x] Before building access (2026-09-28): Spaces lists rooms with "Free now / Free from 2pm" and their next open times, which open the room with that time picked (the Free/Booked/Yours bars and filters are gone; weekends aren't offered). The room's booking card is three steps (day, start, length), then "Sign in to book this", which returns to the review. Fitness trims to Coming up, class types and one "Also in" row; Events hides the company filter until you're a member and uses an even grid. Each ends with `SignInStrip`.
 - [ ] 6. Fitness-only configuration: nav profiles and a demo toggle
 
 Checkpoint with Mike after 1–3 and "open the floor".

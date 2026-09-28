@@ -10,6 +10,7 @@ import { shellBounds } from "@/lib/setup/shell";
 import { useOrbit } from "../useOrbit";
 import { fitRadius, focusFrame, frameFor, outward, type Box, type Lookout, type Preset } from "./camera";
 import { Canopy, Decor } from "./decor";
+import { finishTexture } from "./finish";
 import { chairGeometry, coffeeGeometry, highGeometry, personGeometry, roundGeometry, sofaGeometry } from "./furniture";
 import { MAX_FIGURES, makeLayout, type P } from "./layouts";
 
@@ -239,147 +240,6 @@ function Block({ r, h, color, y = 0 }: { r: Rect; h: number; color: string; y?: 
 const sameSeg = (a: Seg, b: Seg) =>
   (a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3]) || (a[0] === b[2] && a[1] === b[3] && a[2] === b[0] && a[3] === b[1]);
 
-/**
- * A floor finish drawn once into a canvas and tiled by the meter: oak planks for Sky Bar, walnut
- * herringbone for Bay Lounge, wide pale ash boards for Legacy Gallery, polished concrete for The Sandbox,
- * grass for the park. Subtle on purpose.
- */
-function finishTexture(finish: Shell["finish"]) {
-  const size = 512;
-  const c = document.createElement("canvas");
-  c.width = c.height = size;
-  const g = c.getContext("2d")!;
-  let seed = 3;
-  const r = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  let tile = 4; // meters the canvas covers
-  if (finish === "oak") {
-    tile = 3.6;
-    const rows = 20;
-    const h = size / rows;
-    for (let y = 0; y < rows; y++) {
-      let x = -r() * 200;
-      while (x < size) {
-        const w = 120 + r() * 160;
-        const l = 70 + r() * 9;
-        g.fillStyle = `hsl(32 ${30 + r() * 8}% ${l}%)`;
-        g.fillRect(x, y * h, w, h);
-        g.fillStyle = "rgba(90,60,30,0.18)";
-        g.fillRect(x, y * h, 1.5, h);
-        x += w;
-      }
-      g.fillStyle = "rgba(90,60,30,0.16)";
-      g.fillRect(0, y * h, size, 1);
-    }
-  } else if (finish === "walnut") {
-    // Herringbone: a staircase of planks (4 × 1 units) that repeats every 8 units, turned 45° so the zigzag runs east–west
-    tile = 1.4;
-    const u = size / 8;
-    const plank = (x: number, y: number, w: number, h: number) => {
-      const l = 55 + r() * 10;
-      for (const dx of [-size, 0, size])
-        for (const dy of [-size, 0, size]) {
-          g.fillStyle = `hsl(28 ${20 + r() * 7}% ${l}%)`;
-          g.fillRect(x * u + dx, y * u + dy, w * u, h * u);
-          g.fillStyle = "rgba(50,28,12,0.07)";
-          for (let k = 0; k < 3; k++) {
-            if (w > h) g.fillRect(x * u + dx, (y + 0.2 + k * 0.28) * u + dy, w * u, 1);
-            else g.fillRect((x + 0.2 + k * 0.28) * u + dx, y * u + dy, 1, h * u);
-          }
-          g.strokeStyle = "rgba(45,25,10,0.22)";
-          g.lineWidth = 1.5;
-          g.strokeRect(x * u + dx, y * u + dy, w * u, h * u);
-        }
-    };
-    for (let row = -3; row <= 3; row++)
-      for (let n = -4; n < 12; n++) {
-        plank(n + row * 4, n - row * 4, 4, 1);
-        plank(n + row * 4, n + 1 - row * 4, 1, 4);
-      }
-  } else if (finish === "ash") {
-    // Wide, long, pale boards, as a gallery floor
-    tile = 6;
-    const rows = 16;
-    const h = size / rows;
-    for (let y = 0; y < rows; y++) {
-      let x = -r() * 300;
-      while (x < size) {
-        const w = 220 + r() * 200;
-        g.fillStyle = `hsl(35 ${26 + r() * 8}% ${73 + r() * 7}%)`;
-        g.fillRect(x, y * h, w, h);
-        g.fillStyle = "rgba(120,90,55,0.08)";
-        for (let k = 0; k < 4; k++) g.fillRect(x, y * h + 4 + r() * (h - 8), w, 1);
-        g.fillStyle = "rgba(100,72,42,0.26)";
-        g.fillRect(x, y * h, 1.5, h);
-        x += w;
-      }
-      g.fillStyle = "rgba(100,72,42,0.22)";
-      g.fillRect(0, y * h, size, 1.5);
-    }
-  } else if (finish === "concrete") {
-    // Troweled concrete: soft clouding, fine aggregate, and saw cuts every three meters
-    tile = 6;
-    g.fillStyle = "#d1ccc3";
-    g.fillRect(0, 0, size, size);
-    for (let i = 0; i < 60; i++) {
-      const x = r() * size;
-      const y = r() * size;
-      const rad = 40 + r() * 110;
-      const dark = r() < 0.5;
-      for (const dx of [-size, 0, size])
-        for (const dy of [-size, 0, size]) {
-          const grd = g.createRadialGradient(x + dx, y + dy, 0, x + dx, y + dy, rad);
-          grd.addColorStop(0, dark ? "rgba(90,80,70,0.07)" : "rgba(255,255,255,0.09)");
-          grd.addColorStop(1, "rgba(0,0,0,0)");
-          g.fillStyle = grd;
-          g.fillRect(x + dx - rad, y + dy - rad, rad * 2, rad * 2);
-        }
-    }
-    for (let i = 0; i < 16000; i++) {
-      g.fillStyle = `rgba(${r() < 0.5 ? "255,255,255" : "70,62,55"},${0.03 + r() * 0.05})`;
-      g.fillRect(r() * size, r() * size, 1.5, 1.5);
-    }
-    g.fillStyle = "rgba(70,60,50,0.22)";
-    for (const k of [0, size / 2]) {
-      g.fillRect(k, 0, 1.5, size);
-      g.fillRect(0, k, size, 1.5);
-    }
-  } else if (finish === "grass") {
-    tile = 6;
-    g.fillStyle = "#b7c2a3";
-    g.fillRect(0, 0, size, size);
-    for (let i = 0; i < 9000; i++) {
-      g.fillStyle = `hsl(${80 + r() * 20} ${18 + r() * 14}% ${55 + r() * 18}% / 0.5)`;
-      g.fillRect(r() * size, r() * size, 2, 2 + r() * 3);
-    }
-  } else {
-    tile = 2.4;
-    g.fillStyle = "#e4dac8";
-    g.fillRect(0, 0, size, size);
-    for (let i = 0; i < 14000; i++) {
-      g.fillStyle = `rgba(${r() < 0.5 ? "255,255,255" : "80,70,60"},${0.02 + r() * 0.04})`;
-      g.fillRect(r() * size, r() * size, 2, 2);
-    }
-    g.strokeStyle = "rgba(120,100,75,0.24)";
-    g.lineWidth = 2;
-    const n = 2;
-    for (let i = 0; i <= n; i++) {
-      g.beginPath();
-      g.moveTo((i * size) / n, 0);
-      g.lineTo((i * size) / n, size);
-      g.moveTo(0, (i * size) / n);
-      g.lineTo(size, (i * size) / n);
-      g.stroke();
-    }
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.repeat.set(1 / tile, 1 / tile);
-  if (finish === "walnut") t.rotation = Math.PI / 4;
-  t.colorSpace = THREE.SRGBColorSpace;
-  t.anisotropy = 4;
-  return t;
-}
-
 /** The room itself: floor, walls and windows that clear out of the way, cores, rooms, neighbours and trees. */
 function Room({ shell, view }: { shell: Shell; view: ViewRef }) {
   const { outline, glass, solids, rooms = [], context = [], fixed = {}, outdoor } = shell;
@@ -536,19 +396,21 @@ function Toggle({ r, h, on, color, counter }: { r: Rect; h: number; on: boolean;
 type Tag = { at: [number, number, number]; text: string; tone: "chip" | "street"; hidden?: boolean; note?: string };
 
 /** Everything worth naming in the room: cores, rooms, marks, neighbours, bars, the stage and (in overview) the streets. */
-function tagsFor(shell: Shell, bar: boolean, stage: boolean, streets: boolean): Tag[] {
+function tagsFor(shell: Shell, bar: boolean, stage: boolean, streets: boolean, everyday?: boolean): Tag[] {
   const { solids, rooms = [], context = [], fixed = {}, streets: st, outdoor } = shell;
+  // An everyday view names what's always there, not what an event brings in
+  const keep = (r: Rect) => !(everyday && r.event);
   const b = shellBounds(shell);
   const pad = outdoor ? 3 : 1.4;
   const chip = (r: Rect, y: number, hidden?: boolean): Tag => ({ at: [r.x, y, r.z], text: r.label!, tone: "chip", hidden, note: r.note });
   const street = (at: [number, number, number], text?: string): Tag[] => (text ? [{ at, text, tone: "street", hidden: !streets }] : []);
   return [
-    ...[...solids, ...(fixed.marks ?? [])].filter((r) => r.label).map((r) => chip(r, 0.7)),
+    ...[...solids, ...(fixed.marks ?? [])].filter((r) => r.label && keep(r)).map((r) => chip(r, 0.7)),
     // Rooms are named at their north wall so the label never sits on the furniture inside
     ...rooms.filter((r) => r.label).map((r) => chip({ ...r, z: r.z - r.d / 2 + 0.7 }, 1)),
     ...context.filter((r) => r.label).map((r) => chip(r, r.h + 0.5)),
     ...(fixed.bars ?? []).filter((r) => r.label).map((r) => chip(r, 1.4, !(r.always || bar))),
-    ...(fixed.stage ? [chip({ ...fixed.stage, label: fixed.stage.label ?? "Stage" }, 1, !stage)] : []),
+    ...(fixed.stage && keep(fixed.stage) ? [chip({ ...fixed.stage, label: fixed.stage.label ?? "Stage" }, 1, !stage)] : []),
     ...street([b.cx, 0, b.z0 - pad], st?.n),
     ...street([b.cx, 0, b.z1 + pad], st?.s),
     ...street([b.x1 + pad, 0, b.cz], st?.e),
@@ -723,6 +585,7 @@ export default function SetupCanvas({
   onInteract,
   look,
   onLook,
+  everyday,
 }: {
   shell: Shell;
   spec: SetupSpec;
@@ -737,6 +600,8 @@ export default function SetupCanvas({
   look?: Lookout | null;
   /** The camera reached the window */
   onLook?: () => void;
+  /** The room on an ordinary day (the member Home): event-only labels like check-in and food trucks stay off */
+  everyday?: boolean;
 }) {
   const layout = useMemo(() => makeLayout(setup, guests, shell, spec), [setup, guests, shell, spec]);
 
@@ -775,7 +640,7 @@ export default function SetupCanvas({
   // Crowds drawn one figure per several guests read better a little larger
   const figure = layout.per > 1 ? 1.25 : 1;
 
-  const tags = useMemo(() => (labels ? tagsFor(shell, layout.bar, layout.stage, preset === "overview") : []), [labels, shell, layout.bar, layout.stage, preset]);
+  const tags = useMemo(() => (labels ? tagsFor(shell, layout.bar, layout.stage, preset === "overview", everyday) : []), [labels, shell, layout.bar, layout.stage, preset, everyday]);
   const els = useRef<(HTMLElement | null)[]>([]);
   const focused = focus != null ? tags[focus] : undefined;
   const frame = useMemo(() => (focused ? focusFrame(shell, [focused.at[0], focused.at[2]]) : framed), [focused, shell, framed]);
@@ -792,7 +657,8 @@ export default function SetupCanvas({
       <Canvas
         shadows
         dpr={[1, 2]}
-        frameloop={active ? "always" : "never"}
+        // Off screen it still draws its first frame (and on changes), so shaders and light are ready before it's seen
+        frameloop={active ? "always" : "demand"}
         gl={{ antialias: true, alpha: true }}
         // Layout size, not the transformed box (Lazy3D scales scenes in from 97%)
         resize={{ offsetSize: true }}
