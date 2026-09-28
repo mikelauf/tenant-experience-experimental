@@ -21,43 +21,44 @@ export async function Footer() {
 
   return (
     <footer data-noprint className="theme-night relative overflow-hidden">
-      <div className="frame grid-12 gap-y-12 pb-10 pt-20 lg:pt-28">
-        <div className="col-span-12 lg:col-span-5">
-          <Mark size={40} className="text-moon" />
-          <p className="t-h2 mt-8 max-w-[18ch]">Tell us about your event. We&apos;ll take it from there.</p>
-        </div>
-        {contact && (
-          <div className="col-span-6 lg:col-span-3 lg:col-start-7">
-            <p className="t-meta mb-4">{contact.title}</p>
+      <div className="relative">
+        <div className="frame grid-12 gap-y-12 pb-10 pt-20 lg:pt-28">
+          <div className="col-span-12 lg:col-span-5">
+            <Mark size={40} className="text-moon" />
+          </div>
+          {contact && (
+            <div className="col-span-6 lg:col-span-3 lg:col-start-7">
+              <p className="t-meta mb-4">{contact.title}</p>
+              <ul className="t-body space-y-1.5">
+                {contact.lines.map((l, i) => (
+                  <li key={l} className={i === 2 ? "text-moon-2" : undefined}>
+                    {l}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <nav className={`col-span-6 lg:col-span-3 ${contact ? "" : "lg:col-start-10"}`} aria-label="Footer">
+            <p className="t-meta mb-4">Explore</p>
             <ul className="t-body space-y-1.5">
-              {contact.lines.map((l, i) => (
-                <li key={l} className={i === 2 ? "text-moon-2" : undefined}>
-                  {l}
+              {links.map((l) => (
+                <li key={l.href}>
+                  <Link href={l.href} className="transition-colors hover:text-white">
+                    {l.label}
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-        <nav className={`col-span-6 lg:col-span-3 ${contact ? "" : "lg:col-start-10"}`} aria-label="Footer">
-          <p className="t-meta mb-4">Explore</p>
-          <ul className="t-body space-y-1.5">
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link href={l.href} className="transition-colors hover:text-white">
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </div>
-      <div className="frame overflow-hidden pb-[0.12em] text-[clamp(3.5rem,14.5vw,15rem)]">
-        {/* Pure decoration, drawn from CSS content so it isn't read out or held to text contrast */}
-        <p
-          aria-hidden
-          data-text={copy.The}
-          className="t-mega select-none whitespace-nowrap text-[length:inherit] leading-[0.9] text-night-3 before:content-[attr(data-text)]"
-        />
+          </nav>
+        </div>
+        <div className={`frame overflow-hidden pb-[0.12em] text-[clamp(3.5rem,14.5vw,15rem)] lg:absolute lg:bottom-10 lg:left-0 lg:pb-[0.15em] ${contact ? "lg:w-1/2 lg:text-[clamp(3.5rem,8vw,9rem)]" : "lg:w-3/4"}`}>
+          {/* Pure decoration, drawn from CSS content so it isn't read out or held to text contrast */}
+          <p
+            aria-hidden
+            data-text={copy.The}
+            className="t-mega select-none whitespace-nowrap text-[length:inherit] leading-[0.9] text-night-3 before:content-[attr(data-text)]"
+          />
+        </div>
       </div>
       <div className="frame flex flex-col gap-3 border-t hairline py-6 sm:flex-row sm:items-center sm:justify-between">
         <p className="t-meta">
