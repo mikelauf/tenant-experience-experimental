@@ -83,12 +83,24 @@ export function Lazy3D({
       },
       { rootMargin: "200px 0px" },
     );
-    const ahead = new IntersectionObserver(([e]) => setNear(e.isIntersecting), { rootMargin: "100% 0px" });
+    // Near, but not yet in view: mount once the browser is idle, so a scene never competes with the page's first paint
+    let h = 0;
+    const ahead = new IntersectionObserver(
+      ([e]) => {
+        if (h && typeof cancelIdleCallback !== "undefined") cancelIdleCallback(h);
+        h = 0;
+        if (!e.isIntersecting) return setNear(false);
+        if (typeof requestIdleCallback === "undefined") setNear(true);
+        else h = requestIdleCallback(() => setNear(true), { timeout: 2500 });
+      },
+      { rootMargin: "100% 0px" },
+    );
     const range = new IntersectionObserver(([e]) => setInRange(e.isIntersecting), { rootMargin: "150% 0px" });
     io.observe(el);
     ahead.observe(el);
     range.observe(el);
     return () => {
+      if (h && typeof cancelIdleCallback !== "undefined") cancelIdleCallback(h);
       io.disconnect();
       ahead.disconnect();
       range.disconnect();

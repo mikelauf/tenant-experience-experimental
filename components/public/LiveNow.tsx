@@ -23,8 +23,8 @@ function glideTo(id: string) {
 
 /**
  * The building right now: the time where it stands and what the light is doing, from the real sun. It glides to the
- * 3D tower below, which is lit the same way. The clock is only known in the browser, so the row holds its height
- * and fades its words in once it is.
+ * 3D tower below, which is lit the same way. The clock is only known in the browser, so the row paints with the page
+ * and only the time and the light fade in once they're known.
  */
 export function LiveNow() {
   const { tower, building } = useTenant();
@@ -47,10 +47,13 @@ export function LiveNow() {
         glideTo("explore");
       }}
       className="group flex min-h-11 items-center justify-between gap-3 bg-night/30 px-4 py-3 text-[0.8125rem] transition-colors hover:bg-night/45">
-      <span className={cn("flex min-w-0 items-center transition-opacity duration-700", now ? "opacity-100" : "opacity-0")}>
+      <span className="flex min-w-0 items-center">
         <span className="truncate text-moon/90">
-          <span className="font-medium text-moon">{now ? clock(now.minutes) : "—"}</span> in {building.city}
-          {light && <span className="text-moon-2"> · {LIGHT_LABEL[light]}</span>}
+          <span className={cn("font-medium text-moon transition-opacity duration-700", now ? "opacity-100" : "opacity-0")}>
+            {now ? clock(now.minutes) : "0:00 am"}
+          </span>{" "}
+          in {building.city}
+          <span className={cn("text-moon-2 transition-opacity duration-700", light ? "opacity-100" : "opacity-0")}> · {light ? LIGHT_LABEL[light] : ""}</span>
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-1 font-medium text-moon/90 group-hover:text-moon">
