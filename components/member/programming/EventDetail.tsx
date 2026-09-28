@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { ViewTransition, useMemo } from "react";
+import { ViewTransition, useMemo, useState } from "react";
+import { useNow } from "@/lib/useNow";
 import { rsvpEvent } from "@/lib/commit";
 import { actions, findActive, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
@@ -22,18 +23,31 @@ export function EventDetail({ slug }: { slug: string }) {
   const full = e.going >= e.capacity;
   const host = t.person(e.hostId);
   const tag = accessLabel(e);
+  const now = useNow(60000);
+  const past = new Date(e.startsAt).getTime() < now;
+  const [cancelling, setCancelling] = useState(false);
+  // More that's still ahead, and open to the person reading
   const others = useMemo(
     () =>
       t
         .events()
-        .filter((x) => x.slug !== slug)
+        .filter((x) => x.slug !== slug && new Date(x.startsAt).getTime() > now && x.access.type !== "vip")
         .slice(0, 3),
-    [slug, t],
+    [slug, t, now],
   );
 
   const action = (() => {
     const cls = "flex h-14 w-full items-center justify-center gap-2 rounded-full font-medium transition-colors";
     if (!hydrated) return <span className={`${cls} bg-fog`} />;
+    if (past && !mine) return <span className={`${cls} bg-fog text-stone`}>This one has happened</span>;
+    // Invitation-only events say so up front, rather than after a sign-in
+    if (!isMember(s.persona) && e.access.type === "vip")
+      return (
+        <p className="flex items-center gap-2 rounded-[var(--radius-card)] bg-fog p-4 font-medium">
+          <Icon name="star" size={17} />
+          This one&apos;s by invitation
+        </p>
+      );
     if (!isMember(s.persona))
       return (
         <Link href={gateHref(`/programming/${e.slug}`)} className={`${cls} bg-ink text-paper hover:bg-ink-2`}>
@@ -47,9 +61,28 @@ export function EventDetail({ slug }: { slug: string }) {
             <Icon name="check" size={18} strokeWidth={2.2} />
             {mine.status === "waitlist" ? `On the waitlist · #${mine.waitlistPos}` : "You're going"}
           </span>
-          <button onClick={() => actions.cancel(mine.id)} className="h-11 w-full rounded-full text-[0.9375rem] font-medium text-accent hover:bg-accent-soft">
-            {mine.status === "waitlist" ? "Leave waitlist" : "Can't make it? Cancel RSVP"}
-          </button>
+          {cancelling ? (
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => setCancelling(false)} className="h-11 rounded-full text-[0.9375rem] font-medium hover:bg-fog">
+                Keep it
+              </button>
+              <button
+                onClick={() => {
+                  actions.cancel(mine.id);
+                  setCancelling(false);
+                }}
+                className="h-11 rounded-full bg-accent text-[0.9375rem] font-medium text-paper hover:bg-accent-deep"
+              >
+                {mine.status === "waitlist" ? "Leave waitlist" : "Cancel RSVP"}
+              </button>
+            </div>
+          ) : (
+            !past && (
+              <button onClick={() => setCancelling(true)} className="h-11 w-full rounded-full text-[0.9375rem] font-medium text-accent hover:bg-accent-soft">
+                {mine.status === "waitlist" ? "Leave waitlist" : "Can't make it? Cancel RSVP"}
+              </button>
+            )
+          )}
         </div>
       );
     if (!canAttend(e, t.member))
@@ -207,7 +240,7 @@ export function EventDetail({ slug }: { slug: string }) {
             <Link href={gateHref(`/programming/${e.slug}`)} className="flex h-11 shrink-0 items-center rounded-full bg-ink px-5 font-medium text-paper">
               {s.persona === "signed-out" ? "Sign in" : gateLabel(s.persona, "RSVP")}
             </Link>
-          ) : hydrated && !mine && canAttend(e, t.member) ? (
+          ) : hydrated && !mine && !past && canAttend(e, t.member) ? (
             <button
               onClick={() => rsvpEvent(e, full)}
               className={`flex h-11 shrink-0 items-center rounded-full px-5 font-medium ${full ? "shadow-[inset_0_0_0_1px_var(--color-ink)]" : "bg-accent text-paper"}`}

@@ -26,6 +26,15 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
   const [slot, setSlot] = useState<number | null>(null);
   const [unit, setUnit] = useState(0);
   const [done, setDone] = useState(false);
+  // A different bike or suite starts fresh: its own units, today, nothing picked
+  const [forSlug, setForSlug] = useState(r?.slug);
+  if (r?.slug !== forSlug) {
+    setForSlug(r?.slug);
+    setDay(dayKey(days[0]));
+    setSlot(null);
+    setUnit(0);
+    setDone(false);
+  }
 
   const d = days.find((x) => dayKey(x) === day)!;
   const offset = days.indexOf(d);

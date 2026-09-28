@@ -27,7 +27,8 @@ export function Toast() {
       // Let the new exit target render before the toast is removed
       t2 = setTimeout(() => {
         actions.clearToast();
-        setTimeout(() => window.dispatchEvent(new CustomEvent("plans:bump")), 600);
+        // Only something that landed in Plans bumps its count
+        if (toast.href === "/plans") setTimeout(() => window.dispatchEvent(new CustomEvent("plans:bump")), 600);
       }, 40);
     }, 4200);
     let t2: ReturnType<typeof setTimeout>;

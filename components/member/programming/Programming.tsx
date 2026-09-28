@@ -3,7 +3,8 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { gateHref, isMember } from "@/lib/access";
+import { gateHref, gateLabel, isMember } from "@/lib/access";
+import { rsvpEvent } from "@/lib/commit";
 import { cn } from "@/lib/cn";
 import type { BuildingEvent } from "@/lib/data/types";
 import { findActive, useDemo, useHydrated } from "@/lib/store";
@@ -33,7 +34,9 @@ export function Programming() {
     ...Object.entries(t.copy.kickers).map(([id, label]) => ({ id, label })),
     ...(member && t.events().some((e) => e.access.type === "company") ? [{ id: "company", label: `For ${t.member.company}` }] : []),
   ];
-  const [f, setF] = useState("all");
+  const [picked, setF] = useState("all");
+  // A filter that's gone (the company chip after switching who's signed in) falls back to everything
+  const f = filters.some((x) => x.id === picked) ? picked : "all";
   const list = all.filter((e) =>
     f === "all" ? true : f === "week" ? dayDiff(e.startsAt) < 7 : f === "company" ? e.access.type === "company" : e.kicker === f,
   );
@@ -134,7 +137,8 @@ export function Programming() {
                       {fmtLongDay(lead.startsAt)} · {fmtRange(lead.startsAt, addMin(lead.startsAt, lead.durationMin))}
                     </p>
                     <p className="t-meta mt-0.5">
-                      {lead.place} · Level {lead.level}
+                      {lead.place}
+                      {lead.level ? ` · Level ${lead.level}` : ""}
                     </p>
                     <p className="t-body mt-5 text-stone">{lead.summary}</p>
                     <div className="mt-auto pt-8">
@@ -246,16 +250,18 @@ function Rsvp({ e, size }: { e: BuildingEvent; size?: "lg" }) {
   if (e.access.type === "vip") return <span className={quiet}>Invite only</span>;
   const verb = e.going >= e.capacity ? "Join waitlist" : "RSVP";
   const href = `/programming/${e.slug}`;
+  if (e.access.type === "company" && (!hydrated || !isMember(s.persona) || e.access.company !== member.company))
+    return <span className={quiet}>{e.access.company} only</span>;
   if (!hydrated || !isMember(s.persona))
     return (
       <Link href={gateHref(href)} className={cn(cls, "bg-ink text-paper hover:bg-accent")}>
-        {verb}
+        {hydrated ? gateLabel(s.persona, verb === "RSVP" ? "RSVP" : "join") : verb}
       </Link>
     );
-  if (e.access.type === "company" && e.access.company !== member.company) return <span className={quiet}>{e.access.company} only</span>;
+  // Members RSVP right here; the event page has the details
   return (
-    <Link href={href} className={cn(cls, "bg-ink text-paper hover:bg-accent")}>
+    <button type="button" onClick={() => rsvpEvent(e, e.going >= e.capacity)} className={cn(cls, "bg-ink text-paper hover:bg-accent")}>
       {verb}
-    </Link>
+    </button>
   );
 }
