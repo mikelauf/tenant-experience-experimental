@@ -10,7 +10,7 @@ import { LIGHT_LABEL, clock, eveningOf, lightAt, minutesOf, sunPosition, zonedTi
 import { getTenant } from "@/lib/tenants/server";
 import { BriefActions } from "@/components/public/brief/BriefActions";
 import { BriefPicker } from "@/components/public/brief/BriefPicker";
-import { Plan } from "@/components/public/SetupVisualizer";
+import { Plan } from "@/components/public/SetupPlan";
 
 const query = async (searchParams: PageProps<"/venues/brief">["searchParams"]) => {
   const q = await searchParams;

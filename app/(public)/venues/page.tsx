@@ -253,7 +253,7 @@ export default async function VenuesHome() {
                     src={m.img.src}
                     alt={m.img.alt}
                     fill
-                    sizes="40vw"
+                    sizes={i % 2 ? "(min-width:1024px) 26vw, (min-width:640px) 40vw, 72vw" : "(min-width:1024px) 36vw, (min-width:640px) 52vw, 84vw"}
                     className="object-cover transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] hover:scale-[1.03]"
                   />
                 </div>

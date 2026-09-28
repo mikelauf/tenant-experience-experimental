@@ -30,6 +30,11 @@ export function HeroMedia({ slides, video, className }: { slides: Slide[]; video
   const film_on = !!video && !filmDone && !reduced;
   const running = !reduced && !paused && visible && docVisible;
   const count = slides.length;
+  // Photos load as the show reaches them (the one on screen and the next), not all at once on arrival;
+  // phones, where the slideshow holds still, fetch only the first
+  const [reach, setReach] = useState(0);
+  if (i > reach) setReach(i);
+  const ready = (k: number) => k === i || k <= reach + (running && !film_on ? 1 : 0);
 
   useEffect(() => {
     const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { threshold: 0.15 });
@@ -65,27 +70,29 @@ export function HeroMedia({ slides, video, className }: { slides: Slide[]; video
 
   return (
     <div ref={root} className={cn("overflow-hidden", className)}>
-      {slides.map((s, k) => (
-        <div
-          key={s.src}
-          aria-hidden={k !== i || film_on}
-          className={cn(
-            "absolute inset-0 transition-opacity duration-[1400ms] ease-[var(--ease-out-quart)]",
-            k === i && !film_on ? "opacity-100" : "opacity-0",
-          )}
-        >
-          <Image
-            src={s.src}
-            alt={k === i ? s.alt : ""}
-            fill
-            priority={k === 0}
-            quality={90}
-            sizes="100vw"
-            className={cn("object-cover", k === i && !reduced && "animate-[heroZoom_9s_var(--ease-out-quart)_both]")}
-            style={{ objectPosition: s.pos }}
-          />
-        </div>
-      ))}
+      {slides.map((s, k) =>
+        !ready(k) ? null : (
+          <div
+            key={s.src}
+            aria-hidden={k !== i || film_on}
+            className={cn(
+              "absolute inset-0 transition-opacity duration-[1400ms] ease-[var(--ease-out-quart)]",
+              k === i && !film_on ? "opacity-100" : "opacity-0",
+            )}
+          >
+            <Image
+              src={s.src}
+              alt={k === i ? s.alt : ""}
+              fill
+              priority={k === 0}
+              quality={90}
+              sizes="100vw"
+              className={cn("object-cover", k === i && !reduced && "animate-[heroZoom_9s_var(--ease-out-quart)_both]")}
+              style={{ objectPosition: s.pos }}
+            />
+          </div>
+        ),
+      )}
       {video && !reduced && (
         <video
           ref={film}
@@ -126,7 +133,13 @@ export function HeroMedia({ slides, video, className }: { slides: Slide[]; video
                     <span
                       key={i}
                       className="absolute inset-0 origin-left rounded-full bg-white"
-                      style={{ animationName: "progress-fill", animationDuration: `${PHOTO_MS}ms`, animationTimingFunction: "linear", animationFillMode: "both", animationPlayState: running ? "running" : "paused" }}
+                      style={{
+                        animationName: "progress-fill",
+                        animationDuration: `${PHOTO_MS}ms`,
+                        animationTimingFunction: "linear",
+                        animationFillMode: "both",
+                        animationPlayState: running ? "running" : "paused",
+                      }}
                       onAnimationEnd={() => go(i + 1)}
                     />
                   )}

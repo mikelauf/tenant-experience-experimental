@@ -1,12 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useHydrated } from "@/lib/store";
 import { useOverlay } from "@/lib/useOverlay";
-import { InquiryForm, type InquiryInitial } from "./InquiryForm";
+import type { InquiryInitial } from "./InquiryForm";
+
+// The form is most of a venue page's script and only needed once someone opens it; hovering an Inquire button fetches it early
+const loadForm = () => import("./InquiryForm");
+const InquiryForm = dynamic(() => loadForm().then((m) => m.InquiryForm), {
+  ssr: false,
+  loading: () => <div className="grid h-[420px] place-items-center" aria-busy="true" aria-label="Loading the inquiry" />,
+});
 
 /**
  * The inquiry, opened over a venue's page instead of sending people to another one: what they've
@@ -49,7 +57,7 @@ export function InquireLink({ initial, className, children }: { initial: Inquiry
       </Link>
     );
   return (
-    <button type="button" onClick={() => open(initial)} className={className}>
+    <button type="button" onClick={() => open(initial)} onPointerEnter={loadForm} onFocus={loadForm} className={className}>
       {children}
     </button>
   );

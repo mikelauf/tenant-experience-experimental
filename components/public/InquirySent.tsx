@@ -98,7 +98,7 @@ export function InquirySent() {
           <div className="card overflow-hidden">
             {v ? (
               <div className="relative aspect-[16/10]">
-                <Image src={v.hero.src} alt={v.hero.alt} fill sizes="40vw" className="object-cover" style={{ objectPosition: v.hero.pos }} />
+                <Image src={v.hero.src} alt={v.hero.alt} fill sizes="(min-width:1024px) 40vw, 100vw" className="object-cover" style={{ objectPosition: v.hero.pos }} />
               </div>
             ) : null}
             <div className="p-6">
