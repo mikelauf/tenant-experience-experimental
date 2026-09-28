@@ -185,7 +185,7 @@ Ask Spencer about:
 ---
 
 ## Status checklist
-_Update as work lands. Last updated: 2026-09-26._
+_Update as work lands. Last updated: 2026-09-28._
 
 - [x] Review: notes, TE codebase, PT codebase, both live sites
 - [x] Roadmap recorded (this file)
@@ -239,6 +239,76 @@ _Update as work lands. Last updated: 2026-09-26._
   - three.js (932 KB) never loads on first paint; it waits for the explorer or the 3D space to come near.
   - Page weight: home 1.07 MB, Sky Bar 608 KB. `public/images` is 27 MB of sources, served resized by next/image.
   - Still open: LCP reads 4–5 s (simulated) because hero photos blur up from transparent, and Chrome doesn't count an image that first paints at opacity 0. Dropping the fade on the hero would fix the metric but break the smooth-image rule, so it stays.
+
+### Review, 2026-09-28: best practice before wiring real functionality
+Three audits: the public site, the member app, and performance/3D/infrastructure. About 70 findings, fixed one commit per change (3576319..d6e4ca0 plus this docs commit, local). Checks: typecheck, lint, 75 tests (also under `TZ=Asia/Tokyo`), and both builds.
+
+**Page load**
+- [x] Production prerenders the venue site. Before, nothing did: the root layout read cookies or headers on every request. Now a production build carries one building, so `/venues`, all five venue pages and the FAQ are static. The Meridian's data also leaves the production bundle.
+- [x] First-screen photos paint as soon as they arrive, instead of waiting for hydration plus a 900 ms fade. Every other photo keeps the blur-up.
+- [x] Deferred loading:
+  - The inquiry form loads when opened.
+  - The brief draws its plans on the server, without the 3D viewer's code.
+  - Hero slides load as the show reaches them. Phones fetch two photos, not five.
+  - Image `sizes` match their real widths.
+- [x] 3D:
+  - Scenes mount a screen ahead, once the browser is idle, and unmount when well out of view.
+  - Member Home holds at most three live WebGL contexts. Before, all four loaded at start and none unloaded.
+- Lighthouse, mobile, production build:
+
+  | Page | Performance | Accessibility / best practices | LCP | TBT | CLS | Weight |
+  |---|---|---|---|---|---|---|
+  | Home | 78 | 100 / 100 | 5.9 s (see below) | 100 ms | 0 | 1.03 MB |
+  | Sky Bar | 78 | 100 / 100 | 4.2 s | 330 ms | 0 | 925 KB |
+
+  - The home LCP is a measurement artifact. Chrome skips the full-screen hero photo as a background, and the headline slides in from a clip. So the largest counted paint is a small line of hero text that settles after hydration. First paint is 1.2 s.
+
+**Bugs fixed**
+- [x] Public site:
+  - The venues close band's floors went nowhere; they now name and link the venues.
+  - Compare and the phone menu stayed open over the next page.
+  - Escape in the date picker closed the whole inquiry and lost the answers.
+  - Shared setup links lost their guest count.
+- [x] Member app:
+  - Booking a room a second time deleted the first booking.
+  - After signing out and back in, a returning member came back as "new".
+  - The Plans count showed while signed out.
+  - Account showed "Building access · Active" and the wrong email to public and verifying users.
+  - Plan an event showed the member form to public users.
+  - Sign-in's "Not now" and "Keep browsing" dropped the task.
+  - Park events read "Level 0".
+  - Members' RSVP buttons in the list didn't RSVP.
+  - Past events still offered an RSVP, and cancelling didn't ask first.
+  - Every toast bumped the Plans count.
+- [x] Hydration: member dates were computed on each machine's own clock. A UTC server and a browser outside Pacific time disagreed, so `/fitness/schedule` and `/programming` failed to hydrate (reproduced from Tokyo, now clean). Dates now run on the building's clock (`lib/time.ts`).
+- [x] Overlays share one behavior (`lib/useOverlay.ts`): a real focus trap, Escape for the top overlay only, nested scroll locks, and no focus-stealing on re-render.
+
+**Cleanup**
+- [x] The inquiry's `?layout=` explorations are retired (about 320 lines).
+- [x] Dead code is gone (about 800 lines): the live building, the annotated view, the service art.
+- [x] The repo drops 9 unused photos (about 7 MB), and the raw source PNGs (about 57 MB) and a log leave git.
+- [x] Node is pinned.
+
+**Production shell**
+- [x] Branded not-found and error pages.
+- [x] `robots.txt` and a sitemap, closed until `SITE_INDEXABLE=1`.
+- [x] `metadataBase` via `NEXT_PUBLIC_SITE_URL`.
+- [x] Venue links unfurl with the venue's photo.
+- [x] At start-up, production logs what's missing for real inquiries (live mode, Core host and key, `privacyVersion`), instead of quietly simulating.
+
+**Still open (for the meeting)**
+- [ ] Real inquiries need Matt: `CORE_HOST`, `CORE_PUBLIC_API_KEY`, and the published TAP source for `inquiry.privacyVersion`. Until then production answers "Preview complete".
+- [ ] There's no local rate limit or CSP header on `/api/inquiries`; it relies on Core's 429.
+- [ ] The tower's unused "open the floor" branch (`TowerCanvas` `open`, `rig` `peek`, `tower/interior.tsx` `FloorInterior`) is woven through the rig. Leave it until the tower is next touched.
+- [ ] 3D polish: `ContactShadows` re-renders every frame, the sky and rig allocate per frame, and phones get 2048 shadow maps.
+- [ ] The brief's link card fetches its photo from its own origin. It works on Vercel; reading it from disk needs file tracing config.
+- [ ] Member app, before real data:
+  - the returning Home's "today in the building"
+  - add-to-calendar on the event page
+  - a flexible-date member inquiry still gets a placeholder date in Plans
+  - public inquiries live in `inquiries` while member ones are commitments, so they need one model
+- [ ] The member app's state is `localStorage`. Every write goes through `lib/store.ts` and `lib/commit.ts`, the seam where Core calls replace it (Phase 3).
+- [ ] `docs/pyramid-demo.mp4` and `.gif` (18 MB) are still in git; consider Git LFS.
 
 ### Decisions made while building
 - **Invented content stays out of production.** The fictional host (Inés), the 555 phone number, "moments" from sample events, the spire "crown" stop (Sky Bar is on Level 48) and sample policies are no longer on the Pyramid's public site. The host section, public contact and moments return automatically once real ones are added to the bundle (`publicHostId`, `copy.public.contact`, `copy.public.moments`).

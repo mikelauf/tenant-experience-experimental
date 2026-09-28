@@ -20,12 +20,12 @@ The public venue site is in good shape. This doc covers the next surface, the si
 | Signed out | A tenant employee browsing | Hero with "Sign in with your work email"; "Sign in, and it's yours" (real rooms, the next class, an event, planning, each signing in and returning to the task); the floor-by-floor spotlights with a sign-in button on each; this week, with "Sign in to RSVP"; a closing sign-in band. No "What you can use" (it repeated the spotlights). A link to /venues for anyone planning an event |
 | Verifying | Signed in, work email under review | The same discovery, an "access being verified" banner, public offerings usable |
 | New | Verified, no first action yet | Revised 2026-09-28 into the signed-out layout. The hero has "Start your first week" and "Look inside" buttons. "Your first week" (`FirstWeek`) pins a checklist and progress on the left, with what was booked, and puts real things on the right: a room, the next class with spots, the next open event, the concierge (Wayfinder #307 measures a first action in 30 days). Then the spotlights, this week, and a "Make yourself at home." close band (`MemberClose`). No "What you can use" |
-| Returning | Has activity | Up next, today in the building, book again |
+| Returning | Has activity | Up next, book again (a "today in the building" strip is still to build) |
 | Public account | Inquired or booked publicly, not a member | The Public Customer Activity Center: inquiries and bookings, links back to venues |
 
 ## Status
 
-_Last updated: 2026-09-27._
+_Last updated: 2026-09-28 (full review; see "Review, 2026-09-28" in [`production-roadmap.md`](production-roadmap.md))._
 
 - [x] 1. Real amenity content: `amenities` on every tenant (`lib/tenants/pyramid/amenities.ts`). Fitness moves to L26. The Foster and Pereira rooms (names and capacities from Core staging) replace Washington. The demo's storage key moves to v2.
 - [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
@@ -43,7 +43,7 @@ _Last updated: 2026-09-27._
   - your day in the Pyramid
   - inside the Pyramid
 - [ ] 5. Service pages up to public quality: fitness, spaces, programming, Activity, account, `NotHere`
-  - [x] Before building access (2026-09-28): Spaces lists rooms with "Free now / Free from 2pm" and their next open times, which open the room with that time picked (the Free/Booked/Yours bars and filters are gone; weekends aren't offered). The room's booking card is three steps (day, start, length), then "Sign in to book this", which returns to the review. Fitness trims to Coming up, class types and one "Also in" row; Events hides the company filter until you're a member and uses an even grid. Each ends with `SignInStrip`.
+  - [x] Before building access (2026-09-28): Spaces lists rooms by what they're for, with their kit and seats; times live inside a room (the Free/Booked/Yours bars and filters are gone; weekends aren't offered). The room's booking card is three steps (day, start, length), then "Sign in to book this", which returns to the review. Fitness trims to Coming up, class types and one "Also in" row; Events hides the company filter until you're a member and uses an even grid. Each ends with `SignInStrip`.
   - [x] Fitness for members (2026-09-28): new and returning use the same page as before sign-in (cards for what's coming up, the week at a glance, the membership band, Also in plus coaching). Only the actions change: with the membership you reserve right on the card; without it, Reserve goes to the membership and brings you back. The band reads "You're all set." for members, and coaches take an intro request in place. The old access card, studios and training sections are gone.
   - [x] Member badges (`MemberBadges`): "Member · {company}", plus "Fitness member" when they have it, on the Home and Fitness heroes.
 - [ ] 6. Fitness-only configuration: nav profiles and a demo toggle
