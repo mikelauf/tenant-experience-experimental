@@ -1,16 +1,20 @@
 import type { CSSProperties } from "react";
+import { isDemo } from "@/lib/flags";
 import { meridian } from "./meridian";
 import { pyramid } from "./pyramid";
 import type { Tenant, TenantId } from "./types";
 
-/** Every building this Playbook deployment serves. In production the address picks one; here the demo dock does. */
-export const TENANTS: Record<TenantId, Tenant> = { pyramid, meridian };
+/**
+ * Every building this Playbook deployment serves. In production the address picks one; here the demo dock does.
+ * The Meridian is a demo building, so production builds leave it (and its data) out of the bundle.
+ */
+export const TENANTS: Partial<Record<TenantId, Tenant>> = isDemo ? { pyramid, meridian } : { pyramid };
 
 export const TENANT_COOKIE = "pb-building";
 export const DEFAULT_TENANT: TenantId = "pyramid";
 
 export const isTenantId = (v: unknown): v is TenantId => typeof v === "string" && v in TENANTS;
-export const tenantById = (id: unknown): Tenant => TENANTS[isTenantId(id) ? id : DEFAULT_TENANT];
+export const tenantById = (id: unknown): Tenant => (isTenantId(id) && TENANTS[id]) || pyramid;
 
 /**
  * Production hostnames and the building each one serves. Any other host (a Vercel preview,

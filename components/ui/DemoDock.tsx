@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import type { Persona } from "@/lib/data/types";
 import { setShape, useShape } from "@/lib/shape";
 import { actions, useDemo, useHydrated } from "@/lib/store";
-import { TENANTS, type TenantId } from "@/lib/tenants";
+import { TENANTS, tenantById, type TenantId } from "@/lib/tenants";
 import { switchTenant, useTenant } from "@/lib/tenants/client";
 import { Icon } from "./Icon";
 
@@ -265,7 +265,7 @@ export function DemoDock() {
 function MarkOf({ id, size }: { id: TenantId; size: number }) {
   return (
     <svg width={size * 0.62} height={size} viewBox="0 0 20 32" fill="none" aria-hidden className="text-white">
-      {TENANTS[id].mark.paths.map((p) => (
+      {tenantById(id).mark.paths.map((p) => (
         <path key={p.d} d={p.d} fill="currentColor" opacity={p.opacity} />
       ))}
     </svg>
@@ -274,7 +274,7 @@ function MarkOf({ id, size }: { id: TenantId; size: number }) {
 
 /** Full-screen hand-off to the next building while it loads */
 function Switching({ id }: { id: TenantId }) {
-  const t = TENANTS[id];
+  const t = tenantById(id);
   return (
     <motion.div
       initial={{ opacity: 0 }}

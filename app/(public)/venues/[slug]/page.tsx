@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { guestsShort } from "@/lib/data/shared";
 import { isDemo, showV2 } from "@/lib/flags";
+import { TENANTS } from "@/lib/tenants";
 import { getTenant } from "@/lib/tenants/server";
 import { Reveal } from "@/components/motion/Reveal";
 import { Icon } from "@/components/ui/Icon";
@@ -13,6 +14,11 @@ import { InquireLink, InquiryHost } from "@/components/public/InquiryModal";
 import { VenueSpace } from "@/components/public/VenueSpace";
 import { PhotoRow, VenueHero } from "@/components/public/VenuePhotos";
 import { TowerLocator } from "@/components/public/TowerLocator";
+
+/** Every venue of every building in this build, so production prerenders each page. */
+export function generateStaticParams() {
+  return Object.values(TENANTS).flatMap((t) => t.venues.map((v) => ({ slug: v.slug })));
+}
 
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
   const v = (await getTenant()).venue((await params).slug);
