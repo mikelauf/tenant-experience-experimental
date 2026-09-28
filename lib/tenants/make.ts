@@ -26,6 +26,8 @@ export function makeTenant(d: TenantData): Tenant {
 
   return {
     ...d,
+    // Always soonest first, whatever order the bundle lists them in
+    events: () => d.events().sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime()),
     person,
     lead: person(d.leadId),
     publicHost: d.publicHostId ? person(d.publicHostId) : undefined,

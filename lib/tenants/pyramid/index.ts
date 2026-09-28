@@ -247,7 +247,7 @@ const data: TenantData = {
         title: "Things worth leaving your desk for.",
         body: "Tastings, talks and evenings in the grove, hosted by the building for everyone who works here.",
         points: ["Something most weeks", "RSVP in one tap", "Some just for your company"],
-        img: images.cupping,
+        img: images.bayBar,
         cta: "See what's on",
         access: "Included with your building access",
       },

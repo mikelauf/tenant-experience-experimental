@@ -21,7 +21,7 @@ export const events = (): BuildingEvent[] => [
     going: 24,
     access: { type: "all" },
     hostId: "theo",
-    image: images.cupping,
+    image: images.bayBar,
     tone: "day",
   },
   {
