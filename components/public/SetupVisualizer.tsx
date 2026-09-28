@@ -327,7 +327,7 @@ export function SetupVisualizer({
   shareable?: boolean;
   /** The venue, for "Make a brief" */
   slug?: string;
-  /** The room's floor, to offer "3D render": the 3D tower with that floor lit, in place of the room */
+  /** The room's floor, to offer "In the building": the 3D tower with that floor lit, in place of the room */
   building?: { level: number; name: string };
 }) {
   const keys = Object.keys(setups) as Setup[];
@@ -660,7 +660,7 @@ export function SetupVisualizer({
             )}
           >
             {inBuilding && <motion.span layoutId={`view-${uid}`} className="absolute inset-0 rounded-full bg-ink" transition={{ type: "spring", bounce: 0.15, duration: 0.45 }} />}
-            <span className="relative">3D render</span>
+            <span className="relative">In the building</span>
           </button>
         )}
       </div>

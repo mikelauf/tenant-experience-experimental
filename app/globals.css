@@ -306,6 +306,8 @@
   .soft .field {
     background: var(--color-quartz);
     box-shadow: none;
+    padding: 11px 14px;
+    font-size: 0.9375rem;
     transition:
       background-color 0.2s var(--ease-out-quart),
       box-shadow 0.2s var(--ease-out-quart);

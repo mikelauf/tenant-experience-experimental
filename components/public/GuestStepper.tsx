@@ -51,7 +51,7 @@ export function GuestStepper({
         }}
         className={cn(
           "t-num min-w-0 flex-1 bg-transparent outline-none placeholder:font-normal placeholder:tracking-normal placeholder:text-stone-2",
-          compact ? "text-[1.125rem] font-medium" : "h-12 text-[1.0625rem]",
+          compact ? "text-[1.125rem] font-medium" : "h-12 text-[1.0625rem] in-[.soft]:h-[2.8125rem] in-[.soft]:text-[0.9375rem]",
         )}
       />
       <span className="flex shrink-0 items-center gap-2">
@@ -62,7 +62,7 @@ export function GuestStepper({
             onClick={() => nudge(d)}
             disabled={d < 0 && n <= 1}
             aria-label={d < 0 ? `${STEP} fewer guests` : `${STEP} more guests`}
-            className="grid size-9 place-items-center rounded-full bg-ink/[0.06] transition-colors hover:bg-ink/[0.11] disabled:opacity-40 disabled:hover:bg-ink/[0.06]"
+            className="grid size-9 place-items-center rounded-full bg-ink/[0.06] in-[.soft]:size-8 transition-colors hover:bg-ink/[0.11] disabled:opacity-40 disabled:hover:bg-ink/[0.06]"
           >
             <Icon name={d < 0 ? "minus" : "plus"} size={16} />
           </button>

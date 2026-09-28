@@ -25,7 +25,7 @@ export function Field({
 }) {
   return (
     <div className={className}>
-      <label htmlFor={id} className="mb-2 flex items-baseline justify-between text-[0.9375rem] font-medium">
+      <label htmlFor={id} className="mb-1.5 flex items-baseline justify-between text-[0.875rem] font-medium">
         {label}
         {optional && <span className="t-meta font-normal">Optional</span>}
       </label>
@@ -74,7 +74,7 @@ export function Chips({
             key={o}
             onClick={() => onChange(on ? "" : o)}
             className={cn(
-              "h-10 rounded-full px-4 text-[0.875rem] font-medium transition-[background-color,color,box-shadow] duration-200",
+              "h-9 rounded-full px-3.5 text-[0.8125rem] font-medium transition-[background-color,color,box-shadow] duration-200",
               on
                 ? "bg-ink text-paper"
                 : invalid

@@ -280,6 +280,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   };
 
   const id = (k: string) => `${uid}-${k}`;
+  /** Space between a step's title and its fields: tighter on the focused inquiry */
+  const gap = layout === "focused" ? "mt-5" : "mt-8";
   const invalid = (k: keyof Values) => (errors[k] ? { "aria-invalid": true as const, "aria-describedby": `${id(k)}-error` } : {});
   const hero = chosen[0]?.hero ?? building.hero;
   const title = chosen.length > 1 ? `${chosen.length} venues` : (chosen[0]?.name ?? (venues.includes(NOT_SURE) ? "The right space for you" : building.name));
@@ -334,7 +336,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         invalid={!!errors.date}
         describedBy={errors.date ? `${id("date")}-error` : undefined}
       />
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <label className="flex cursor-pointer items-center gap-2.5 text-[0.9375rem]">
           <input type="checkbox" checked={v.flexible} onChange={(e) => set("flexible", e.target.checked)} className="size-[18px] accent-[var(--color-ink)]" />
           My dates are flexible
@@ -369,7 +371,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         invalid={!!errors.guests}
         describedBy={errors.guests ? `${id("guests")}-error` : undefined}
       />
-      <div className="mt-3">
+      <div className="mt-2.5">
         <Chips
           name="Common guest counts"
           options={GUEST_PRESETS}
@@ -386,7 +388,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   const venuePicker = (
     <>
       <p className="t-small text-stone">Choose every venue you&apos;re weighing up. The team can compare them for you.</p>
-      <div role="group" aria-label="Venues" aria-describedby={errors.venues ? `${id("venues")}-error` : undefined} className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div role="group" aria-label="Venues" aria-describedby={errors.venues ? `${id("venues")}-error` : undefined} className="mt-4 grid gap-2.5 sm:grid-cols-2">
         {[
           ...all.map((x) => ({ slug: x.slug, name: x.name, meta: `${x.levelLabel} · ${guestsShort(x)}`, img: x.hero })),
           { slug: NOT_SURE, name: "Not sure yet", meta: "The events team can recommend one", img: null },
@@ -402,7 +404,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
               key={o.slug}
               onClick={() => toggleVenue(o.slug)}
               className={cn(
-                "relative flex items-center gap-4 rounded-[var(--radius-card)] p-2.5 pr-4 text-left transition-[background-color,box-shadow] duration-200",
+                "relative flex items-center gap-3.5 rounded-[var(--radius-card)] p-2 pr-4 text-left transition-[background-color,box-shadow] duration-200",
                 on
                   ? "bg-paper shadow-[inset_0_0_0_2px_var(--color-ink)]"
                   : errors.venues
@@ -410,8 +412,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
                     : "bg-ink/[0.04] hover:bg-ink/[0.07]",
               )}
             >
-              <span className="relative grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-fog">
-                {o.img ? <Image src={o.img.src} alt="" fill sizes="64px" className="object-cover" /> : <Icon name="sliders" size={22} className="text-stone" />}
+              <span className="relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[10px] bg-fog">
+                {o.img ? <Image src={o.img.src} alt="" fill sizes="48px" className="object-cover" /> : <Icon name="sliders" size={20} className="text-stone" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block font-medium">{o.name}</span>
@@ -447,10 +449,9 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
   const budgetControl = (
     <div>
-      <p className="mb-1 text-[0.9375rem] font-medium outline-none" id={id("budget")} tabIndex={-1}>
-        Budget range
+      <p className="mb-2.5 text-[0.875rem] font-medium outline-none" id={id("budget")} tabIndex={-1}>
+        Budget range <span className="t-meta font-normal">· all in: the space, rentals, catering and drinks</span>
       </p>
-      <p className="t-small mb-3 text-stone">Your all-in event budget: the space, furniture and rentals, and catering and drinks together.</p>
       <Chips
         name="Budget range"
         options={budgets}
@@ -472,8 +473,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
   const eventControl = (
     <div>
-      <p className="mb-3 text-[0.9375rem] font-medium">
-        Type of event <span className="t-meta font-normal">· optional</span>
+      <p className="mb-2.5 flex items-baseline justify-between text-[0.875rem] font-medium">
+        Type of event <span className="t-meta font-normal">Optional</span>
       </p>
       <Chips
         name="Type of event"
@@ -491,7 +492,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
     <Field id={id("message")} label="Anything else?" optional>
       <textarea
         id={id("message")}
-        rows={5}
+        rows={3}
         className="field resize-y"
         placeholder="The occasion, the setup, catering or AV needs, a site visit…"
         value={v.message}
@@ -501,8 +502,8 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
   );
 
   const detailsStep = (
-    <div className="mt-8">
-      <div className="grid gap-5 sm:grid-cols-2">
+    <div className={gap}>
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field id={id("firstName")} label="First name" error={errors.firstName}>
           <input
             id={id("firstName")}
@@ -523,12 +524,13 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             {...invalid("lastName")}
           />
         </Field>
-        <Field id={id("email")} label="Email" error={errors.email} className="sm:col-span-2" hint="Any email works; it doesn't need to be a work address.">
+        <Field id={id("email")} label="Email" error={errors.email} className="sm:col-span-2">
           <input
             id={id("email")}
             type="email"
             inputMode="email"
             className="field"
+            placeholder="Any address, work or personal"
             autoComplete="email"
             value={v.email}
             onChange={(e) => set("email", e.target.value)}
@@ -543,17 +545,17 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         </Field>
       </div>
 
-      <div className="mt-10 space-y-4 border-t hairline pt-8">
-        <label className={cn("-m-3 flex cursor-pointer items-start gap-3 rounded-2xl p-3", errors.privacy && "bg-accent-soft/60")}>
+      <div className="mt-6 space-y-2.5 border-t hairline pt-5">
+        <label className={cn("-m-2 flex cursor-pointer items-center gap-3 rounded-xl p-2", errors.privacy && "bg-accent-soft/60")}>
           <input
             id={id("privacy")}
             type="checkbox"
             checked={v.privacy}
             onChange={(e) => set("privacy", e.target.checked)}
-            className="mt-0.5 size-[18px] shrink-0 accent-[var(--color-ink)]"
+            className="size-4 shrink-0 accent-[var(--color-ink)]"
             {...invalid("privacy")}
           />
-          <span className="t-small">
+          <span className="text-[0.8125rem] leading-snug">
             I understand the {copy.the.replace(/^the /, "")} events team will use these details to reply to my inquiry, as described in the{" "}
             {copy.public.privacyUrl ? (
               <a href={copy.public.privacyUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
@@ -571,14 +573,14 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             {errors.privacy}
           </p>
         )}
-        <label className="flex cursor-pointer items-start gap-3">
+        <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
             checked={v.news}
             onChange={(e) => set("news", e.target.checked)}
-            className="mt-0.5 size-[18px] shrink-0 accent-[var(--color-ink)]"
+            className="size-4 shrink-0 accent-[var(--color-ink)]"
           />
-          <span className="t-small text-stone">Send me the occasional note about new spaces and open dates.</span>
+          <span className="text-[0.8125rem] leading-snug text-stone">Send me the occasional note about new spaces and open dates.</span>
         </label>
       </div>
 
@@ -698,8 +700,9 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
 
   /* ---------- Steps, and the buttons that move between them ---------- */
 
-  const stacked = layout !== "split";
-  const legendClass = { split: "t-h1", focused: "t-h2", card: "t-h2", sentence: "t-h1" }[layout];
+  // The focused page sets date and guests side by side, so every step fits on one screen
+  const stacked = layout !== "split" && (layout !== "focused" || modal);
+  const legendClass = { split: "t-h1", focused: "t-h3", card: "t-h2", sentence: "t-h1" }[layout];
   const fieldset = (
     <AnimatePresence mode="wait" initial={false}>
       <motion.fieldset
@@ -717,14 +720,14 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
         ) : (
           <>
             {step === 0 && (
-              <div className={cn("mt-8 grid gap-6", !stacked && "sm:grid-cols-2")}>
+              <div className={cn(gap, "grid gap-6", !stacked && "sm:grid-cols-2")}>
                 {dateControl}
                 {guestsControl}
               </div>
             )}
-            {step === 1 && <div className="mt-8">{venuePicker}</div>}
+            {step === 1 && <div className={gap}>{venuePicker}</div>}
             {step === 2 && (
-              <div className="mt-8 space-y-8">
+              <div className={cn(gap, "space-y-6")}>
                 {budgetControl}
                 {eventControl}
                 {messageControl}
@@ -887,7 +890,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
       </button>
     );
     const simulate = isDemo && step === 3 && (
-      <label className="t-meta mt-6 flex cursor-pointer items-center gap-2">
+      <label className="t-meta mt-5 flex cursor-pointer items-center gap-2">
         <input type="checkbox" checked={simulateFail} onChange={(e) => setSimulateFail(e.target.checked)} className="accent-[var(--color-stone)]" />
         Demo: simulate a connection error
       </label>
@@ -962,6 +965,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
                   </div>
                 ))}
             </dl>
+            <p className="t-meta border-t hairline py-3.5">{LEAD}</p>
           </div>
         </div>
       );
@@ -971,8 +975,7 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
           <div className="lg:col-span-7">
             <header>
               <p className="t-small font-medium text-accent">Event inquiry · {building.name}</p>
-              <h1 className="t-h1 mt-3">Plan your event.</h1>
-              <p className="t-lead mt-4 max-w-[46ch] text-stone">{LEAD}</p>
+              <h1 className="t-h2 mt-2">Plan your event.</h1>
             </header>
 
             {/* Phones: the venues sit above the form, where the card would be */}
@@ -981,15 +984,15 @@ export function InquiryForm({ initial, onClose }: { initial: InquiryInitial; onC
             {/* The steps in a card of their own, a match for the summary beside it */}
             <form
               {...formProps}
-              className="soft mt-8 scroll-mt-[calc(var(--nav-h)+16px)] rounded-[24px] bg-paper shadow-[var(--shadow-soft)] lg:mt-12 lg:rounded-[28px]"
+              className="soft mt-6 scroll-mt-[calc(var(--nav-h)+16px)] rounded-[24px] bg-paper shadow-[var(--shadow-soft)] lg:mt-8 lg:rounded-[28px]"
             >
-              <div className="px-5 pb-8 pt-6 sm:px-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-9">
+              <div className="px-5 pb-6 pt-6 sm:px-8 sm:pt-7">
                 {stepper}
-                <div className="mt-9 lg:mt-11">{fieldset}</div>
+                <div className="mt-7">{fieldset}</div>
                 {simulate}
               </div>
               {/* Actions stay in reach at the bottom of the screen on long steps */}
-              <div className="sticky bottom-0 z-10 rounded-b-[24px] bg-paper/90 px-5 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 backdrop-blur-xl sm:px-8 sm:pb-4 lg:rounded-b-[28px] lg:px-10">
+              <div className="sticky bottom-0 z-10 rounded-b-[24px] bg-paper/90 px-5 pb-[calc(env(safe-area-inset-bottom)+14px)] pt-3.5 backdrop-blur-xl sm:px-8 sm:pb-6 lg:rounded-b-[28px]">
                 <div className="flex items-center justify-between gap-4">
                   {backButton}
                   {sendButton}

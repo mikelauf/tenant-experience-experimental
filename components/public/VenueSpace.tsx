@@ -9,7 +9,7 @@ import { SetupVisualizer } from "./SetupVisualizer";
 /**
  * "The space": the venue in one place, near the top of its page. The 3D room set for an event leads,
  * with its controls in one rail (setup, guests, inquiry). The building's floor plan rides under the
- * inquiry card, and the photos just above point out what's in them. "3D render" swaps the room for
+ * inquiry card, and the photos just above point out what's in them. "In the building" swaps the room for
  * the tower with this floor lit, so where it sits is answered here rather than on the explorer.
  */
 export function VenueSpace({ v }: { v: Pick<Venue, "slug" | "name" | "sqft" | "layout" | "views" | "viewBearing" | "level"> }) {
