@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { dayKey } from "@/lib/time";
 
@@ -20,8 +21,21 @@ export function DateStrip({
   mine?: (d: Date) => boolean;
   id?: string;
 }) {
+  // Keep the picked day in sight when the strip is wider than its box (a day linked from elsewhere may start off-screen).
+  // Scrolls only the strip itself, never the page.
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const box = ref.current;
+    const on = box?.querySelector<HTMLElement>("[aria-selected=true]");
+    if (!box || !on || box.scrollWidth <= box.clientWidth) return;
+    const left = on.offsetLeft - box.offsetLeft;
+    if (left < box.scrollLeft || left + on.offsetWidth > box.scrollLeft + box.clientWidth)
+      box.scrollTo({ left: left - (box.clientWidth - on.offsetWidth) / 2, behavior: "smooth" });
+  }, [value]);
+
   return (
     <div
+      ref={ref}
       role="tablist"
       aria-label="Choose a day"
       className="no-scrollbar -mx-[var(--gutter)] flex gap-1.5 overflow-x-auto px-[var(--gutter)] py-1 sm:mx-0 sm:px-0"

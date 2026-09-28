@@ -4,18 +4,18 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ViewTransition, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-import { roomCapacity, roomHours, setupLabels } from "@/lib/data/shared";
+import { roomCapacity, setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
 import { shellFromPlate, specsFromCapacities } from "@/lib/setup/shell";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
-import { dayKey, fmtTime, week } from "@/lib/time";
+import { fmtLongDay, fmtTime, week } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
 import { SetupVisualizer } from "@/components/public/SetupVisualizer";
 import { DateStrip } from "../DateStrip";
-import { AvailabilityBar, CLOSE, isBusy } from "./Availability";
+import { BOOK_AHEAD, bookableDays, CLOSE, freeStarts, isBusy } from "./Availability";
 import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 const durations = [30, 60, 90, 120];
@@ -27,34 +27,31 @@ export function RoomDetail({ slug }: { slug: string }) {
   const params = useSearchParams();
   const s = useDemo();
   const hydrated = useHydrated();
-  const days = useMemo(() => week(), []);
-  const [day, setDay] = useState(params.get("day") ?? dayKey(days[0]));
+  const shell = useMemo(() => shellFromPlate(r.plate), [r.plate]);
+  const specs = useMemo(() => specsFromCapacities(Object.fromEntries(r.setups.map((x) => [x, roomCapacity(r, x)])) as Partial<Record<Setup, number>>), [r]);
+  const days = useMemo(() => bookableDays(week(BOOK_AHEAD)), []);
+  const [picked, setPicked] = useState<string | null>(params.get("day"));
+  // Without a day in the link, the first one with the room free
+  const first = hydrated ? (days.find((x) => freeStarts(r.slug, x.offset).length) ?? days[0]!) : days[0]!;
+  const day = days.find((x) => x.key === picked) ?? first;
   const [start, setStart] = useState<number | null>(params.get("start") ? Number(params.get("start")) : null);
   const [dur, setDur] = useState(Number(params.get("dur") ?? 60));
   const [setup, setSetup] = useState<Setup>((params.get("setup") as Setup) ?? r.setups[0]);
   const [people, setPeople] = useState(Number(params.get("people") ?? Math.min(r.capacity, 4)));
   const [title, setTitle] = useState(params.get("title") ?? "");
 
-  const offset = Math.max(
-    0,
-    days.findIndex((d) => dayKey(d) === day),
-  );
-  const d = days[offset];
-  const weekend = d.getDay() === 0 || d.getDay() === 6;
-  const now = new Date();
-  const nowMin = offset === 0 ? now.getHours() * 60 + now.getMinutes() : 0;
+  const offset = day.offset;
+  // Only times the room is free for the chosen length (at least half an hour)
+  const starts = hydrated ? freeStarts(r.slug, offset, 30) : [];
   const cap = roomCapacity(r, setup);
-  const valid = start != null && !isBusy(r.slug, offset, start, start + dur) && start + dur <= CLOSE && people <= cap && !weekend;
+  const clash = start != null && (isBusy(r.slug, offset, start, start + dur) || start + dur > CLOSE);
+  const valid = start != null && !clash && people <= cap;
 
-  const q = new URLSearchParams({ day, start: String(start ?? ""), dur: String(dur), setup, people: String(people), title });
+  const q = new URLSearchParams({ day: day.key, start: String(start ?? ""), dur: String(dur), setup, people: String(people), title });
   const next = `/spaces/${r.slug}/book?${q}`;
   const signedOut = hydrated && !isMember(s.persona);
-
-  const shell = useMemo(() => shellFromPlate(r.plate), [r.plate]);
-  const specs = useMemo(
-    () => specsFromCapacities(Object.fromEntries(r.setups.map((x) => [x, roomCapacity(r, x)])) as Partial<Record<Setup, number>>),
-    [r],
-  );
+  const waiting = s.persona === "verifying";
+  const when = start != null ? `${fmtLongDay(day.d.toISOString())} · ${fmtTime(start)}–${fmtTime(start + dur)}` : null;
 
   return (
     <div className="pb-[calc(var(--tab-h)+env(safe-area-inset-bottom)+96px)] lg:pb-28">
@@ -105,14 +102,7 @@ export function RoomDetail({ slug }: { slug: string }) {
           {r.setups.length > 1 && (
             <div className="mt-14">
               <h2 className="t-h2">How it sets</h2>
-              <SetupVisualizer
-                className="mt-6"
-                shell={shell}
-                setups={specs}
-                value={setup}
-                onChange={setSetup}
-                title={`${r.name} · Level ${r.level}`}
-              />
+              <SetupVisualizer className="mt-6" shell={shell} setups={specs} value={setup} onChange={setSetup} title={`${r.name} · Level ${r.level}`} />
             </div>
           )}
           <div className="mt-14 border-t hairline pt-8">
@@ -121,7 +111,7 @@ export function RoomDetail({ slug }: { slug: string }) {
               <Pill tone="hold">Sample policy</Pill>
             </div>
             <ul className="t-small mt-4 grid gap-3 text-stone sm:grid-cols-2">
-              <li>Book up to 7 days ahead, 30 minutes to 2 hours.</li>
+              <li>Book up to two weeks ahead, 30 minutes to 2 hours.</li>
               <li>Cancel any time before the start. No-shows release after 15 minutes.</li>
               <li>Coffee service can be added through the concierge.</li>
               <li>
@@ -137,56 +127,61 @@ export function RoomDetail({ slug }: { slug: string }) {
         <aside className="col-span-12 lg:col-span-5 lg:col-start-8" id="book" aria-label={`Book ${r.name}`}>
           <div className="card sticky top-[calc(var(--nav-h)+16px)] p-5 shadow-[var(--shadow-soft)] sm:p-6">
             <p className="t-h3">Book {r.name}</p>
-            <div className="mt-5">
-              <DateStrip id="room" days={days} value={day} onChange={(k) => (setDay(k), setStart(null))} marks={(x) => x.getDay() !== 0 && x.getDay() !== 6} />
+
+            <Step n={1} label="Day" />
+            <div className="mt-3">
+              <DateStrip id="room" days={days.map((x) => x.d)} value={day.key} onChange={(k) => (setPicked(k), setStart(null))} />
             </div>
-            <AvailabilityBar slug={r.slug} dayOffset={offset} selection={start != null ? [start, start + dur] : null} className="mt-5" showLabels />
 
-            {weekend ? (
-              <p className="t-small mt-5 rounded-2xl bg-fog p-4">Meeting rooms are closed on weekends. Pick a weekday.</p>
+            <Step n={2} label="Start time" />
+            {starts.length ? (
+              <div className="no-scrollbar -mx-1 mt-3 grid max-h-[156px] grid-cols-4 gap-1.5 overflow-y-auto px-1 py-0.5" data-lenis-prevent>
+                {starts.map((m) => (
+                  <button
+                    key={m}
+                    aria-pressed={start === m}
+                    onClick={() => setStart(m)}
+                    className={cn(
+                      "t-num h-10 rounded-full text-[0.8125rem] font-medium transition-colors",
+                      start === m ? "bg-ink text-paper" : "bg-quartz hover:bg-fog",
+                    )}
+                  >
+                    {fmtTime(m)}
+                  </button>
+                ))}
+              </div>
             ) : (
-              <>
-                <p className="mt-6 text-[0.9375rem] font-medium">Start time</p>
-                <div className="no-scrollbar -mx-1 mt-3 grid max-h-[176px] grid-cols-4 gap-1.5 overflow-y-auto px-1 py-0.5" data-lenis-prevent>
-                  {roomHours.slice(0, -1).map((m) => {
-                    const busy = isBusy(r.slug, offset, m, m + 30) || m < nowMin;
-                    const on = start === m;
-                    return (
-                      <button
-                        key={m}
-                        disabled={busy}
-                        aria-pressed={on}
-                        onClick={() => setStart(m)}
-                        className={cn(
-                          "h-10 rounded-xl text-[0.8125rem] font-medium tabular-nums transition-colors",
-                          on ? "bg-ink text-paper" : "bg-quartz hover:bg-fog",
-                          busy && "bg-transparent text-stone-2 line-through",
-                        )}
-                      >
-                        {fmtTime(m)}
-                      </button>
-                    );
-                  })}
-                </div>
+              <p className="t-small mt-3 bg-fog p-4">{hydrated ? "Booked up this day. Try another." : "Finding free times…"}</p>
+            )}
 
-                <p className="mt-5 text-[0.9375rem] font-medium">For</p>
-                <div className="mt-3 grid grid-cols-4 gap-1.5 rounded-full bg-quartz p-1">
-                  {durations.map((x) => (
-                    <button
-                      key={x}
-                      aria-pressed={dur === x}
-                      onClick={() => setDur(x)}
-                      className={cn(
-                        "h-9 rounded-full text-[0.8125rem] font-medium",
-                        dur === x ? "bg-paper shadow-[var(--shadow-soft)]" : "text-stone hover:text-ink",
-                      )}
-                    >
-                      {x < 60 ? `${x}m` : `${x / 60}h`}
-                    </button>
-                  ))}
-                </div>
+            <Step n={3} label="How long" />
+            <div className="mt-3 grid grid-cols-4 gap-1.5 rounded-full bg-quartz p-1">
+              {durations.map((x) => (
+                <button
+                  key={x}
+                  aria-pressed={dur === x}
+                  onClick={() => setDur(x)}
+                  className={cn(
+                    "h-9 rounded-full text-[0.8125rem] font-medium",
+                    dur === x ? "bg-paper shadow-[var(--shadow-soft)]" : "text-stone hover:text-ink",
+                  )}
+                >
+                  {x < 60 ? `${x} min` : `${x / 60} hr`}
+                </button>
+              ))}
+            </div>
+            {clash && <p className="t-small mt-3 text-accent">That runs into another booking. Try a shorter time or another start.</p>}
 
-                <div className="mt-5 grid grid-cols-2 gap-3">
+            {/* Members fill in the details here. Signed out, the defaults ride along to the review, which has a Change link back */}
+            {!signedOut && (
+              <details className="group mt-5 border-t hairline pt-4">
+                <summary className="flex cursor-pointer list-none items-center justify-between text-[0.9375rem] font-medium">
+                  Details{" "}
+                  <span className="t-meta font-normal">
+                    {setupLabels[setup]} · {people} {people === 1 ? "person" : "people"}
+                  </span>
+                </summary>
+                <div className="mt-4 grid grid-cols-2 gap-3">
                   <label className="block">
                     <span className="mb-1.5 block text-[0.875rem] font-medium">Setup</span>
                     <select className="field py-3" value={setup} onChange={(e) => setSetup(e.target.value as Setup)}>
@@ -221,29 +216,39 @@ export function RoomDetail({ slug }: { slug: string }) {
                   </span>
                   <input className="field py-3" placeholder="e.g. Quarterly review" value={title} onChange={(e) => setTitle(e.target.value)} />
                 </label>
-                {start != null && isBusy(r.slug, offset, start, start + dur) && (
-                  <p className="t-small mt-3 text-accent">That runs into another booking. Try a shorter time or a different start.</p>
-                )}
-              </>
+              </details>
             )}
 
-            {signedOut ? (
-              <Link
-                href={gateHref(`/spaces/${r.slug}?${q}`)}
-                className="mt-6 flex h-13 items-center justify-center rounded-full bg-ink py-3.5 font-medium text-paper"
-              >
-                {gateLabel(s.persona, "book")}
-              </Link>
-            ) : (
-              <button
-                disabled={!valid}
-                onClick={() => router.push(next)}
-                className="mt-6 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep disabled:bg-fog disabled:text-stone-2"
-              >
-                {start == null ? "Pick a start time" : `Review · ${fmtTime(start)}–${fmtTime(start + dur)}`}
-                {valid && <Icon name="arrow-right" size={18} />}
-              </button>
-            )}
+            <div className="mt-6 border-t hairline pt-5">
+              <p className={cn("text-[0.9375rem] font-medium", !when && "text-stone")}>{when ?? "Pick a start time"}</p>
+              {signedOut ? (
+                waiting ? (
+                  <p className="t-small mt-3 bg-fog p-4">Your building access is being verified. You can book as soon as it&apos;s confirmed.</p>
+                ) : (
+                  <Link
+                    href={valid ? gateHref(next) : "#book"}
+                    aria-disabled={!valid}
+                    className={cn(
+                      "mt-3 flex h-13 items-center justify-center gap-2 rounded-full py-3.5 font-medium transition-colors",
+                      valid ? "bg-ink text-paper hover:bg-accent" : "pointer-events-none bg-fog text-stone-2",
+                    )}
+                  >
+                    {gateLabel(s.persona, "book this")}
+                    {valid && <Icon name="arrow-right" size={18} />}
+                  </Link>
+                )
+              ) : (
+                <button
+                  disabled={!valid}
+                  onClick={() => router.push(next)}
+                  className="mt-3 flex h-13 w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 font-medium text-paper transition-colors hover:bg-accent-deep disabled:bg-fog disabled:text-stone-2"
+                >
+                  Review and book
+                  {valid && <Icon name="arrow-right" size={18} />}
+                </button>
+              )}
+              {signedOut && !waiting && <p className="t-meta mt-3 text-center">You&apos;ll come right back to finish.</p>}
+            </div>
           </div>
         </aside>
       </div>
@@ -271,7 +276,7 @@ export function RoomDetail({ slug }: { slug: string }) {
             .map((x) => (
               <Link
                 key={x.slug}
-                href={`/spaces/${x.slug}?day=${day}`}
+                href={`/spaces/${x.slug}?day=${day.key}`}
                 className="card group flex items-center gap-4 p-3 pr-5 hover:shadow-[var(--shadow-soft)]"
               >
                 <span className="relative size-20 shrink-0 overflow-hidden rounded-xl">
@@ -289,5 +294,15 @@ export function RoomDetail({ slug }: { slug: string }) {
         </div>
       </section>
     </div>
+  );
+}
+
+/** A numbered step in the booking card */
+function Step({ n, label }: { n: number; label: string }) {
+  return (
+    <p className="mt-6 flex items-center gap-2.5 text-[0.9375rem] font-medium">
+      <span className="keep-round t-num grid size-6 place-items-center rounded-full bg-ink text-[0.75rem] text-paper">{n}</span>
+      {label}
+    </p>
   );
 }

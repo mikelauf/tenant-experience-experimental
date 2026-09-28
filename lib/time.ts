@@ -59,8 +59,9 @@ export function until(iso: string, now = Date.now()) {
 }
 
 /** Next 7 days, starting today */
-export const week = () =>
-  Array.from({ length: 7 }, (_, i) => {
+/** The next `n` days from today (a week unless asked) */
+export const week = (n = 7) =>
+  Array.from({ length: n }, (_, i) => {
     const d = startOfDay();
     d.setDate(d.getDate() + i);
     return d;

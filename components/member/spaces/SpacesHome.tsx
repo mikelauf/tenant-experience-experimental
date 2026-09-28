@@ -1,179 +1,240 @@
 "use client";
 
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
-import { ViewTransition, useMemo, useState } from "react";
-import { cn } from "@/lib/cn";
+import { ViewTransition, useEffect, useState } from "react";
+import type { Room } from "@/lib/data/types";
 import { useTenant } from "@/lib/tenants/client";
-import type { RoomTag } from "@/lib/data/types";
-import { useDemo, useHydrated } from "@/lib/store";
-import { dayKey, week } from "@/lib/time";
-import { LineReveal, Reveal } from "@/components/motion/Reveal";
+import { Reveal } from "@/components/motion/Reveal";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
-import { Pill } from "@/components/ui/Pill";
-import { DateStrip } from "../DateStrip";
-import { AvailabilityBar, Legend } from "./Availability";
+import { SignInStrip } from "../SignInStrip";
 
+const numbers = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
+
+/**
+ * Spaces: why people come here, in order. Most want a meeting room, so the rooms lead, smallest first, each saying
+ * what it's for, what's in it and how it books; times only appear inside a room. Then how booking works, then the
+ * bigger thing, an event planned with the events team.
+ */
 export function SpacesHome() {
-  const days = useMemo(() => week(), []);
-  const [day, setDay] = useState(dayKey(days[0]));
-  const [tag, setTag] = useState<RoomTag | null>(null);
-  const s = useDemo();
-  const hydrated = useHydrated();
-  const offset = days.findIndex((d) => dayKey(d) === day);
-  const { rooms, roomTags, copy, lead } = useTenant();
-  const list = rooms.filter((r) => !tag || r.tags.includes(tag));
-  const caps = rooms.map((r) => r.capacity);
-  const levels = [...new Set(rooms.map((r) => r.level))].sort((a, b) => a - b);
-  const count = ["", "One room", "Two rooms", "Three rooms", "Four rooms", "Five rooms", "Six rooms"][rooms.length] ?? `${rooms.length} rooms`;
+  const { rooms, copy, lead } = useTenant();
+  const list = [...rooms].sort((a, b) => a.capacity - b.capacity);
+  const caps = list.map((r) => r.capacity);
+  const levels = [...new Set(list.map((r) => r.level))].sort((a, b) => a - b);
+  const instant = list.filter((r) => r.approval === "instant").length;
+  const first = lead.name.split(" ")[0];
 
-  const mineFor = (slug: string): [number, number] | null => {
-    if (!hydrated) return null;
-    const c = s.commitments.find((x) => x.kind === "room" && x.refId === slug && x.status !== "cancelled" && dayKey(x.startsAt) === day);
-    if (!c) return null;
-    const a = new Date(c.startsAt);
-    const b = new Date(c.endsAt);
-    return [a.getHours() * 60 + a.getMinutes(), b.getHours() * 60 + b.getMinutes()];
-  };
+  const count = numbers[list.length] ?? String(list.length);
+  const asks = list.filter((r) => r.approval === "request").map((r) => r.name);
+  const booking =
+    instant === list.length
+      ? "All of them book instantly"
+      : instant === 0
+        ? "Each needs a quick approval"
+        : `${numbers[instant] ?? instant} of them book instantly; ${asks.join(" and ")} ${asks.length > 1 ? "need" : "needs"} a quick approval`;
 
   return (
     <div className="pb-tab lg:pb-28">
-      <section className="frame pt-[calc(var(--nav-h)+40px)] lg:pt-[calc(var(--nav-h)+64px)]">
-        <p className="t-lead text-stone">Meetings & events</p>
-        <LineReveal as="h1" className="t-hero mt-2" lines={["A room for the meeting.", "A team for the moment."]} />
-      </section>
-
-      {/* Two intents */}
-      <section className="frame mt-10 grid gap-3 lg:mt-14 lg:grid-cols-12" aria-label="What are you planning?">
-        {[
-          {
-            href: "#rooms",
-            k: "Book a room",
-            t: `${count} for ${Math.min(...caps)} to ${Math.max(...caps)}, on ${levels.length > 1 ? "Levels" : "Level"} ${levels.join(" and ")}.`,
-            d: "Most book instantly. Pick a time, confirm, done.",
-            img: copy.spaces.roomsImg,
-            span: "lg:col-span-7",
-          },
-          {
-            href: "/spaces/plan-an-event",
-            k: "Plan an event",
-            t: "Receptions, offsites and dinners, planned with you.",
-            d: `Tell ${lead.name.split(" ")[0]}'s team what you have in mind.`,
-            img: copy.spaces.planImg,
-            span: "lg:col-span-5",
-          },
-        ].map((x, i) => (
-          <Reveal key={x.k} delay={i * 0.08} className={x.span}>
-            <Link
-              href={x.href}
-              className="group relative block aspect-[4/5] overflow-hidden rounded-[var(--radius-media)] sm:aspect-[16/10] lg:aspect-auto lg:h-[520px]"
-            >
-              <Image
-                src={x.img.src}
-                alt={x.img.alt}
-                fill
-                sizes="(min-width:1024px) 58vw, 100vw"
-                priority={i === 0}
-                className="object-cover transition-transform duration-[1.4s] ease-[var(--ease-out-expo)] group-hover:scale-[1.03]"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-6 p-6 text-white sm:p-8">
-                <div>
-                  <p className="text-[0.875rem] font-medium text-white/75">{x.k}</p>
-                  <p className="t-h2 mt-2 max-w-[20ch]">{x.t}</p>
-                  <p className="t-small mt-2 text-white/75">{x.d}</p>
-                </div>
-                <span className="grid size-12 shrink-0 place-items-center rounded-full bg-white text-ink transition-transform duration-300 group-hover:translate-x-1">
-                  <Icon name={i === 0 ? "chevron-down" : "arrow-right"} size={20} />
-                </span>
-              </div>
-            </Link>
-          </Reveal>
-        ))}
-      </section>
-
-      {/* Rooms */}
-      <section id="rooms" className="pt-24 lg:pt-32" aria-labelledby="rooms-h">
-        <div className="frame flex flex-wrap items-end justify-between gap-4">
-          <h2 id="rooms-h" className="t-h1">
-            Meeting rooms
-          </h2>
-          <Legend />
-        </div>
-        <div className="sticky top-[var(--nav-h)] z-30 mt-6 border-b hairline bg-quartz/88 backdrop-blur-xl">
-          <div className="frame flex flex-col gap-3 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <DateStrip id="rooms" days={days} value={day} onChange={setDay} marks={(d) => d.getDay() !== 0 && d.getDay() !== 6} />
-            <div
-              role="group"
-              aria-label="Filter rooms"
-              className="no-scrollbar -mx-[var(--gutter)] flex gap-1.5 overflow-x-auto px-[var(--gutter)] lg:mx-0 lg:px-0"
-            >
-              {roomTags.map((t) => (
-                <button
-                  key={t.id}
-                  aria-pressed={tag === t.id}
-                  onClick={() => setTag(tag === t.id ? null : t.id)}
-                  className={cn(
-                    "h-9 shrink-0 rounded-full px-3.5 text-[0.8125rem] font-medium transition-colors",
-                    tag === t.id
-                      ? "bg-ink text-paper"
-                      : "bg-paper text-ink-2 shadow-[inset_0_0_0_1px_var(--color-line-2)] hover:shadow-[inset_0_0_0_1px_var(--color-stone-2)]",
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
+      {/* The header sits on a band a couple of shades darker than the page, so the rooms start on a clean edge below */}
+      <section className="bg-[#e9e6df]">
+        <div className="frame pb-10 pt-[calc(var(--nav-h)+32px)] lg:pb-12 lg:pt-[calc(var(--nav-h)+48px)]">
+          <div className="grid-12 items-end gap-y-8">
+            <div className="col-span-12 lg:col-span-7">
+              <p className="t-meta">Spaces</p>
+              <h1 className="t-hero mt-3">
+                Book a room for
+                <RoomUse rooms={list} />
+              </h1>
+              <p className="t-lead mt-4 max-w-[46ch] text-stone">
+                {count} rooms for {Math.min(...caps)} to {Math.max(...caps)} people on {levels.length > 1 ? "Levels" : "Level"} {levels.join(" and ")}.{" "}
+                {booking}. Open one to see its free times.
+              </p>
             </div>
+            {/* The other reason people come here, beside the first */}
+            <Link
+              href="/spaces/plan-an-event"
+              className="group col-span-12 flex items-center gap-4 bg-paper p-3 pr-5 shadow-[var(--shadow-ring)] transition-shadow hover:shadow-[var(--shadow-soft)] sm:col-span-8 lg:col-span-4 lg:col-start-9"
+            >
+              <span className="relative size-20 shrink-0 overflow-hidden">
+                <Image src={copy.spaces.planImg.src} alt="" fill sizes="80px" className="object-cover" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="t-meta block">Bigger than a meeting?</span>
+                <span className="mt-0.5 block font-medium">Plan an event with {first}&apos;s team</span>
+              </span>
+              <Icon name="arrow-right" size={18} className="shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </Link>
           </div>
         </div>
+      </section>
 
-        <ul className="frame mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {list.map((r) => (
-            <li key={r.slug}>
-              <Link href={`/spaces/${r.slug}?day=${day}`} className="group block">
-                <div className="media relative aspect-[4/3]">
-                  <ViewTransition name={`room-${r.slug}`} share="morph" default="none">
-                    <div className="absolute inset-0">
-                      <Image
-                        src={r.image.src}
-                        alt={r.image.alt}
-                        fill
-                        sizes="(min-width:1280px) 25vw, (min-width:640px) 50vw, 100vw"
-                        className="object-cover transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-[1.04]"
-                      />
+      {/* The rooms, smallest first: what each is for and what's in it; times are inside */}
+      <section id="rooms" className="frame scroll-mt-[calc(var(--nav-h)+24px)] pt-8 lg:pt-10" aria-label="Meeting rooms">
+        <ul>
+          {list.map((r, i) => (
+            <li key={r.slug} id={`room-${r.slug}`} className="scroll-mt-[calc(var(--nav-h)+24px)] border-b hairline">
+              <Reveal delay={Math.min(i, 3) * 0.04}>
+                <Link href={`/spaces/${r.slug}`} className="group grid-12 items-center gap-y-5 py-6">
+                  <div className="media relative col-span-12 aspect-[3/2] sm:col-span-4 lg:col-span-3 lg:aspect-[4/3]">
+                    <ViewTransition name={`room-${r.slug}`} share="morph" default="none">
+                      <div className="absolute inset-0">
+                        <Image
+                          src={r.image.src}
+                          alt={r.image.alt}
+                          fill
+                          sizes="(min-width:1024px) 24vw, (min-width:640px) 34vw, 100vw"
+                          className="object-cover transition-transform duration-[1.2s] ease-[var(--ease-out-expo)] group-hover:scale-[1.05]"
+                        />
+                      </div>
+                    </ViewTransition>
+                  </div>
+
+                  <div className="col-span-12 sm:col-span-8 lg:col-span-6 lg:col-start-4 lg:pl-6">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {r.use && <span className="bg-accent-soft px-2 py-0.5 text-[0.75rem] font-medium text-accent-deep">For {r.use}</span>}
+                      <span className="t-meta">Level {r.level}</span>
                     </div>
-                  </ViewTransition>
-                  <div className="absolute left-3 top-3">
-                    {r.approval === "instant" ? (
-                      <Pill className="bg-paper/95">
-                        <Icon name="bolt" size={13} /> Instant
-                      </Pill>
-                    ) : (
-                      <Pill tone="hold" className="bg-hold-soft/95">
-                        Needs approval
-                      </Pill>
-                    )}
+                    <p className="t-h2 mt-2 transition-colors group-hover:text-accent">{r.name}</p>
+                    <p className="t-small mt-2 max-w-[52ch] text-stone">{r.summary}</p>
+                    <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
+                      {r.amenities.map((a) => (
+                        <li key={a.label} className="t-small flex items-center gap-1.5 text-ink-2">
+                          <Icon name={a.icon} size={15} className="text-stone" />
+                          {a.label}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-                <div className="mt-4 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="t-h3">{r.name}</p>
-                    <p className="t-meta mt-0.5">
-                      Up to {r.capacity} · Level {r.level}
-                    </p>
+
+                  <div className="col-span-12 flex items-end justify-between gap-4 lg:col-span-3 lg:flex-col lg:items-end lg:gap-4">
+                    <Seats n={r.capacity} />
+                    <div className="flex flex-col items-end gap-2">
+                      <p className="t-meta flex items-center gap-1.5">
+                        {r.approval === "instant" ? (
+                          <>
+                            <Icon name="bolt" size={13} className="text-ok" /> Books instantly
+                          </>
+                        ) : (
+                          <>
+                            <Icon name="clock" size={13} className="text-hold" /> Quick approval
+                          </>
+                        )}
+                      </p>
+                      <span className="inline-flex h-10 shrink-0 items-center gap-2 rounded-full bg-ink px-4 text-[0.875rem] font-medium text-paper transition-colors group-hover:bg-accent">
+                        See times
+                        <Icon name="arrow-right" size={15} className="transition-transform group-hover:translate-x-0.5" />
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-1.5 text-stone">
-                    {r.amenities.slice(0, 3).map((a) => (
-                      <Icon key={a.label} name={a.icon} size={18} />
-                    ))}
-                  </div>
-                </div>
-                <AvailabilityBar slug={r.slug} dayOffset={offset} selection={mineFor(r.slug)} className="mt-4" showLabels />
-              </Link>
+                </Link>
+              </Reveal>
             </li>
           ))}
         </ul>
       </section>
+
+      {/* How booking works, for anyone who hasn't booked here before */}
+      <section className="frame pt-20 lg:pt-28" aria-labelledby="how-h">
+        <h2 id="how-h" className="t-h2">
+          How booking works
+        </h2>
+        <ol className="mt-8 grid gap-8 sm:grid-cols-3">
+          {[
+            ["Pick a room and a time", "Each room shows its free times for the next two weeks, from 30 minutes to 2 hours."],
+            ["Sign in with your work email", "Once. After that you book in a tap, and you land right back where you were."],
+            ["It's yours", "Most rooms confirm on the spot. The booking waits in your plans, with the floor and the room."],
+          ].map(([t, d], i) => (
+            <li key={t} className="border-t-2 border-ink pt-5">
+              <p className="t-num text-[0.875rem] text-accent">0{i + 1}</p>
+              <p className="t-h3 mt-2">{t}</p>
+              <p className="t-small mt-2 max-w-[34ch] text-stone">{d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* The bigger thing */}
+      <section className="frame pt-20 lg:pt-28" aria-labelledby="plan-h">
+        <Link href="/spaces/plan-an-event" className="group relative block overflow-hidden rounded-[var(--radius-media)]">
+          <div className="relative aspect-[4/5] sm:aspect-[16/9] lg:aspect-[21/9]">
+            <Image
+              src={copy.spaces.planImg.src}
+              alt={copy.spaces.planImg.alt}
+              fill
+              sizes="100vw"
+              className="object-cover transition-transform duration-[1.4s] ease-[var(--ease-out-expo)] group-hover:scale-[1.03]"
+            />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/35 to-transparent" />
+          <div className="absolute inset-0 flex flex-col justify-end p-6 text-white sm:p-10 lg:justify-center lg:p-14">
+            <p className="text-[0.875rem] font-medium text-white/75">Bigger than a meeting?</p>
+            <h2 id="plan-h" className="t-h1 mt-3 max-w-[16ch]">
+              Receptions, offsites and dinners, planned with you.
+            </h2>
+            <p className="t-body mt-4 max-w-[40ch] text-white/80">
+              Tell {first}&apos;s team what you have in mind. They&apos;ll suggest a space in the building, sort catering and AV, and be there on the night.
+            </p>
+            <span className="mt-7 inline-flex h-12 items-center gap-2 self-start rounded-full bg-white px-6 font-medium text-ink transition-transform group-hover:-translate-y-0.5">
+              Plan an event <Icon name="arrow-right" size={17} />
+            </span>
+          </div>
+        </Link>
+      </section>
+
+      <SignInStrip verb="book a room" returnTo="/spaces" className="mt-20" />
+    </div>
+  );
+}
+
+/**
+ * The headline's last words, cycling through what each room is for ("one-on-ones", "workshops"…). Plain text; it
+ * holds while hovered, and without motion it stays on the first.
+ */
+function RoomUse({ rooms }: { rooms: Room[] }) {
+  const uses = rooms.filter((r) => r.use);
+  const reduce = useReducedMotion();
+  const [i, setI] = useState(0);
+  const [held, setHeld] = useState(false);
+  useEffect(() => {
+    if (reduce || held || uses.length < 2) return;
+    const t = setTimeout(() => setI((x) => (x + 1) % uses.length), 4500);
+    return () => clearTimeout(t);
+  }, [i, reduce, held, uses.length]);
+  const r = uses[i];
+  if (!r) return null;
+  return (
+    <span className="block overflow-hidden pb-[0.12em]" onPointerEnter={() => setHeld(true)} onPointerLeave={() => setHeld(false)}>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={r.slug}
+          initial={{ y: "100%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "-100%", opacity: 0 }}
+          transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+          className="block text-accent"
+        >
+          {r.use}.
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
+/** How many it seats, drawn: one mark per person, ten to a row. They fill in on hover. */
+function Seats({ n }: { n: number }) {
+  return (
+    <div className="flex flex-col items-start gap-2 lg:items-end">
+      <div className="flex flex-wrap gap-[3px]" style={{ width: Math.min(n, 10) * 10 - 3 }} aria-hidden>
+        {Array.from({ length: n }, (_, k) => (
+          <span
+            key={k}
+            className="size-[7px] bg-stone-2/45 transition-colors duration-300 group-hover:bg-accent"
+            style={{ transitionDelay: `${Math.min(k, 40) * 12}ms` }}
+          />
+        ))}
+      </div>
+      <p className="t-small font-medium">Up to {n} people</p>
     </div>
   );
 }

@@ -14,6 +14,7 @@ const { huddle, boardroom, boardroomReal, montgomeryHall } = images;
 export const rooms: Room[] = [
   {
     slug: "clay",
+    use: "one-on-ones",
     name: "Clay",
     namesake: "Clay Street, to the north",
     level: 6,
@@ -32,6 +33,7 @@ export const rooms: Room[] = [
   },
   {
     slug: "jackson",
+    use: "hybrid calls",
     name: "Jackson",
     namesake: "Jackson Street and the old Barbary Coast",
     level: 6,
@@ -52,6 +54,7 @@ export const rooms: Room[] = [
   // Clay, Jackson and Merchant are samples.
   {
     slug: "pereira",
+    use: "board meetings",
     name: "Pereira Room",
     namesake: "William Pereira, who designed the tower",
     level: 6,
@@ -71,6 +74,7 @@ export const rooms: Room[] = [
   },
   {
     slug: "foster",
+    use: "workshops",
     name: "Foster Room",
     namesake: "Foster + Partners, who reopened the tower in 2024",
     level: 6,
@@ -90,6 +94,7 @@ export const rooms: Room[] = [
   },
   {
     slug: "merchant",
+    use: "the all-hands",
     name: "Merchant",
     namesake: "Merchant Street, where the tower's footprint began",
     level: 5,

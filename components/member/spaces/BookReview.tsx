@@ -14,7 +14,7 @@ import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
-import { isBusy } from "./Availability";
+import { BOOK_AHEAD, isBusy } from "./Availability";
 import { gateHref, gateLabel, isMember } from "@/lib/access";
 
 /** Airbnb "Review and continue", then an in-place confirmation. */
@@ -25,7 +25,7 @@ export function BookReview({ slug }: { slug: string }) {
   const s = useDemo();
   const hydrated = useHydrated();
   const reduce = useReducedMotion();
-  const days = useMemo(() => week(), []);
+  const days = useMemo(() => week(BOOK_AHEAD), []);
   const day = params.get("day") ?? dayKey(days[0]);
   const start = Number(params.get("start"));
   const dur = Number(params.get("dur") ?? 60);
