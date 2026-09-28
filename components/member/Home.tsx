@@ -8,7 +8,7 @@ import type { Commitment } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 
-import { fmtDay, fmtRange, until } from "@/lib/time";
+import { fmtDay, fmtRange, until, zoned } from "@/lib/time";
 import { useNow as useClock } from "@/lib/useNow";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
@@ -24,7 +24,7 @@ import { SignInUnlocks } from "./home/SignInUnlocks";
 import { WhatYouCanUse } from "./home/WhatYouCanUse";
 
 function greeting(now: number) {
-  const h = new Date(now).getHours();
+  const h = zoned(now).hour;
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 

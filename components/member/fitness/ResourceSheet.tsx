@@ -8,7 +8,7 @@ import { resourceSlots } from "@/lib/data/shared";
 import type { Resource } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
-import { dayKey, fmtTime, week } from "@/lib/time";
+import { dayKey, fmtTime, onDay, week } from "@/lib/time";
 import { useNow } from "@/lib/useNow";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
@@ -31,11 +31,7 @@ export function ResourceSheet({ r, onClose }: { r: Resource | null; onClose: () 
   const offset = days.indexOf(d);
   const now = useNow();
   const slots = r ? resourceSlots(r.kind) : [];
-  const iso = (m: number) => {
-    const x = new Date(d);
-    x.setMinutes(m);
-    return x.toISOString();
-  };
+  const iso = (m: number) => onDay(d, m);
   // A few slots are taken, deterministically
   const taken = (m: number) => (m / 30 + offset * 3 + (r?.slug.length ?? 0)) % 4 === 0;
 

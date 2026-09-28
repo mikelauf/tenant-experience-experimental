@@ -1,4 +1,4 @@
-import { at, dayKey, week } from "@/lib/time";
+import { at, dayKey, week, zoned } from "@/lib/time";
 import type { ClassSession } from "@/lib/data/types";
 import type { Tenant, TenantData } from "./types";
 
@@ -10,7 +10,7 @@ export function makeTenant(d: TenantData): Tenant {
 
   const sessionsFor = (day: Date): ClassSession[] => {
     if (!f) return [];
-    const slots = f.weekly[day.getDay()] ?? [];
+    const slots = f.weekly[zoned(day).weekday] ?? [];
     const offset = Math.round((day.getTime() - week()[0].getTime()) / 86400000);
     return slots.map(([kind, min, coachId]) => {
       const id = `${dayKey(day)}-${kind}-${min}`;

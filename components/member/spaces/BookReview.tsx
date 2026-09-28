@@ -9,7 +9,7 @@ import { setupLabels } from "@/lib/data/shared";
 import type { Setup } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
-import { dayKey, fmtLongDay, fmtTime, week } from "@/lib/time";
+import { dayKey, fmtLongDay, fmtTime, onDay, week } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -36,9 +36,7 @@ export function BookReview({ slug }: { slug: string }) {
   const [stage, setStage] = useState<"review" | "working" | "done">("review");
 
   const d = days[offset] ?? days[0];
-  const at = new Date(d);
-  at.setMinutes(start);
-  const iso = at.toISOString();
+  const iso = onDay(d, start);
   const back = `/spaces/${r.slug}?${params.toString()}`;
   const invalid = !params.get("start") || offset < 0 || isBusy(r.slug, offset, start, start + dur);
   const request = r.approval === "request";

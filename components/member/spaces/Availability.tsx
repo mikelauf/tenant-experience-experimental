@@ -1,5 +1,5 @@
 import { busyFor, roomHours } from "@/lib/data/shared";
-import { dayKey } from "@/lib/time";
+import { dayKey, zoned } from "@/lib/time";
 
 const OPEN = 8 * 60;
 const CLOSE = 19 * 60;
@@ -9,7 +9,7 @@ export const isBusy = (slug: string, dayOffset: number, start: number, end: numb
 /** How far ahead rooms can be booked, in calendar days: two working weeks */
 export const BOOK_AHEAD = 14;
 
-const isWeekend = (d: Date) => d.getDay() === 0 || d.getDay() === 6;
+const isWeekend = (d: Date) => zoned(d).weekday === 0 || zoned(d).weekday === 6;
 
 /**
  * The days rooms can be booked: the weekdays among them (rooms are closed at weekends), each with its offset from today,
@@ -21,7 +21,7 @@ export function bookableDays(days: Date[]) {
 
 /** Every start time with `dur` free minutes after it, from opening (or from now, today) to closing */
 export function freeStarts(slug: string, offset: number, dur = 60, now = new Date()) {
-  const from = offset === 0 ? now.getHours() * 60 + now.getMinutes() : 0;
+  const from = offset === 0 ? zoned(now).minutes : 0;
   return roomHours.filter((m) => m >= from && m + dur <= CLOSE && !isBusy(slug, offset, m, m + dur));
 }
 

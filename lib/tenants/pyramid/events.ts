@@ -2,7 +2,7 @@ import { at } from "@/lib/time";
 import { images } from "./images";
 import type { BuildingEvent } from "@/lib/data/types";
 
-/** Built lazily so dates are relative to "now" in the browser. */
+/** Built lazily so dates are relative to "now" (the building's today, on the server and in the browser alike). */
 export const events = (): BuildingEvent[] => [
   {
     slug: "coffee-cupping",

@@ -5,7 +5,7 @@ import { ViewTransition, useMemo } from "react";
 import { rsvpEvent } from "@/lib/commit";
 import { actions, findActive, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
-import { addMin, fmtLongDay, fmtRange } from "@/lib/time";
+import { addMin, fmtDay, fmtLongDay, fmtRange } from "@/lib/time";
 import Image from "@/components/ui/SmoothImage";
 import { Icon } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
@@ -103,7 +103,7 @@ export function EventDetail({ slug }: { slug: string }) {
             <h1 className="t-hero mt-5 max-w-[14ch]">{e.name}</h1>
             <dl className="mt-8 grid max-w-[520px] grid-cols-3 gap-px overflow-hidden rounded-[18px] bg-night-line">
               {[
-                { k: "Date", v: new Date(e.startsAt).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) },
+                { k: "Date", v: fmtDay(e.startsAt, { relative: false }) },
                 { k: "Time", v: fmtRange(e.startsAt, addMin(e.startsAt, e.durationMin)) },
                 { k: "Where", v: e.place },
               ].map((x) => (

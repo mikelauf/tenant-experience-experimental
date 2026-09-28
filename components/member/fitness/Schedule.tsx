@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import type { ClassKind, ClassSession } from "@/lib/data/types";
 import { useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
-import { dayKey, week } from "@/lib/time";
+import { dayKey, fmtDate, week } from "@/lib/time";
 import { Icon } from "@/components/ui/Icon";
 import { DateStrip } from "../DateStrip";
 import { ClassAction, useClassState } from "./ClassAction";
@@ -28,7 +28,7 @@ function Row({ c, onOpen, i }: { c: ClassSession; onOpen: () => void; i: number 
   const t = tenant.template(c.kind);
   const st = useClassState(c);
   const d = new Date(c.startsAt);
-  const [hm, ap] = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).split(" ");
+  const [hm, ap] = fmtDate(d, { hour: "numeric", minute: "2-digit" }).split(" ");
   const pct = Math.min(100, (st.taken / st.cap) * 100);
 
   return (
@@ -146,7 +146,7 @@ export function Schedule() {
       <div className="frame mt-8 lg:grid lg:grid-cols-12 lg:gap-[var(--col-gap)]">
         <div className="lg:col-span-8">
           <p className="t-meta mb-4" aria-live="polite">
-            {current.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {list.length} {list.length === 1 ? "class" : "classes"}
+            {fmtDate(current, { weekday: "long", month: "long", day: "numeric" })} · {list.length} {list.length === 1 ? "class" : "classes"}
           </p>
           <AnimatePresence mode="popLayout" initial={false}>
             {list.length ? (
@@ -179,7 +179,7 @@ export function Schedule() {
                   ) : (
                     nextDayWithClasses && (
                       <button onClick={() => setDay(dayKey(nextDayWithClasses))} className="h-11 rounded-full bg-ink px-5 font-medium text-paper">
-                        See {nextDayWithClasses.toLocaleDateString("en-US", { weekday: "long" })}
+                        See {fmtDate(nextDayWithClasses, { weekday: "long" })}
                       </button>
                     )
                   )}

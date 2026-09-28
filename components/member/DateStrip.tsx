@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
-import { dayKey } from "@/lib/time";
+import { dayKey, fmtDate, zoned } from "@/lib/time";
 
 /** Airbnb-style day picker. `marks` shows a dot (e.g. has classes); `mine` an accent dot (you're booked). */
 export function DateStrip({
@@ -63,9 +63,9 @@ export function DateStrip({
               />
             )}
             <span className={cn("relative text-[0.75rem] font-medium", on ? "text-paper/70" : "text-stone")}>
-              {i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" })}
+              {i === 0 ? "Today" : fmtDate(d, { weekday: "short" })}
             </span>
-            <span className="t-num relative text-[1.375rem] font-medium leading-none">{d.getDate()}</span>
+            <span className="t-num relative text-[1.375rem] font-medium leading-none">{zoned(d).day}</span>
             <span className="relative mt-1 flex h-1.5 gap-1">
               {has && <span className={cn("size-1.5 rounded-full", on ? "bg-paper/50" : "bg-stone-2")} />}
               {mine?.(d) && <span className="size-1.5 rounded-full bg-accent-glow" />}
