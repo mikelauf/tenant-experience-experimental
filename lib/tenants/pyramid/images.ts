@@ -15,7 +15,6 @@ export const images = {
     "building",
     "54% 42%",
   ),
-  aerialBay: p("building/aerial-bay", "Aerial view of the Financial District with the Pyramid, the Bay Bridge and the bay", "building", "50% 55%"),
   pyramidDusk: p("building/pyramid-dusk", "The Pyramid rising above the redwoods at blue hour, with fog drifting past the spire", "bloom", "62% 40%"),
   lobbyCoffee: p("building/lobby-coffee", "Baristas at the travertine coffee bar in the Pyramid's lobby", "building", "50% 55%"),
   lobbyDesk: p("building/lobby-desk", "The lobby's pale stone desk under the diamond-grid oak ceiling", "building", "50% 60%"),
@@ -41,17 +40,12 @@ export const images = {
   bayCoit: p("venues/bay-lounge-coit", "Window tables in the Bay Lounge overlooking Telegraph Hill and Coit Tower", "staging", "50% 45%"),
   bayRound: p("venues/bay-lounge-round", "The Bay Lounge's circular seating island on a woven rug", "staging", "50% 60%"),
   bayBar: p("venues/bay-lounge-bar", "The Bay Lounge coffee bar and lounge seating with city views", "staging", "50% 55%"),
-  baySofas: p("venues/bay-lounge-sofas", "Long curved sofas in the Bay Lounge with views over North Beach", "building", "50% 60%"),
   skyLounge: p("venues/sky-lounge", "Tables and armchairs in the upper lounge, walled with oak shelving", "building", "50% 60%"),
   clubBar: p("venues/club-bar", "A walnut bar with brass stools and backlit shelving", "building", "50% 55%"),
   bayReception: p("venues/bay-lounge-evening", "Guests at an evening reception in the Bay Lounge, city lights behind them", "bloom", "50% 45%"),
 
   /* Redwood Park */
   redwoodFountain: p("venues/redwood-fountain", "Redwood Park's fountain and oak benches under the redwood canopy", "building", "50% 60%"),
-  redwoodKiosk: p("venues/redwood-kiosk", "Morning sun through the redwoods onto the park's kiosk and plantings", "building", "50% 55%"),
-  redwoodSky: p("venues/redwood-sky", "Looking up through a timber art installation in Redwood Park to the Pyramid", "building", "50% 40%"),
-  redwoodPlaza: p("venues/redwood-plaza", "The fountain at the foot of the Pyramid, framed by redwoods", "building", "50% 55%"),
-  redwoodPath: p("venues/redwood-path", "A stone path through the redwood grove toward the fountain", "building", "50% 55%"),
   redwoodEvening: p("venues/redwood-park", "Redwood Park set for an evening event, string lights between the trunks", "bloom", "50% 60%"),
 
   /* Rooms and conference */

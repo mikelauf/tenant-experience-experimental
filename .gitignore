@@ -43,3 +43,7 @@ next-env.d.ts
 
 # Private meeting notes and the source booklet (large, client-internal)
 notes/
+
+# Source photos and local logs (kept on disk, not in git)
+raw/*.png
+raw/dev.log
