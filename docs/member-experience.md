@@ -29,7 +29,12 @@ _Last updated: 2026-09-27._
 
 - [x] 1. Real amenity content: `amenities` on every tenant (`lib/tenants/pyramid/amenities.ts`). Fitness moves to L26. The Foster and Pereira rooms (names and capacities from Core staging) replace Washington. The demo's storage key moves to v2.
 - [x] 2. Personas and sign-in: Public account and Verifying join the dock. `/sign-in` offers an email code or Google, Apple and Microsoft, then a one-time work-email link: a matching domain makes you a member, and anything else goes to review. Every member action goes through `lib/access.ts`, and you land back where you started.
-- [x] 3. Building Home rewrite (`components/member/home/`). `BuildingDoor` is the front door: the tower lit by the real sky over SF right now, with a floor directory and tower markers that follow each other. Green floors are open to you, amber ones need a step. Picking a floor flies the tower there and opens what it is and who can use it. `WhatYouCanUse` groups by Move, Work, Meet, Gather and Eat, with access labels. Each state has its own composition, including an Activity Center for a public account. It replaces `ServiceTabs`; `LiveBuilding` is kept for "your day".
+- [x] 3. Building Home rewrite (`components/member/home/`).
+  - **Hero (`DayHero`), revised 2026-09-27 per Mike: the 3D was too much up top.** A full-bleed photo follows the building's day: the lobby coffee bar in the morning, L26 at midday, L27 at golden hour, Sky Bar after dark, the park on weekends. It's picked by SF's clock and the real sun (`copy.day`, `lib/useBuildingDay.ts`).
+  - **"Right now" line:** the next class with room, what's on today, and sunset.
+  - **Your card:** members get theirs in front of the hero (up next, a first step, verification status, or the Activity Center).
+  - **Inside the building (`InsideTheBuilding`), further down:** a line drawing of the tower is the floor list, sharing its geometry with `TowerLocator` (`lib/elevation.ts`). The 3D tower sits beside it and loads as you scroll near. Picking a floor flies there; L26 and L27 open up.
+  - **What you can use (`WhatYouCanUse`)** is grouped by Move, Work, Meet, Gather and Eat.
 - [ ] 4. 3D, in order:
   - [x] open the floor: pick L26 or L27 on the Home. The floors above lift seven floors, the slab thins to a plate, and an illustrative interior grows on it with its areas named (`lib/tenants/pyramid/interiors.ts`, `components/three/tower/interior.tsx`, `open` on `TowerCanvas`). The camera looks down into it. Phones hide the labels.
   - pick your bike

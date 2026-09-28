@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import type { Venue } from "@/lib/data/types";
 import { useTenant } from "@/lib/tenants/client";
-import { topOf } from "@/lib/tower";
+import { elevation } from "@/lib/elevation";
 import { Icon } from "@/components/ui/Icon";
 
 /** The drawing's own units; it renders at this size on wide screens, a little smaller on phones */
@@ -27,38 +27,13 @@ const shortName = (name: string) => name.replace(/^Transamerica /, "");
 export function TowerLocator({ v }: { v: Pick<Venue, "slug" | "name" | "level"> }) {
   const { tower: p, venues } = useTenant();
   const reduce = useReducedMotion();
-  const top = topOf(p);
-  const crown = p.crown.kind === "spire" ? p.crown.height : p.crown.height + p.crown.mast;
-  const s = (GROUND - 12) / (top + crown);
-  const y = (u: number) => GROUND - u * s;
-  const half = (floor: number) => (p.widthAt(Math.max(0, Math.min(floor, p.floors - 1))) / 2) * s;
-  const inWings = (floor: number) => !!p.wings && floor >= p.wings.from && floor < p.wings.to;
-  const WING_OUT = 0.29 * s;
-
-  // The body, stepped floor by floor (a straight taper reads as a smooth line at this size; setbacks stay crisp)
-  const left: string[] = [];
-  const right: string[] = [];
-  for (let i = 0; i < p.floors; i++) {
-    const w = half(i);
-    left.push(`${CX - w},${y(i * p.floorH)}`, `${CX - w},${y((i + 1) * p.floorH)}`);
-    // Walked back down on the right: each floor's top corner before its bottom one
-    right.unshift(`${CX + w},${y((i + 1) * p.floorH)}`, `${CX + w},${y(i * p.floorH)}`);
-  }
-  const body = [...left, ...right].join(" ");
+  const e = elevation(p, { cx: CX, ground: GROUND });
+  const { s, y, half, inWings, body, wing } = e;
+  const WING_OUT = e.wingOut;
 
   // The park, when the building has one: a short row of trees beside the base, on the side away from the labels
   const baseRight = CX + half(0);
   const trees = p.park ? Array.from({ length: 6 }, (_, k) => CX - half(0) - 9 - k * 7.5) : [];
-
-  // The wings, each one outline: stepped with the body on its inner edge, a fixed depth out
-  const wing = (side: -1 | 1) => {
-    if (!p.wings) return "";
-    const pts: string[] = [];
-    const rows = Array.from({ length: p.wings.to - p.wings.from }, (_, k) => p.wings!.from + k);
-    for (const i of rows) pts.push(`${CX + side * (half(i) + WING_OUT)},${y(i * p.floorH)}`, `${CX + side * (half(i) + WING_OUT)},${y((i + 1) * p.floorH)}`);
-    for (const i of [...rows].reverse()) pts.push(`${CX + side * half(i)},${y((i + 1) * p.floorH)}`, `${CX + side * half(i)},${y(i * p.floorH)}`);
-    return pts.join(" ");
-  };
 
   // Every venue's floor: its slab, and a label pushed clear of its neighbours, top to bottom
   const marks = [...venues]
@@ -100,27 +75,8 @@ export function TowerLocator({ v }: { v: Pick<Venue, "slug" | "name" | "level"> 
           ))}
 
           {/* The crown */}
-          {p.crown.kind === "spire" ? (
-            <polygon
-              points={`${CX - p.crown.radius * s},${y(top)} ${CX + p.crown.radius * s},${y(top)} ${CX},${y(top + p.crown.height)}`}
-              fill="var(--color-ink)"
-              fillOpacity={0.14}
-              stroke="var(--color-ink)"
-              strokeOpacity={0.4}
-              strokeLinejoin="round"
-            />
-          ) : (
-            <>
-              <polygon
-                points={`${CX - p.crown.radius * s},${y(top)} ${CX + p.crown.radius * s},${y(top)} ${CX + p.crown.radius * 0.82 * s},${y(top + p.crown.height)} ${CX - p.crown.radius * 0.82 * s},${y(top + p.crown.height)}`}
-                fill="var(--color-ink)"
-                fillOpacity={0.14}
-                stroke="var(--color-ink)"
-                strokeOpacity={0.4}
-              />
-              <line x1={CX} x2={CX} y1={y(top + p.crown.height)} y2={y(top + crown)} stroke="var(--color-ink)" strokeOpacity={0.4} />
-            </>
-          )}
+          <polygon points={e.crown.points} fill="var(--color-ink)" fillOpacity={0.14} stroke="var(--color-ink)" strokeOpacity={0.4} strokeLinejoin="round" />
+          {e.crown.kind === "lantern" && <line x1={CX} x2={CX} y1={e.crown.mast[0]} y2={e.crown.mast[1]} stroke="var(--color-ink)" strokeOpacity={0.4} />}
 
           {trees.map((tx, k) => (
             <path

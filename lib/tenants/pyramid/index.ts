@@ -226,6 +226,13 @@ const data: TenantData = {
     weather: "Fog clearing by noon · 64°F",
     concierge: "L1, by the Montgomery doors",
     memberHero: { img: images.bayDusk, lines: ["Everything the", "Pyramid has,", "in one place."] },
+    day: [
+      { at: "morning", img: images.lobbyCoffee, line: "Coffee in the lobby", amenity: "lobby" },
+      { at: "midday", img: images.gym, line: "Midday on Level 26", amenity: "wellness" },
+      { at: "golden", img: images.bayDay, line: "Golden hour on Level 27", amenity: "sky-lounge" },
+      { at: "night", img: venues.find((v) => v.slug === "sky-bar")!.hero, line: "Evening at the top, Level 48", amenity: "sky-bar" },
+      { at: "weekend", img: images.redwoodFountain, line: "A weekend in the grove", amenity: "park" },
+    ],
     signInImg: images.lobbyCoffee,
     pitches: {
       spaces: {

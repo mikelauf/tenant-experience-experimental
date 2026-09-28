@@ -25,6 +25,9 @@ export type TenantId = "pyramid" | "meridian";
  */
 export type Photo = Img & { source: "building" | "staging" | "bloom" | "placeholder" };
 
+/** Parts of the building's day, in the order they're checked: weekend days, then by the light */
+export type DayScene = "weekend" | "night" | "golden" | "morning" | "midday";
+
 export type Services = { spaces: boolean; fitness: boolean; programming: boolean };
 
 /** A service's pitch in the Home service tabs */
@@ -55,6 +58,11 @@ export type TenantCopy = {
   /** Where the concierge desk is, e.g. "L1, by the Montgomery doors" */
   concierge: string;
   memberHero: { img: Img; lines: string[] };
+  /**
+   * The member Home's hero follows the building's day: a photo for each part of it, picked by the time and the real
+   * sun where the building stands. Leave out and the hero keeps `memberHero.img`.
+   */
+  day?: { at: DayScene; img: Img; line: string; amenity?: string }[];
   signInImg: Img;
   pitches: { spaces: Pitch; events: Pitch };
   firstWeek: { room: { d: string; img: Img }; event: { d: string; img: Img }; concierge: { img: Img } };

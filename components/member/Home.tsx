@@ -4,18 +4,21 @@ import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
+import { kindLabel } from "@/lib/commit";
 import type { Commitment } from "@/lib/data/types";
 import { actions, useDemo, useHydrated } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 
+import { fmtDay, fmtRange, until } from "@/lib/time";
 import { useNow as useClock } from "@/lib/useNow";
 import Image from "@/components/ui/SmoothImage";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { CommitmentRow, CommitmentSheet, UpNext, isUpcoming, useNow } from "./Commitments";
+import { CommitmentRow, CommitmentSheet, isUpcoming, useNow } from "./Commitments";
 import { EventCard } from "./EventCard";
 import { ActivityCenter } from "./home/ActivityCenter";
-import { BuildingDoor } from "./home/BuildingDoor";
+import { DayHero } from "./home/DayHero";
+import { InsideTheBuilding } from "./home/InsideTheBuilding";
 import { WhatYouCanUse } from "./home/WhatYouCanUse";
 
 function greeting(now: number) {
@@ -23,7 +26,6 @@ function greeting(now: number) {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-const today = (now: number) => new Date(now).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
 function EventsRail({ title }: { title?: string }) {
   const t = useTenant();
@@ -62,7 +64,7 @@ function SignedOut() {
   const { copy } = useTenant();
   return (
     <>
-      <BuildingDoor
+      <DayHero
         lines={copy.memberHero.lines}
         lead="Browse everything first. Sign in when you want to book, and confirm where you work once."
         actions={
@@ -70,13 +72,14 @@ function SignedOut() {
             <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="light" size="lg" icon="arrow-right">
               Sign in
             </ButtonLink>
-            <ButtonLink href="#use-h" variant="glass" size="lg">
-              What you can use
+            <ButtonLink href="#inside" variant="glass" size="lg">
+              Look inside
             </ButtonLink>
           </>
         }
       />
       <WhatYouCanUse />
+      <InsideTheBuilding />
       <EventsRail />
     </>
   );
@@ -87,8 +90,7 @@ function PublicAccount() {
   const { member, copy } = useTenant();
   return (
     <>
-      <BuildingDoor
-        kicker="Your account"
+      <DayHero
         lines={["Welcome back,", `${member.first}.`]}
         lead={
           <>
@@ -106,10 +108,10 @@ function PublicAccount() {
             </ButtonLink>
           </>
         }
-      >
-        <ActivityCenter />
-      </BuildingDoor>
+        aside={<ActivityCenter />}
+      />
       <WhatYouCanUse lead="Some of this is open to everyone. The rest opens up once you confirm where you work." />
+      <InsideTheBuilding />
       <EventsRail title={`What's on at ${copy.the}`} />
     </>
   );
@@ -121,21 +123,27 @@ function Verifying() {
   const domain = s.account?.work?.split("@")[1];
   return (
     <>
-      <BuildingDoor
+      <DayHero
         lines={["Almost there,", `${member.first}.`]}
-        lead={
-          <>
-            The building team is confirming {domain ? <span className="text-moon">{domain}</span> : "your work email"} for {copy.the}. It usually takes a
-            working day. Until then, browse everything; the green floors are already yours.
-          </>
-        }
-        actions={
-          <ButtonLink href="/sign-in?returnTo=%2Fhome" variant="glass" size="lg" iconLeft="clock">
-            Access being verified
-          </ButtonLink>
+        lead="Until then, browse everything. Anything open to the public is yours already."
+        aside={
+          <HeroCard>
+            <span className="grid size-10 place-items-center rounded-full bg-[#f0c77e]/20 text-[#f0c77e]">
+              <Icon name="clock" size={20} />
+            </span>
+            <p className="mt-4 font-medium">Your building access is being confirmed</p>
+            <p className="t-small mt-1.5 text-moon/75">
+              The building team is checking {domain ? <span className="text-moon">{domain}</span> : "your work email"} for {copy.the}. It usually takes a
+              working day, and we&apos;ll email you.
+            </p>
+            <Link href="/sign-in?returnTo=%2Fhome" className="group/l mt-4 inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
+              See the status <Icon name="arrow-right" size={16} className="transition-transform group-hover/l:translate-x-0.5" />
+            </Link>
+          </HeroCard>
         }
       />
       <WhatYouCanUse />
+      <InsideTheBuilding />
       <EventsRail />
     </>
   );
@@ -179,22 +187,48 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
     },
   ];
   const doneCount = steps.filter((x) => x.done).length;
+  const first = steps.find((x) => !x.done);
 
   return (
     <>
-      <BuildingDoor
-        personal
-        kicker={today(now)}
+      <DayHero
         lines={[`Welcome to ${copy.the},`, `${member.first}.`]}
         lead={
           <>
-            You&apos;re set up with {member.company} on {member.floor}. Everything green is yours today; pick a floor to see what&apos;s there.
+            You&apos;re set up with {member.company} on {member.floor}.
           </>
         }
-        actions={
-          <ButtonLink href="#first-h" variant="light" size="lg" icon="arrow-right">
-            Your first week
-          </ButtonLink>
+        aside={
+          first && (
+            <HeroCard>
+              <p className="t-meta text-moon-2">
+                A good first step · {doneCount + 1} of {steps.length}
+              </p>
+              <div className="mt-3 flex gap-4">
+                <span className="media relative size-16 shrink-0 overflow-hidden">
+                  <Image src={first.img} alt="" fill sizes="64px" className="object-cover" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-medium">{first.t}</span>
+                  <span className="t-small mt-1 block text-moon/75">{first.d}</span>
+                </span>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                {first.href ? (
+                  <Link href={first.href} className="group/l inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
+                    {first.cta} <Icon name="arrow-right" size={16} className="transition-transform group-hover/l:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <button onClick={() => actions.dismiss(first.dismiss!)} className="text-[0.9375rem] font-medium underline decoration-moon/30 underline-offset-4">
+                    {first.cta}
+                  </button>
+                )}
+                <a href="#first-h" className="t-small text-moon-2 hover:text-moon">
+                  Your first week
+                </a>
+              </div>
+            </HeroCard>
+          )
         }
       />
 
@@ -277,6 +311,7 @@ function NewMember({ onOpen }: { onOpen: (c: Commitment) => void }) {
         </section>
       )}
 
+      <InsideTheBuilding personal />
       <EventsRail />
       <WhatYouCanUse heading="Everything that's here" />
     </>
@@ -296,54 +331,33 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
 
   return (
     <>
-      <section className="frame pt-[calc(var(--nav-h)+40px)] lg:pt-[calc(var(--nav-h)+64px)]">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="t-lead text-stone">{today(now)}</p>
-            <h1 className="t-hero mt-2">
-              {greeting(now)}, {member.first}.
-            </h1>
-          </div>
-          <p className="t-small flex items-center gap-2 text-stone">
-            <Icon name="sun" size={18} />
-            {copy.weather}
-          </p>
-        </div>
-      </section>
-
-      <section className="frame mt-10 grid gap-3 lg:grid-cols-12" aria-label="Your plans">
-        <div className="lg:col-span-8">
-          {next ? (
-            <UpNext c={next} now={now} onOpen={onOpen} />
+      <DayHero
+        lines={[`${greeting(now)},`, `${member.first}.`]}
+        aside={
+          next ? (
+            <HeroNext c={next} now={now} onOpen={onOpen} />
           ) : (
-            <div className="flex h-full flex-col justify-between gap-8 rounded-[var(--radius-media)] bg-paper p-8 shadow-[var(--shadow-ring)]">
-              <div>
-                <p className="t-meta">Up next</p>
-                <p className="t-h1 mt-3">Nothing on the books.</p>
-                <p className="t-body mt-3 max-w-[44ch] text-stone">
-                  Your calendar&apos;s clear. Book one of your usuals below, or see what&apos;s on this week.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {fitness ? (
-                  <ButtonLink href="/fitness/schedule" icon="arrow-right">
-                    Class schedule
-                  </ButtonLink>
-                ) : (
-                  <ButtonLink href="/spaces" icon="arrow-right">
-                    Find a room
-                  </ButtonLink>
-                )}
-                <ButtonLink href="/programming" variant="outline">
+            <HeroCard>
+              <p className="t-meta text-moon-2">Up next</p>
+              <p className="t-h3 mt-2">Nothing on the books.</p>
+              <p className="t-small mt-1.5 text-moon/75">Your calendar&apos;s clear. Book one of your usuals, or see what&apos;s on this week.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <ButtonLink href={fitness ? "/fitness/schedule" : "/spaces"} variant="light" size="sm" icon="arrow-right">
+                  {fitness ? "Class schedule" : "Find a room"}
+                </ButtonLink>
+                <ButtonLink href="/programming" variant="glass" size="sm">
                   Events
                 </ButtonLink>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="flex flex-col gap-3 lg:col-span-4">
+            </HeroCard>
+          )
+        }
+      />
+
+      <section className="frame grid gap-3 pt-12 lg:grid-cols-12" aria-label="Your plans">
+        <div className="flex flex-col gap-3 lg:col-span-7">
           <div className="flex items-center justify-between">
-            <h2 className="t-h3">Later</h2>
+            <h2 className="t-h3">Later this week</h2>
             <Link href="/plans" className="t-small font-medium text-stone hover:text-ink">
               All plans
             </Link>
@@ -378,17 +392,51 @@ function Returning({ onOpen }: { onOpen: (c: Commitment) => void }) {
         </section>
       )}
 
-      <div className="pt-16 lg:pt-20">
-        <BuildingDoor
-          personal
-          kicker="Right now"
-          lines={["Your building,", "floor by floor."]}
-          lead="Today's plans are pinned where they happen. Pick a floor to see what's there."
-        />
+      <div className="pt-20 lg:pt-28">
+        <InsideTheBuilding personal />
       </div>
       <EventsRail title="Happening this week" />
       <WhatYouCanUse heading="Explore the building" />
     </>
+  );
+}
+
+/** A glass card that sits on the hero photo */
+function HeroCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-[var(--radius-card)] bg-night/55 p-5 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)] backdrop-blur-xl sm:p-6">{children}</div>
+  );
+}
+
+/** What's next, on the hero: what, when, where and how long until */
+function HeroNext({ c, now, onOpen }: { c: Commitment; now: number; onOpen: (c: Commitment) => void }) {
+  const live = new Date(c.startsAt).getTime() <= now;
+  return (
+    <HeroCard>
+      <div className="flex items-center gap-2">
+        <span className="keep-round size-2 animate-live rounded-full bg-accent-glow" />
+        <span className="t-meta text-moon-2">Up next · {kindLabel[c.kind]}</span>
+      </div>
+      <div className="mt-3 flex gap-4">
+        {c.image && (
+          <span className="media relative size-16 shrink-0 overflow-hidden">
+            <Image src={c.image.src} alt="" fill sizes="64px" className="object-cover" />
+          </span>
+        )}
+        <span className="min-w-0">
+          <span className="t-h3 block">{c.title}</span>
+          <span className="t-small mt-1 block text-moon/75">
+            {fmtDay(c.startsAt)} · {fmtRange(c.startsAt, c.endsAt)} · {c.place}
+          </span>
+        </span>
+      </div>
+      <div className="mt-5 flex items-end justify-between gap-4">
+        <p className="t-num text-[2rem] font-medium leading-none">{live ? "Now" : until(c.startsAt, now)}</p>
+        <button onClick={() => onOpen(c)} className="inline-flex items-center gap-1.5 text-[0.9375rem] font-medium">
+          Details <Icon name="arrow-right" size={16} />
+        </button>
+      </div>
+    </HeroCard>
   );
 }
 

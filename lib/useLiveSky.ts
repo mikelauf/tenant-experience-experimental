@@ -23,8 +23,8 @@ export function useLiveSky() {
   );
   const keys = useMemo(() => withLight(tower.light), [tower.light]);
   const geo = tower.geo;
-  if (!geo || !minute) return { ready: false, now: null, sunSky: null, sun: 0.55, light: "dusk" as Light, keys };
+  if (!geo || !minute) return { ready: false, ms: 0, now: null, sunSky: null, sun: 0.55, light: "dusk" as Light, keys };
   const at = new Date(minute * 60_000);
   const sunSky = sunPosition(at, geo);
-  return { ready: true, now: nowIn(geo.tz, at), sunSky, sun: sunLevel(sunSky.elevation), light: lightAt(sunSky.elevation), keys };
+  return { ready: true, ms: at.getTime(), now: nowIn(geo.tz, at), sunSky, sun: sunLevel(sunSky.elevation), light: lightAt(sunSky.elevation), keys };
 }
