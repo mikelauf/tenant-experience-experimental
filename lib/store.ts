@@ -260,9 +260,6 @@ export const actions = {
   cancel(id: string) {
     setState((s) => ({ ...s, commitments: s.commitments.map((c) => (c.id === id ? { ...c, status: "cancelled" as const } : c)) }));
   },
-  remove(id: string) {
-    setState((s) => ({ ...s, commitments: s.commitments.filter((c) => c.id !== id) }));
-  },
   toast(t: Omit<NonNullable<DemoState["toast"]>, "id">) {
     setState((s) => ({ ...s, toast: { ...t, id: uid() } }));
   },

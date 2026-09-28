@@ -30,4 +30,3 @@ export function standing(a: Pick<Amenity, "access">, persona: Persona, fitnessMe
 
 /** The tower's floors that have something on them, top down; things elsewhere on the block sit at street level */
 export const onTower = (list: Amenity[]) => list.filter((a) => a.level != null).sort((a, b) => b.level! - a.level!);
-export const offTower = (list: Amenity[]) => list.filter((a) => a.level == null);
