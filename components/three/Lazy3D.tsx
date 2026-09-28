@@ -24,6 +24,10 @@ const hasWebGLCached = () => (webgl ??= hasWebGL());
  * them; a number waits that many ms first, so several eager scenes on one page don't all start together.
  * Phones skip the idle load to spare their GPU and memory, and mount about a screen and a half
  * early instead. `placeholder` replaces the poster while loading (the poster stays the no-3D fallback).
+ *
+ * Scenes mount a screen before they're reached, and a scene that has been seen unmounts once it's more than
+ * a screen and a half away (its poster comes back), so a long page never holds more than a couple of live
+ * WebGL contexts. Coming back near mounts it again.
  */
 export function Lazy3D({
   className,
@@ -44,6 +48,9 @@ export function Lazy3D({
   const [visible, setVisible] = useState(false);
   const [ready, setReady] = useState(false);
   const [idle, setIdle] = useState(false);
+  const [near, setNear] = useState(false);
+  const [inRange, setInRange] = useState(true);
+  const [seen, setSeen] = useState(false);
 
   useEffect(() => {
     if (!eager) return;
@@ -69,14 +76,31 @@ export function Lazy3D({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting), { rootMargin: "200px 0px" });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        setVisible(e.isIntersecting);
+        if (e.isIntersecting) setSeen(true);
+      },
+      { rootMargin: "200px 0px" },
+    );
+    const ahead = new IntersectionObserver(([e]) => setNear(e.isIntersecting), { rootMargin: "100% 0px" });
+    const range = new IntersectionObserver(([e]) => setInRange(e.isIntersecting), { rootMargin: "150% 0px" });
     io.observe(el);
-    return () => io.disconnect();
+    ahead.observe(el);
+    range.observe(el);
+    return () => {
+      io.disconnect();
+      ahead.disconnect();
+      range.disconnect();
+    };
   }, []);
 
   const use3d = !!ok && !reduce;
   // Until WebGL and motion preferences are known (the server render), assume 3D is coming.
   const fallback = ok === false || reduce === true;
+  // Preloaded scenes stay until they've been seen; after that, only while within range
+  const mounted = use3d && (inRange || !seen) && (near || visible || idle || ready);
+  if (!mounted && ready) setReady(false);
 
   return (
     <div ref={ref} className={cn("relative", className)}>
@@ -86,7 +110,7 @@ export function Lazy3D({
       >
         {fallback ? poster : placeholder}
       </div>
-      {use3d && (visible || idle || ready) && (
+      {mounted && (
         <div
           className={cn(
             "absolute inset-0 transition-[opacity,transform] duration-[900ms] ease-[var(--ease-out-expo)]",

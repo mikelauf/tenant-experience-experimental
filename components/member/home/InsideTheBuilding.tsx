@@ -199,7 +199,7 @@ function Asset({ a, order }: { a: Amenity; order: number }) {
 
   if (a.inside)
     return (
-      <Lazy3D className={stage} poster={poster} eager={1200 + order * 900}>
+      <Lazy3D className={stage} poster={poster} eager={order === 0 ? 1200 : undefined}>
         {({ active, onReady }) => <RoomCanvas id={a.id} interior={a.inside!} active={active} onReady={onReady} />}
       </Lazy3D>
     );
@@ -210,7 +210,7 @@ function Asset({ a, order }: { a: Amenity; order: number }) {
     const spec = layout.setups[setup]!;
     const guests = Math.max(spec.min ?? 0, Math.min(Math.round(spec.max * 0.65), 60));
     return (
-      <Lazy3D className={stage} poster={poster} eager={1200 + order * 900}>
+      <Lazy3D className={stage} poster={poster} eager={order === 0 ? 1200 : undefined}>
         {({ active, onReady }) => <SetupCanvas shell={layout.shell} spec={spec} setup={setup} guests={guests} preset="overview" everyday active={active} onReady={onReady} />}
       </Lazy3D>
     );

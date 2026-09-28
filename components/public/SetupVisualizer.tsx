@@ -515,7 +515,8 @@ export function SetupVisualizer({
   const stage = (
     <Lazy3D
       className={cn("w-full", split ? "aspect-[4/5] sm:aspect-[4/3] lg:aspect-auto lg:h-full" : "aspect-[16/10]")}
-      eager
+      // A venue's space leads its page, so it's drawn before anyone scrolls; further down a page it waits to be near
+      eager={split}
       poster={
         <div className="flex h-full items-center justify-center p-6">
           <Plan shell={shell} spec={spec} setup={setup} guests={deferred} />
