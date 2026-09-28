@@ -8,17 +8,32 @@ import { useDemo } from "@/lib/store";
 import { useTenant } from "@/lib/tenants/client";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { FloorDrawing } from "./FloorDrawing";
+import { FloorDrawing, type DrawnFloor } from "./FloorDrawing";
 import { glideTo } from "./useScrollSpy";
 
 /**
- * A Home's last word: a big line beside the tower in elevation, every spotlighted floor lit and named, and a light
- * riding up through it. The names go back to their spotlights.
+ * A last word: a big line beside the tower in elevation, every spotlighted floor lit and named, and a light
+ * riding up through it. On the Home the names go back to their spotlights; pass `floors` and `onPick` to name
+ * something else (the venues home names its venues, each opening its page).
  */
-export function CloseBand({ meta, title, lead, actions }: { meta: string; title: string; lead: React.ReactNode; actions: React.ReactNode }) {
+export function CloseBand({
+  meta,
+  title,
+  lead,
+  actions,
+  floors,
+  onPick,
+}: {
+  meta: string;
+  title: string;
+  lead: React.ReactNode;
+  actions: React.ReactNode;
+  floors?: DrawnFloor[];
+  onPick?: (id: string) => void;
+}) {
   const t = useTenant();
-  const tower = useMemo(() => onTower(t.amenities), [t.amenities]);
-  const lit = useMemo(() => tower.filter((a) => a.spotlight != null).map((a) => a.id), [tower]);
+  const tower = useMemo(() => floors ?? onTower(t.amenities), [floors, t.amenities]);
+  const lit = useMemo(() => (floors ? floors.map((f) => f.id) : t.amenities.filter((a) => a.level != null && a.spotlight != null).map((a) => a.id)), [floors, t.amenities]);
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   return (
@@ -41,10 +56,13 @@ export function CloseBand({ meta, title, lead, actions }: { meta: string; title:
             active={lit}
             hoverId={hoverId}
             onHover={setHoverId}
-            onPick={(id) => {
-              const el = document.getElementById(`at-${id}`);
-              if (el) glideTo(el);
-            }}
+            onPick={
+              onPick ??
+              ((id) => {
+                const el = document.getElementById(`at-${id}`);
+                if (el) glideTo(el);
+              })
+            }
           />
         </div>
       </div>

@@ -11,6 +11,9 @@ import { useTenant } from "@/lib/tenants/client";
 export const OK = "#5fc08f";
 export const STEP = "#f0c77e";
 
+/** A floor to name on the drawing: an amenity, or anything else with a level (the venues' close band uses venues) */
+export type DrawnFloor = Pick<Amenity, "id" | "name" | "level" | "where"> & { access?: Amenity["access"] };
+
 /* The drawing's own units */
 const W = 320;
 const H = 380;
@@ -34,7 +37,7 @@ export function FloorDrawing({
   elevator,
   className,
 }: {
-  list: Amenity[];
+  list: DrawnFloor[];
   /** The picked floor (night) or the floors being read (day) */
   active: string[];
   hoverId: string | null;
@@ -57,7 +60,7 @@ export function FloorDrawing({
     const floor = Math.max(0, a.level! - 1);
     const at = park ? GROUND - 4 : e.y((floor + 0.5) * p.floorH);
     const edge = park ? CX + e.half(0) + 10 : CX + e.half(floor) + (e.inWings(floor) ? e.wingOut : 0) + 3;
-    return { a, park, floor, at, edge, labelY: at, ok: standing(a, s.persona, s.fitnessMember).ok };
+    return { a, park, floor, at, edge, labelY: at, ok: !a.access || standing({ access: a.access }, s.persona, s.fitnessMember).ok };
   });
   for (let k = 1; k < marks.length; k++) marks[k]!.labelY = Math.max(marks[k]!.labelY, marks[k - 1]!.labelY + GAP);
   const last = marks.at(-1);
@@ -148,7 +151,7 @@ export function FloorDrawing({
             onBlur={() => onHover(null)}
             aria-pressed={night ? lit : undefined}
             aria-current={!night && lit ? "true" : undefined}
-            aria-label={`${m.a.name}, ${m.a.where}. ${ACCESS_LABEL[m.a.access]}`}
+            aria-label={`${m.a.name}, ${m.a.where}${m.a.access ? `. ${ACCESS_LABEL[m.a.access]}` : ""}`}
             className={cn(
               "absolute flex -translate-y-1/2 items-baseline gap-2.5 whitespace-nowrap text-left text-[0.9375rem] transition-colors duration-500",
               night ? (lit ? "font-medium text-moon" : "text-moon/75 hover:text-moon") : lit ? "font-medium text-ink" : "text-stone hover:text-ink",

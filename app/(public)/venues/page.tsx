@@ -14,7 +14,7 @@ import { Suspense } from "react";
 import { ExplorerSection } from "@/components/public/explorer/ExplorerSection";
 import { VenueCollection } from "@/components/public/VenueCollection";
 import { TowerHero } from "@/components/three/TowerHero";
-import { CloseBand } from "@/components/member/home/SignInClose";
+import { VenuesClose } from "@/components/public/VenuesClose";
 
 export async function generateMetadata() {
   return { title: (await getTenant()).copy.public.title };
@@ -323,16 +323,7 @@ export default async function VenuesHome() {
           )}
         </div>
       </section>
-      <CloseBand
-        meta={`An event at ${copy.the}?`}
-        title="Come on up."
-        lead="Tell us what you have in mind. Our events team will help you plan it."
-        actions={
-          <ButtonLink href="/venues/inquire" variant="light" size="lg" icon="arrow-right">
-            Submit an inquiry
-          </ButtonLink>
-        }
-      />
+      <VenuesClose />
     </>
   );
 }

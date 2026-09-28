@@ -17,7 +17,7 @@ export const GROUPS: { id: AmenityGroup; label: string; line: string }[] = [
 ];
 
 /** Whether this person can use it today, as a short status for the card */
-export function standing(a: Amenity, persona: Persona, fitnessMember: boolean): { ok: boolean; note: string } {
+export function standing(a: Pick<Amenity, "access">, persona: Persona, fitnessMember: boolean): { ok: boolean; note: string } {
   if (a.access === "public") return { ok: true, note: "Open to you" };
   if (!isMember(persona)) {
     if (persona === "verifying") return { ok: false, note: "Once your access is confirmed" };
