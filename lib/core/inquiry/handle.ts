@@ -140,3 +140,18 @@ export async function handlePublicInquiry(request: Request, dependencies: Depend
   );
   return json(result.body, result.status);
 }
+
+/**
+ * What still stands between this deploy and real inquiries, in words for a deploy log. Empty means inquiries go to Core.
+ * A production site that isn't ready still takes inquiries, but only as a simulation ("Preview complete"), or not at all.
+ */
+export function inquiryGaps(environment: InquiryEnvironment, target: Pick<InquiryTarget, "config" | "privacyUrl">): string[] {
+  const gaps: string[] = [];
+  if (!isLiveInquiry(environment)) gaps.push("PUBLIC_INQUIRY_MODE isn't \"live\", so every inquiry is a simulation and nothing reaches the events team");
+  if (!environment.CORE_HOST?.trim()) gaps.push("CORE_HOST is missing");
+  if (!environment.CORE_PUBLIC_API_KEY?.trim()) gaps.push("CORE_PUBLIC_API_KEY is missing");
+  if (!target.config?.sourceKey || !target.config.coreBuildingId) gaps.push("the building has no Core inquiry config");
+  else if (!target.config.privacyVersion) gaps.push("the building's inquiry.privacyVersion isn't set (the TAP inquiry source isn't published yet)");
+  if (!target.privacyUrl) gaps.push("the building has no privacy policy link");
+  return gaps;
+}

@@ -1,6 +1,6 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
-import { handlePublicInquiry, type InquiryEnvironment, type InquiryTarget } from "./handle.ts";
+import { handlePublicInquiry, inquiryGaps, type InquiryEnvironment, type InquiryTarget } from "./handle.ts";
 
 /** Adapted from Tenant Experience's handle-inquiry.test.ts for config-driven buildings. */
 
@@ -243,4 +243,16 @@ test("an aborted request releases its stream and never submits", async () => {
   assert.equal((await result).status, 503);
   assert.equal(cancelled, true);
   assert.equal(h.writes.length, 0);
+});
+
+test("inquiry readiness names every missing piece, and nothing once it's all there", () => {
+  const config = { coreBuildingId: "b", sourceKey: "web_inquiry" };
+  const gaps = inquiryGaps({}, { config, privacyUrl: "https://example.com/privacy" });
+  assert.equal(gaps.length, 4);
+  assert.match(gaps.join(" "), /simulation/);
+  assert.match(gaps.join(" "), /privacyVersion/);
+  assert.deepEqual(
+    inquiryGaps({ PUBLIC_INQUIRY_MODE: "live", CORE_HOST: "https://core", CORE_PUBLIC_API_KEY: "k" }, { config: { ...config, privacyVersion: "v5" }, privacyUrl: "https://example.com/privacy" }),
+    [],
+  );
 });
