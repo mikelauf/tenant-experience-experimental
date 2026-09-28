@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { guestsShort } from "@/lib/data/shared";
@@ -22,7 +24,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/venues/[slug]">) {
   const v = (await getTenant()).venue((await params).slug);
-  return { title: v?.name ?? "Venue", description: v?.tagline };
+  // A pasted venue link unfurls with its own photo: the JPEG crop of its hero that the brief's card uses (scripts/og-images.mjs)
+  const id = v?.hero.src.match(/\/([^/]+)\.webp$/)?.[1];
+  const og = id && existsSync(join(process.cwd(), "public/images/og", `${id}.jpg`)) ? id : undefined;
+  return {
+    title: v?.name ?? "Venue",
+    description: v?.tagline,
+    openGraph: og ? { title: v!.name, description: v!.tagline, images: [{ url: `/images/og/${og}.jpg`, width: 1200, height: 630 }] } : undefined,
+  };
 }
 
 /** Marks, in the demo only, the sections that are hidden at launch until real data backs them. */
