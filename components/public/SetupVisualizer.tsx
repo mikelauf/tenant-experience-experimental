@@ -355,6 +355,8 @@ export function SetupVisualizer({
     /* eslint-disable react-hooks/set-state-in-effect -- the link is only readable after hydration */
     setInner(s.setup);
     setGuests(s.guests);
+    // The link's headcount wins over one remembered from earlier browsing
+    setSlid(true);
     if (s.view === "window") {
       if (lookout) {
         setLooking(true);
